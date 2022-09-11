@@ -8,6 +8,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthenticatorApi.Common", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthenticatorApi.Services", "AuthenticatorApi.Services\AuthenticatorApi.Services.csproj", "{EFFFF101-2B7A-43D7-93EF-1FF2D2FB3DE7}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{77C525B4-AFDA-4CC2-8B35-92A34557AD5C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthenticatorApi.Services.Tests", "AuthenticatorApi.Services.Tests\AuthenticatorApi.Services.Tests.csproj", "{8DA42846-908E-4CA6-8EE9-0D42F15C43EE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +34,12 @@ Global
 		{EFFFF101-2B7A-43D7-93EF-1FF2D2FB3DE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EFFFF101-2B7A-43D7-93EF-1FF2D2FB3DE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EFFFF101-2B7A-43D7-93EF-1FF2D2FB3DE7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DA42846-908E-4CA6-8EE9-0D42F15C43EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DA42846-908E-4CA6-8EE9-0D42F15C43EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DA42846-908E-4CA6-8EE9-0D42F15C43EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DA42846-908E-4CA6-8EE9-0D42F15C43EE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8DA42846-908E-4CA6-8EE9-0D42F15C43EE} = {77C525B4-AFDA-4CC2-8B35-92A34557AD5C}
 	EndGlobalSection
 EndGlobal

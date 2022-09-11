@@ -1,0 +1,10 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=367e4caf_002D3677_002D40c4_002Db2df_002D815e0cae0447/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="UserServiceTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;TestAncestor&gt;
+    &lt;TestId&gt;xUnit::8DA42846-908E-4CA6-8EE9-0D42F15C43EE::net6.0::AuthenticatorApi.Services.Tests.Domain.UserServiceTests&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::8DA42846-908E-4CA6-8EE9-0D42F15C43EE::net6.0::AuthenticatorApi.Services.Tests.Domain.AuthenticationServiceTests.LoginUserAsync_WhenDtoIsValidAndUserExists_ProcessesRequest&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::8DA42846-908E-4CA6-8EE9-0D42F15C43EE::net6.0::AuthenticatorApi.Services.Tests.Domain.AuthenticationServiceTests.LoginUserAsync_WhenDtoIsValidAndUserExistsButUserIsNotActive_ThrowsExceptionAsync&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::8DA42846-908E-4CA6-8EE9-0D42F15C43EE::net6.0::AuthenticatorApi.Services.Tests.Domain.AuthenticationServiceTests.LoginUserAsync_WhenDtoIsValidAndVariousUsernameCasingsAreProvided_ProcessesRequest&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::8DA42846-908E-4CA6-8EE9-0D42F15C43EE::net6.0::AuthenticatorApi.Services.Tests.Domain.AuthenticationServiceTests&lt;/TestId&gt;
+  &lt;/TestAncestor&gt;
+&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

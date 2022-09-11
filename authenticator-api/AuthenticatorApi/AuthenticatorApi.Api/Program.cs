@@ -50,6 +50,7 @@ void ConfigureServices(IServiceCollection collection)
     collection.AddDbContext<ApplicationDb>(opt => opt.UseInMemoryDatabase(StringConstants.AuthenticationDbName));
     collection.AddTransient<IUserService, UserService>();
     collection.AddTransient<AuthenticationService>();
+    collection.AddAutoMapper(typeof(IAuthenticatorApiCommon).Assembly);
 }
 
 void ConfigureMiddleware(IApplicationBuilder builder)

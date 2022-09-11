@@ -16,14 +16,14 @@ public class AuthController : ApiControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] UserLoginDto dto)
     {
-        await _authenticationService.LoginUserAsync(dto.TenantId, dto.Username);
+        await _authenticationService.LoginUserAsync(dto);
         return Ok();
     }
     
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] CreateUserRequestDto dto)
     {
-        await _authenticationService.RegisterUser(dto);
-        return Ok();
+        var userResponse = await _authenticationService.RegisterUser(dto);
+        return Created("", userResponse);
     }
 }

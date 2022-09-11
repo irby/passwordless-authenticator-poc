@@ -1,6 +1,9 @@
 using AuthenticatorApi.Common.Enums;
 using AuthenticatorApi.Common.Exceptions;
+using AuthenticatorApi.Common.Models.Dto;
 using AuthenticatorApi.Common.Models.Dto.Authentication;
+using AuthenticatorApi.Common.Validators.User;
+using FluentValidation;
 
 namespace AuthenticatorApi.Services.Domain;
 
@@ -8,42 +11,46 @@ public class AuthenticationService : ServiceBase<AuthenticationService>
 {
     private IUserService _userService;
 
-    public AuthenticationService(ILoggerFactory loggerFactory, IUserService userService) : base(loggerFactory)
+    public AuthenticationService(ILoggerFactory loggerFactory, IUserService userService, IMapper mapper) : base(loggerFactory, mapper)
     {
         _userService = userService;
     }
 
-    public async Task LoginUserAsync(Guid tenantId, string username)
+    public async Task LoginUserAsync(UserLoginDto dto)
     {
+        await ValidateBaseRequest(dto);
+        
         var trackingId = Guid.NewGuid();
         
-        Log.LogInformation($"Starting login for user {username} at tenant ID {tenantId}. Tracking ID: {trackingId}");
+        Log.LogInformation($"Starting login for user {dto.Username} at tenant ID {dto.TenantId}. Tracking ID: {trackingId}");
         
-        var user = await _userService.GetUserByTenantIdAndUsername(tenantId, username);
+        var user = await _userService.GetUserByTenantIdAndUsername(dto.TenantId, dto.Username);
 
         if (user is null)
         {
-            Log.LogInformation($"Login failed for {username}. Reason: Does not exist. Tracking ID: {trackingId}");
+            Log.LogInformation($"Login failed for {dto.Username}. Reason: Does not exist. Tracking ID: {trackingId}");
             throw new NotFoundException();
         }
 
         if (!user.IsActive)
         {
-            Log.LogInformation($"Login failed for {username}. Reason: User is not active. Tracking ID: {trackingId}");
+            Log.LogInformation($"Login failed for {dto.Username}. Reason: User is not active. Tracking ID: {trackingId}");
             throw new BadRequestException(ErrorCode.AccountDisabled);
         }
 
         if (!user.IsVerified)
         {
-            Log.LogInformation($"Login failed for {username}. Reason: User is not yet verified. Tracking ID: {trackingId}");
+            Log.LogInformation($"Login failed for {dto.Username}. Reason: User is not yet verified. Tracking ID: {trackingId}");
             throw new BadRequestException(ErrorCode.AccountNotVerified);
         }
         
-        Log.LogInformation($"Login successful for {username}. Tracking ID: {trackingId}");
+        Log.LogInformation($"Login successful for {dto.Username}. Tracking ID: {trackingId}");
     }
 
     public async Task<CreateUserResponseDto> RegisterUser(CreateUserRequestDto dto)
     {
+        await ValidateBaseRequest(dto);
+        
         var existingUser = await _userService.GetUserByTenantIdAndUsername(dto.TenantId, dto.Username);
 
         if (existingUser is { })
@@ -60,5 +67,10 @@ public class AuthenticationService : ServiceBase<AuthenticationService>
             ModifiedOn = user.ModifiedOn.GetValueOrDefault(),
             IsVerified = user.IsVerified
         };
+    }
+
+    private async Task ValidateBaseRequest(BaseUserRequestDto dto)
+    {
+        await new UserRequestDtoValidator().ValidateAndThrowAsync(dto);
     }
 }

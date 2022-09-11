@@ -1,7 +1,5 @@
 namespace AuthenticatorApi.Common.Models.Dto.Authentication;
 
-public class UserLoginDto
+public class UserLoginDto : BaseUserRequestDto
 {
-    public string Username { get; set; }
-    public Guid TenantId { get; set; }
 }

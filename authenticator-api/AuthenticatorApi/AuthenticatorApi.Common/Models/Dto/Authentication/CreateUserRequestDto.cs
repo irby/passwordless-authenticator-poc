@@ -1,24 +1,15 @@
 namespace AuthenticatorApi.Common.Models.Dto.Authentication;
 
-public class CreateUserRequestDto
+public class CreateUserRequestDto : BaseUserRequestDto
 {
-    private string _username;
-    private string _email;
+    private string? _email;
     
-    public Guid TenantId { get; set; }
-    public string Username
-    {
-        get => _username;
-        set => _username = value.Trim().ToLower();
-    }
     public string Email
     {
         get => _email;
-        set => _email = value.Trim().ToLower();
+        set => _email = value?.Trim().ToLower();
     }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string PhoneNumber { get; set; }
-    
-
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? PhoneNumber { get; set; }
 }
