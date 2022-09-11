@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthenticatorApi.Api", "AuthenticatorApi.Api\AuthenticatorApi.Api.csproj", "{6911F814-F865-401A-90C1-26359E6CD036}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6911F814-F865-401A-90C1-26359E6CD036}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6911F814-F865-401A-90C1-26359E6CD036}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6911F814-F865-401A-90C1-26359E6CD036}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6911F814-F865-401A-90C1-26359E6CD036}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
