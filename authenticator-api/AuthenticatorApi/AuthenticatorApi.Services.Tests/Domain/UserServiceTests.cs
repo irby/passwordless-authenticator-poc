@@ -1,6 +1,5 @@
 using AuthenticatorApi.Common.Models.Dto.Authentication;
 using AuthenticatorApi.Services.Domain;
-using Microsoft.EntityFrameworkCore;
 
 namespace AuthenticatorApi.Services.Tests.Domain;
 
@@ -10,7 +9,7 @@ public class UserServiceTests : DomainServiceTestBase<UserService>
     {
     }
     
-    #region GetUserByTenantIdAndUsername
+    # region GetUserByTenantIdAndUsername
     
     [Fact]
     public async Task GetUserByTenantIdAndUsername_WhenCorrectUsernameAndTenantIdAreProvided_ReturnsUser()
@@ -62,9 +61,9 @@ public class UserServiceTests : DomainServiceTestBase<UserService>
         result.Should().BeNull();
     }
 
-    #endregion
+    # endregion
 
-    #region CreateUser
+    # region CreateUser
 
     [Fact]
     public async Task CreateUser_WhenValidDtoIsProvided_CreatesUser()
@@ -119,6 +118,6 @@ public class UserServiceTests : DomainServiceTestBase<UserService>
         userCountAfter.Should().Be(0);
     }
 
-    #endregion
+    # endregion
     
 }

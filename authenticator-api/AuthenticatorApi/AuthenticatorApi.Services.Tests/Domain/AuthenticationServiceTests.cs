@@ -12,6 +12,8 @@ public class AuthenticationServiceTests : ServiceTestBase<AuthenticationService>
     {
         ServiceCollection.AddTransient<IUserService, UserService>();
     }
+    
+    # region  LoginUserAsync
 
     [Fact]
     public async Task LoginUserAsync_WhenDtoIsValidAndUserExists_ProcessesRequest()
@@ -152,4 +154,71 @@ public class AuthenticationServiceTests : ServiceTestBase<AuthenticationService>
         
         await Assert.ThrowsAsync<NotFoundException>(() => Service.LoginUserAsync(dto));
     }
+    
+    # endregion
+    
+    # region  CreateUser
+    
+    [Fact]
+    public async Task RegisterUser_WhenDtoIsValidAndUserDoesNotAlreadyExist_CreatesNewUser()
+    {
+        await using var context = GetDbContext();
+
+        var tenant1 = new Tenant() { Name = "tenant1" };
+
+        await context.AddRangeAsync(tenant1);
+        await context.SaveChangesAsync();
+
+        var userCountBefore = await context.Users.CountAsync();
+
+        var dto = new CreateUserRequestDto()
+        {
+            Username = "   Test-User  ",
+            Email = " My-test-email@Example.coM ",
+            TenantId = tenant1.Id
+        };
+
+        var result = await Service.RegisterUser(dto);
+        
+        var userCountAfter = await context.Users.CountAsync();
+
+        result.Should().NotBeNull();
+
+        userCountBefore.Should().Be(0);
+        userCountAfter.Should().Be(1);
+
+        var resultingUser = context.Users.First(p => p.Id == result.Id);
+        resultingUser.Username.Should().Be("test-user");
+        resultingUser.Email.Should().Be("my-test-email@example.com");
+    }
+
+    [Fact]
+    public async Task RegisterUser_WhenDtoIsValidButUserAlreadyExists_ThrowsException()
+    {
+        await using var context = GetDbContext();
+
+        var tenant1 = new Tenant() { Name = "tenant1" };
+
+        var user = new User()
+        {
+            Username = "test-user",
+            Tenant = tenant1,
+            IsActive = true,
+            IsVerified = true
+        };
+        
+        await context.AddRangeAsync(tenant1, user);
+        await context.SaveChangesAsync();
+
+        var dto = new CreateUserRequestDto()
+        {
+            Username = "test-user",
+            TenantId = tenant1.Id
+        };
+
+        var exception = await Assert.ThrowsAsync<BadRequestException>(() => Service.RegisterUser(dto));
+        exception.ErrorCode.Should().Be(ErrorCode.AccountAlreadyExists);
+    }
+    
+    # endregion
 }
