@@ -36,6 +36,15 @@ public class ApplicationDb : DbContext
         optionsBuilder.ConfigureWarnings(opt => opt.Ignore(CoreEventId.NavigationBaseIncludeIgnored));
     }
 
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<User>()
+            .HasKey(c => new { c.Username, c.TenantId });
+        
+        modelBuilder.Entity<User>()
+            .HasIndex(c => new { c.Username, c.TenantId, c.Email });
+    }
+
     public new async Task<int> SaveChangesAsync(bool skipAuditing = false, CancellationToken cancellationToken = new CancellationToken())
     {
         var auditableEntities = new List<Tuple<AuditableEntity, EntityState>>();

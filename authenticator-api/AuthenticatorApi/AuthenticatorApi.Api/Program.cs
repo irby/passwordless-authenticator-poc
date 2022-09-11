@@ -1,3 +1,4 @@
+using AuthenticatorApi.Api.Handlers;
 using AuthenticatorApi.Common.Constants;
 using AuthenticatorApi.Common.Interfaces;
 using AuthenticatorApi.Data;
@@ -19,6 +20,8 @@ ConfigureServices(builder.Services);
 RunMigrations(builder.Services);
 
 var app = builder.Build();
+
+ConfigureMiddleware(app);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -47,6 +50,11 @@ void ConfigureServices(IServiceCollection collection)
     collection.AddDbContext<ApplicationDb>(opt => opt.UseInMemoryDatabase(StringConstants.AuthenticationDbName));
     collection.AddTransient<IUserService, UserService>();
     collection.AddTransient<AuthenticationService>();
+}
+
+void ConfigureMiddleware(IApplicationBuilder builder)
+{
+    builder.UseServiceExceptionHandler();
 }
 
 void RunMigrations(IServiceCollection collection)

@@ -16,7 +16,14 @@ public class AuthController : ApiControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] UserLoginDto dto)
     {
-        var result = await _authenticationService.LoginUserAsync(dto.TenantId, dto.Username);
-        return Ok(result);
+        await _authenticationService.LoginUserAsync(dto.TenantId, dto.Username);
+        return Ok();
+    }
+    
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] CreateUserRequestDto dto)
+    {
+        await _authenticationService.RegisterUser(dto);
+        return Ok();
     }
 }

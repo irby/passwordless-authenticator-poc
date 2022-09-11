@@ -1,3 +1,7 @@
+using AuthenticatorApi.Common.Enums;
+using AuthenticatorApi.Common.Exceptions;
+using AuthenticatorApi.Common.Models.Dto.Authentication;
+
 namespace AuthenticatorApi.Services.Domain;
 
 public class AuthenticationService : ServiceBase<AuthenticationService>
@@ -9,7 +13,7 @@ public class AuthenticationService : ServiceBase<AuthenticationService>
         _userService = userService;
     }
 
-    public async Task<bool> LoginUserAsync(Guid tenantId, string username)
+    public async Task LoginUserAsync(Guid tenantId, string username)
     {
         var trackingId = Guid.NewGuid();
         
@@ -20,37 +24,41 @@ public class AuthenticationService : ServiceBase<AuthenticationService>
         if (user is null)
         {
             Log.LogInformation($"Login failed for {username}. Reason: Does not exist. Tracking ID: {trackingId}");
-            // Handle user being null
-            return false;
+            throw new NotFoundException();
         }
 
         if (!user.IsActive)
         {
             Log.LogInformation($"Login failed for {username}. Reason: User is not active. Tracking ID: {trackingId}");
-            // Handle user deactivation
-            return false;
+            throw new BadRequestException(ErrorCode.AccountDisabled);
         }
 
         if (!user.IsVerified)
         {
             Log.LogInformation($"Login failed for {username}. Reason: User is not yet verified. Tracking ID: {trackingId}");
-            // Handle user not yet being verified
-            return false;
+            throw new BadRequestException(ErrorCode.AccountNotVerified);
         }
         
         Log.LogInformation($"Login successful for {username}. Tracking ID: {trackingId}");
-
-        return true;
     }
 
-    public async Task RegisterUser(Guid tenantId, string username)
+    public async Task<CreateUserResponseDto> RegisterUser(CreateUserRequestDto dto)
     {
-        var user = await _userService.GetUserByTenantIdAndUsername(tenantId, username);
+        var existingUser = await _userService.GetUserByTenantIdAndUsername(dto.TenantId, dto.Username);
 
-        if (user is { })
+        if (existingUser is { })
         {
-            // TODO: Handle this better
-            throw new Exception();
+            throw new BadRequestException(ErrorCode.AccountAlreadyExists);
         }
+
+        var user = await _userService.CreateUser(dto);
+
+        return new CreateUserResponseDto()
+        {
+            Id = user.Id,
+            CreatedOn = user.CreatedOn.GetValueOrDefault(),
+            ModifiedOn = user.ModifiedOn.GetValueOrDefault(),
+            IsVerified = user.IsVerified
+        };
     }
 }

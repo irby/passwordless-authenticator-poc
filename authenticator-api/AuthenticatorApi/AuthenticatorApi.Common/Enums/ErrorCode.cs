@@ -2,5 +2,7 @@ namespace AuthenticatorApi.Common.Enums;
 
 public enum ErrorCode
 {
-    // TODO
+    AccountAlreadyExists = 100,
+    AccountDisabled = 101,
+    AccountNotVerified = 102
 }
