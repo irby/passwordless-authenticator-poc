@@ -12,7 +12,7 @@ services:
       context: .
       dockerfile: ./docker/Dockerfile
     ports:
-      - "5001:5001"
+      - "8000:8000"
     volumes:
      - ${HOME}/.aspnet/https:/https/:ro
 
