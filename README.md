@@ -41,6 +41,12 @@ The project contains the following structure:
 - ### Deploy
   - This contains the files necessary to spin up a Docker instance of the project directory. It will create an instance of the authenticator API, two instances of the authenticator front-end (for the primary account user and guest user), two instances of the client front-end (for the primary account user and guest user), one instance of the client API, a PostgreSQL database, and a mail server (mailslurper).
 
+  - Use the following command to start the Docker container:
+  
+  ```(shell)
+  docker-compose -f deploy/docker-compose/quickstart.yaml -p "hanko-quickstart" up --build`
+  ```
+
   - When running, the services can be reached at the following URLs:
     - Authenticator Backend - http://localhost:8000
     - Mailslurper - http://localhost:8080
