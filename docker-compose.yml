@@ -1,5 +1,0 @@
-# Base compose file, defines the application parameters
-# before parameterizing for a given environment.
-version: "3"
-services:
-    authenticator-api:

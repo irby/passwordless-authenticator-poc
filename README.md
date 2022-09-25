@@ -26,7 +26,7 @@ As it is currently designed, passwordless authentication does not allow users to
 
 The project contains the following structure:
 
-- ### Authenticator API
+- ### Authenticator Backend
   - This contains the code to run the authenticator API. The authenticator API will be consume by the authenticator front end, client front-end and client back-end.
 
 - ### Authenticator Front-End
@@ -38,5 +38,9 @@ The project contains the following structure:
 - ### Client Front-End
   - This contains the code for the front-end that will be consumed by the primary account owner and the guest. It will have a login page and a page that requires a valid session token to access.
 
-- ### Docker
-  - This contains the files necessary to spin up a Docker instance of the project directory. It will create an instance of the authenticator API, two instances of the authenticator front-end (for the primary account user and guest user), two instances of the client front-end (for the primary account user and guest user), and one instance of the client API.
+- ### Deploy
+  - This contains the files necessary to spin up a Docker instance of the project directory. It will create an instance of the authenticator API, two instances of the authenticator front-end (for the primary account user and guest user), two instances of the client front-end (for the primary account user and guest user), one instance of the client API, a PostgreSQL database, and a mail server (mailslurper).
+
+  - When running, the services can be reached at the following URLs:
+    - Authenticator Backend - http://localhost:8000
+    - Mailslurper - http://localhost:8080
