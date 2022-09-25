@@ -1,0 +1,75 @@
+services:
+  hanko-migrate:
+    build: ../../authenticator-backend
+    volumes:
+      - type: bind
+        source: ./config.yaml
+        target: /etc/config/config.yaml
+    command: --config /etc/config/config.yaml migrate up
+    restart: on-failure
+    depends_on:
+      postgresd:
+        condition: service_healthy
+    networks:
+      - intranet
+  hanko:
+    depends_on:
+      hanko-migrate:
+        condition: service_completed_successfully
+    build: ../../authenticator-backend
+    ports:
+      - '8000:8000' # public
+      - '8001:8001' # private
+    restart: unless-stopped
+    command: serve --config /etc/config/config.yaml all
+    volumes:
+      - type: bind
+        source: ./config.yaml
+        target: /etc/config/config.yaml
+    networks:
+      - intranet
+    environment:
+      - PASSWORD_ENABLED
+  postgresd:
+    image: postgres:12-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=hanko
+      - POSTGRES_PASSWORD=hanko
+      - POSTGRES_DB=hanko
+    healthcheck:
+      test: pg_isready -U hanko -d hanko
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - intranet
+  # elements:
+  #   build: ../../elements
+  #   ports:
+  #     - "9500:80"
+  #   networks:
+  #     - intranet
+  # example:
+  #   build: ../../example
+  #   ports:
+  #     - "8888:8080"
+  #   environment:
+  #     - HANKO_URL=http://localhost:8000
+  #     - HANKO_URL_INTERNAL=http://hanko:8000
+  #     - HANKO_ELEMENT_URL=http://localhost:9500/element.hanko-auth.js
+  #   networks:
+  #     - intranet
+  mailslurper:
+    image: marcopas/docker-mailslurper:latest
+    ports:
+      - '8080:8080' # web UI
+      - '8085:8085'
+      - '2500:2500' # expose SMTP
+    networks:
+      - intranet
+networks:
+  intranet:
+    
