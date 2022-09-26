@@ -1,3 +1,5 @@
 export const environment = {
-  production: true
+  production: true,
+  hankoApiUrl: window["env"]["apiUrl"] || "",
+  hankoElementUrl: window["env"]["hankoElementUrl"] || ""
 };
