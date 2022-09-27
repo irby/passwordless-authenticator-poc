@@ -199,6 +199,17 @@ func (s sessionManager) Verify(token string) (jwt.Token, error) {
 	return nil, nil
 }
 
+func (s sessionManager) DeleteCookie() (*http.Cookie, error) {
+	return &http.Cookie{
+		Name:     "hanko",
+		Value:    "",
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	}, nil
+}
+
 var credentials = []models.WebauthnCredential{
 	func() models.WebauthnCredential {
 		uId, _ := uuid.FromString(userId)
