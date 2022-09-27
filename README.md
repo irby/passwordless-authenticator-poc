@@ -44,7 +44,7 @@ The project contains the following structure:
   - Use the following command to start the Docker container:
   
   ```(shell)
-  docker-compose -f deploy/docker-compose/quickstart.yaml -p "hanko-quickstart" up --build`
+  docker-compose -f deploy/docker-compose/quickstart.yaml -p "hanko-quickstart" up --build
   ```
 
   - When running, the services can be reached at the following URLs:

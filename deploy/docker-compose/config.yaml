@@ -24,8 +24,7 @@ server:
         - "*"
 webauthn:
   relying_party:
-    id: "angular"
-    origin: "*"
+    origin: "http://localhost:4200"
 session:
   cookie:
     secure: false # is needed for safari, because safari does not store secure cookies on localhost
