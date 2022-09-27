@@ -1,5 +1,4 @@
 import { Component, OnInit, Renderer2 } from '@angular/core';
-import { Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
 import { ScriptService } from '../core/services/script.service';
 
@@ -17,21 +16,17 @@ export class LoginComponent implements OnInit {
   public isHankoElementsLoaded = false;
 
   constructor(private renderer: Renderer2,
-    private scriptService: ScriptService,
-    private readonly router: Router) { }
+    private scriptService: ScriptService) { }
 
   ngOnInit() {
     const scriptElement = this.scriptService.loadJsScript(this.renderer, `${environment.hankoElementUrl}/element.hanko-auth.js`);
     scriptElement.onload = () => {
+      console.log('successfully loaded elements');
       this.isHankoElementsLoaded = true;
     };
     scriptElement.onerror = () => {
       console.error('Error loading elements');
     }
-  }
-
-  public redirectToIndex(e : any) {
-    this.router.navigate(['/home']);
   }
 
 }

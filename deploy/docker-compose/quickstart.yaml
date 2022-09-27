@@ -56,9 +56,6 @@ services:
     build: ../../client-frontend
     ports:
       - "4200:80"
-    environment:
-      - HANKO_API_URL=http://hanko:8000
-      - HANKO_ELEMENT_URL=http://localhost:9500
     networks:
       - intranet
   example:
