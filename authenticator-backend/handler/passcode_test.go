@@ -90,6 +90,7 @@ func TestPasscodeHandler_Finish(t *testing.T) {
 
 	if assert.NoError(t, passcodeHandler.Finish(c)) {
 		assert.Equal(t, http.StatusOK, rec.Result().StatusCode)
+		assert.NotEmpty(t, rec.Header().Get("Set-Cookie"))
 	}
 }
 
