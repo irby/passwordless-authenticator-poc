@@ -185,6 +185,9 @@ func (h *WebauthnHandler) BeginAuthentication(c echo.Context) error {
 
 	var options *protocol.CredentialAssertion
 	var sessionData *webauthn.SessionData
+
+	fmt.Println(className, currentMethod, "request.UserID", request.UserID)
+
 	if request.UserID != nil {
 		// non discoverable login initialization
 		userId, err := uuid.FromString(*request.UserID)

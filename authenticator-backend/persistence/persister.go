@@ -29,6 +29,7 @@ type Persister interface {
 	GetWebauthnSessionDataPersisterWithConnection(tx *pop.Connection) WebauthnSessionDataPersister
 	GetJwkPersister() JwkPersister
 	GetJwkPersisterWithConnection(tx *pop.Connection) JwkPersister
+	GetAccountAccessGrantPersister() AccountAccessGrantPersister
 }
 
 type Migrator interface {
@@ -41,7 +42,7 @@ type Storage interface {
 	Persister
 }
 
-//New return a new Persister Object with given configuration
+// New return a new Persister Object with given configuration
 func New(config config.Database) (Storage, error) {
 	DB, err := pop.NewConnection(&pop.ConnectionDetails{
 		Dialect:  config.Dialect,
@@ -135,6 +136,10 @@ func (p *persister) GetWebauthnSessionDataPersister() WebauthnSessionDataPersist
 
 func (p *persister) GetWebauthnSessionDataPersisterWithConnection(tx *pop.Connection) WebauthnSessionDataPersister {
 	return NewWebauthnSessionDataPersister(tx)
+}
+
+func (p *persister) GetAccountAccessGrantPersister() AccountAccessGrantPersister {
+	return NewAccountAccessGrantPersister(p.DB)
 }
 
 func (p *persister) GetJwkPersister() JwkPersister {
