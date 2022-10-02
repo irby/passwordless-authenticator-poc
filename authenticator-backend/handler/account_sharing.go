@@ -16,6 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/gomail.v2"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -112,6 +113,9 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	}
 
 	err = h.persister.GetAccountAccessGrantPersister().Create(accessGrantModel)
+	if err != nil {
+		return fmt.Errorf("failed to create access grant: %w", err)
+	}
 
 	messageToUser := gomail.NewMessage()
 	messageToUser.SetAddressHeader("To", user.Email, "")
@@ -119,11 +123,14 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	messageToUser.SetHeader("Subject", "Access request provisioned for your account")
 	messageToUser.SetBody("text/plain", "A request to access your account has been provisioned. If you initiated this request, please ignore this email. If you did not initiate this request, please contact us immediately.")
 
+	url := "http://localhost:8000/share/" + grantId.String() + "?token=" + accessToken
+	minutes := strconv.Itoa(TimeToLiveMinutes)
+
 	messageToReceiver := gomail.NewMessage()
 	messageToReceiver.SetAddressHeader("To", request.Email, "")
 	messageToReceiver.SetAddressHeader("From", "no-reply@hanko.io", "Hanko")
 	messageToReceiver.SetHeader("Subject", "You have been invited to access an account!")
-	messageToReceiver.SetBody("text/html", "A user has invited to share their account with you. Please visit the link below to initiate sharing: <a href=\"http://localhost:8000/share/"+accessToken+"\">http://localhost:8000/share/"+accessToken+"</a>")
+	messageToReceiver.SetBody("text/html", "A user has invited to share their account with you. Please visit the link below to initiate sharing: <a href=\""+url+"\">"+url+"</a> <br/> Note: This link is only valid for "+minutes+" minutes.")
 
 	err = h.mailer.Send(messageToUser)
 	if err != nil {

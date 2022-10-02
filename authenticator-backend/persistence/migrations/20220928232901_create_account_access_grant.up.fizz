@@ -1,8 +1,9 @@
-create_table("account_access_grant") {
+create_table("account_access_grants") {
     t.Column("id", "uuid", {"primary": true})
     t.Column("user_id", "uuid", {})
     t.Column("ttl", "integer", {})
     t.Column("code", "string", {})
+    t.Column("is_active", "bool", {"default": false})
     t.Timestamps()
     t.ForeignKey("user_id", {"users": ["id"]}, {"on_delete": "cascade", "on_update": "cascade"})
 }
