@@ -117,20 +117,38 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 		return fmt.Errorf("failed to create access grant: %w", err)
 	}
 
-	messageToUser := gomail.NewMessage()
+	lang := c.Request().Header.Get("Accept-Language")
+
+	data := map[string]interface{}{}
+	str1, err := h.renderer.Render("accountShareSenderMail", lang, data)
+	if err != nil {
+		return fmt.Errorf("failed to render email template: %w", err)
+	}
+
+	messageToUser := gomail.NewMessage(gomail.SetEncoding(gomail.Base64))
 	messageToUser.SetAddressHeader("To", user.Email, "")
 	messageToUser.SetAddressHeader("From", "no-reply@hanko.io", "Hanko")
 	messageToUser.SetHeader("Subject", "Access request provisioned for your account")
-	messageToUser.SetBody("text/plain", "A request to access your account has been provisioned. If you initiated this request, please ignore this email. If you did not initiate this request, please contact us immediately.")
+	messageToUser.SetBody("text/plain", str1)
 
-	url := "http://localhost:8000/share/" + grantId.String() + "?token=" + accessToken
-	minutes := strconv.Itoa(TimeToLiveMinutes)
+	data = map[string]interface{}{
+		"BaseUrl": "http://localhost:4200",
+		"GrantId": grantId.String(),
+		"Token":   accessToken,
+		"TTL":     strconv.Itoa(TimeToLiveMinutes),
+	}
+	str2, err := h.renderer.Render("accountShareReceiverMail", lang, data)
+	if err != nil {
+		return fmt.Errorf("failed to render email template: %w", err)
+	}
 
-	messageToReceiver := gomail.NewMessage()
+	fmt.Println("Receiver email body", str2)
+
+	messageToReceiver := gomail.NewMessage(gomail.SetEncoding(gomail.Base64))
 	messageToReceiver.SetAddressHeader("To", request.Email, "")
 	messageToReceiver.SetAddressHeader("From", "no-reply@hanko.io", "Hanko")
 	messageToReceiver.SetHeader("Subject", "You have been invited to access an account!")
-	messageToReceiver.SetBody("text/html", "A user has invited to share their account with you. Please visit the link below to initiate sharing: <a href=\""+url+"\">"+url+"</a> <br/> Note: This link is only valid for "+minutes+" minutes.")
+	messageToReceiver.SetBody("text/html", str2)
 
 	err = h.mailer.Send(messageToUser)
 	if err != nil {

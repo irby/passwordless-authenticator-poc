@@ -28,7 +28,8 @@ export class HomeComponent implements OnInit {
 
   public async openShareDialog() {
     this.matDialog.open(AccountSharingInitializationDialog, {
-      width: '250px'
+      width: '45em',
+      height: '30em'
     });
   }
 
