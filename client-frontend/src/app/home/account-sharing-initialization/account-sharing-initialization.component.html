@@ -1,0 +1,42 @@
+<h2 mat-dialog-title>Share Your Account with Others</h2>
+<mat-dialog-content *ngIf="!isLoading">
+  <form class="example-form w-100">
+    <div>
+    <mat-form-field class="example-full-width w-100" appearance="fill">
+      <mat-label>Email</mat-label>
+      <input type="email" matInput [formControl]="emailFormControl" [errorStateMatcher]="matcher"
+             placeholder="Ex. gburdell@gatech.edu">
+      <mat-error *ngIf="emailFormControl.hasError('email') && !emailFormControl.hasError('required')">
+        Please enter a valid email address
+      </mat-error>
+      <mat-error *ngIf="emailFormControl.hasError('required')">
+        Email is <strong>required</strong>
+      </mat-error>
+    </mat-form-field>
+  </div>
+  <div>
+      <mat-slide-toggle [checked]="expireByLogins" (change)="toggleExpireByLogins()">Expire By Logins</mat-slide-toggle>
+      <mat-form-field class="example-full-width w-100 ml-3" appearance="fill">
+        <mat-label>Login Count</mat-label>
+        <input type="email" matInput [formControl]="loginCountFormControl" [readonly]="!expireByLogins"
+             placeholder="Ex. 10">
+      </mat-form-field>
+  </div>
+  <div>
+    <mat-slide-toggle [checked]="expireByTime" (change)="toggleExpireByTime()">Expire By Time</mat-slide-toggle>
+    <mat-form-field class="example-full-width w-100 ml-3" appearance="fill">
+      <mat-label>Allowed Minutes</mat-label>
+      <input type="email" matInput [formControl]="timeMinutesCountFormControl" [readonly]="!expireByTime"
+           placeholder="Ex. 10">
+    </mat-form-field>
+  </div>
+  </form>
+</mat-dialog-content>
+<mat-dialog-content *ngIf="isLoading">
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</mat-dialog-content>
+
+<mat-dialog-actions>
+  <button mat-raised-button mat-dialog-close color="warn">Close</button>
+  <button mat-raised-button (click)="submit()" cdkFocusInitial color="primary" [disabled]="isLoading">Share</button>
+</mat-dialog-actions>

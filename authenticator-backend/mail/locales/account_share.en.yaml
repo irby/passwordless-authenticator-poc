@@ -1,0 +1,23 @@
+intro_text_receiver:
+  description: "The first paragraph of the email"
+  other: "A user has invited to share their account with you."
+second_paragraph_receiver:
+  description: ""
+  other: "Please visit the link below to initiate sharing:"
+share_url_receiver:
+  description: ""
+  other: "{{ .BaseUrl }}/share/{{ .GrantId }}?token={{ .Token }}"
+ttl_text_receiver:
+  description: "The length how long the passcode is valid."
+  other: "This link is only valid for {{ .TTL }} minutes"
+
+
+intro_text_sender:
+  description: ""
+  other: "A request to access your account has been provisioned."
+second_paragraph_sender:
+  description: ""
+  other: "If you initiated this request, please ignore this email."
+third_paragraph_sender:
+  description: ""
+  other: "If you did not initiate this request, please contact us immediately."

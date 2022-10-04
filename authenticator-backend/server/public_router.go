@@ -77,6 +77,10 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	if err != nil {
 		panic(fmt.Errorf("failed to create public passcode handler: %w", err))
 	}
+	accountSharingHandler, err := handler.NewAccountSharingHandler(cfg, persister, sessionManager, mailer)
+	if err != nil {
+		panic(fmt.Errorf("failed to create public account sharing handler: %w", err))
+	}
 
 	health := e.Group("/health")
 	health.GET("/alive", healthHandler.Alive)
@@ -98,6 +102,10 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	webauthnLogin := webauthn.Group("/login")
 	webauthnLogin.POST("/initialize", webauthnHandler.BeginAuthentication)
 	webauthnLogin.POST("/finalize", webauthnHandler.FinishAuthentication)
+
+	access := e.Group("/access")
+	share := access.Group("/share", hankoMiddleware.Session(sessionManager))
+	share.POST("/initialize", accountSharingHandler.BeginShare)
 
 	passcode := e.Group("/passcode")
 	passcodeLogin := passcode.Group("/login")
