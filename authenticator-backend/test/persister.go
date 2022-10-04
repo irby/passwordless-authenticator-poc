@@ -6,7 +6,7 @@ import (
 	"github.com/teamhanko/hanko/backend/persistence/models"
 )
 
-func NewPersister(user []models.User, passcodes []models.Passcode, jwks []models.Jwk, credentials []models.WebauthnCredential, sessionData []models.WebauthnSessionData, passwords []models.PasswordCredential) persistence.Persister {
+func NewPersister(user []models.User, passcodes []models.Passcode, jwks []models.Jwk, credentials []models.WebauthnCredential, sessionData []models.WebauthnSessionData, passwords []models.PasswordCredential, accessGrants []models.AccountAccessGrant) persistence.Persister {
 	return &persister{
 		userPersister:                NewUserPersister(user),
 		passcodePersister:            NewPasscodePersister(passcodes),
@@ -14,6 +14,7 @@ func NewPersister(user []models.User, passcodes []models.Passcode, jwks []models
 		webauthnCredentialPersister:  NewWebauthnCredentialPersister(credentials),
 		webauthnSessionDataPersister: NewWebauthnSessionDataPersister(sessionData),
 		passwordCredentialPersister:  NewPasswordCredentialPersister(passwords),
+		accountAccessGrantPersister:  NewAccountAccessGrantPersister(accessGrants),
 	}
 }
 
@@ -24,6 +25,7 @@ type persister struct {
 	webauthnCredentialPersister  persistence.WebauthnCredentialPersister
 	webauthnSessionDataPersister persistence.WebauthnSessionDataPersister
 	passwordCredentialPersister  persistence.PasswordCredentialPersister
+	accountAccessGrantPersister  persistence.AccountAccessGrantPersister
 }
 
 func (p *persister) GetPasswordCredentialPersister() persistence.PasswordCredentialPersister {
@@ -72,6 +74,10 @@ func (p *persister) GetWebauthnSessionDataPersister() persistence.WebauthnSessio
 
 func (p *persister) GetWebauthnSessionDataPersisterWithConnection(tx *pop.Connection) persistence.WebauthnSessionDataPersister {
 	return p.webauthnSessionDataPersister
+}
+
+func (p *persister) GetAccountAccessGrantPersister() persistence.AccountAccessGrantPersister {
+	return p.accountAccessGrantPersister
 }
 
 func (p *persister) GetJwkPersister() persistence.JwkPersister {
