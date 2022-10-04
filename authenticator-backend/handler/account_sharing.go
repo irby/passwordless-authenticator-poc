@@ -132,7 +132,7 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	messageToUser.SetBody("text/plain", str1)
 
 	data = map[string]interface{}{
-		"BaseUrl": "http://localhost:4200",
+		"BaseUrl": "http://localhost:4200/#",
 		"GrantId": grantId.String(),
 		"Token":   accessToken,
 		"TTL":     strconv.Itoa(TimeToLiveMinutes),

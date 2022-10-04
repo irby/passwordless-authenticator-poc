@@ -14,14 +14,16 @@ import {MatInputModule} from '@angular/material/input';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
+import { ShareComponent } from './share/share.component';
 
 @NgModule({
-  declarations: [			
+  declarations: [				
     AppComponent,
       LoginComponent,
       DefaultComponent,
       AccountSharingInitializationDialog,
-      HomeComponent
+      HomeComponent,
+      ShareComponent
    ],
   imports: [
     BrowserModule,

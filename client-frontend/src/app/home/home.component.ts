@@ -16,9 +16,6 @@ export class HomeComponent implements OnInit {
     private readonly matDialog: MatDialog) { }
 
   async ngOnInit() {
-    if (!(await AuthenticationService.isAuthenticated())) {
-      this.router.navigate(['']);
-    }
   }
 
   public async logout() {
