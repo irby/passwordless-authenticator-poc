@@ -15,6 +15,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import { ShareComponent } from './share/share.component';
+import { SocketService } from './core/services/socket.service';
 
 @NgModule({
   declarations: [				
@@ -38,7 +39,7 @@ import { ShareComponent } from './share/share.component';
     ReactiveFormsModule,
     MatProgressBarModule
   ],
-  providers: [],
+  providers: [SocketService],
   bootstrap: [AppComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })

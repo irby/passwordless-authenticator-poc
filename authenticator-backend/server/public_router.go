@@ -11,6 +11,7 @@ import (
 	"github.com/teamhanko/hanko/backend/mail"
 	"github.com/teamhanko/hanko/backend/persistence"
 	hankoMiddleware "github.com/teamhanko/hanko/backend/server/middleware"
+	"github.com/teamhanko/hanko/backend/server/ws"
 	"github.com/teamhanko/hanko/backend/session"
 )
 
@@ -111,6 +112,8 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	passcodeLogin := passcode.Group("/login")
 	passcodeLogin.POST("/initialize", passcodeHandler.Init)
 	passcodeLogin.POST("/finalize", passcodeHandler.Finish)
+
+	e.GET("/ws", ws.Hello)
 
 	return e
 }

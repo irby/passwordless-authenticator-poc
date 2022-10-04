@@ -1,3 +1,9 @@
-<p>
-  share works!
-</p>
+<ul id="messages">
+  <li *ngFor="let message of messages">
+      <span [innerHTML]="message"></span>
+  </li>
+</ul>
+<form action="">
+  <input [(ngModel)]="chatBox" [ngModelOptions]="{standalone: true}" autocomplete="off" />
+  <button (click)="send()">Send</button>
+</form>
