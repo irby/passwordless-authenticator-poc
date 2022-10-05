@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/lestrrat-go/jwx/v2/jwt"
@@ -166,7 +167,47 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) error {
 	grantId := c.Param("id")
 	token := c.QueryParam("token")
-	fmt.Printf("%s: %s\n", grantId, token)
 
-	return nil
+	if grantId == "" || token == "" {
+		return dto.NewHTTPError(http.StatusBadRequest, "id and token are both required")
+	}
+
+	startTime := time.Now().UTC()
+
+	grantUid, err := uuid.FromString(grantId)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusBadRequest, "failed to parse id as uuid").SetInternal(err)
+	}
+
+	var businessError error
+	transactionError := h.persister.Transaction(func(tx *pop.Connection) error {
+		grantPersister := h.persister.GetAccountAccessGrantPersister()
+		grant, err := grantPersister.Get(grantUid)
+		if err != nil {
+			businessError = dto.NewHTTPError(http.StatusNotFound, "grant not found")
+			return nil
+		}
+
+		expirationTime := grant.CreatedAt.Add(time.Duration(grant.Ttl) * time.Second)
+		if expirationTime.Before(startTime) {
+			businessError = dto.NewHTTPError(http.StatusRequestTimeout, "grant request timed out").SetInternal(errors.New(fmt.Sprintf("createdAt: %s -> lastVerificationTime: %s", grant.CreatedAt, expirationTime)))
+			return nil
+		}
+
+		err = bcrypt.CompareHashAndPassword([]byte(grant.Token), []byte(token))
+
+		// Return same HTTP code for (grant ID not found) and (token invalid) to prevent disclosing which condition failed
+		if err != nil {
+			businessError = dto.NewHTTPError(http.StatusNotFound, "grant not found")
+			return nil
+		}
+
+		return c.JSON(http.StatusOK, nil)
+	})
+
+	if businessError != nil {
+		return businessError
+	}
+
+	return transactionError
 }

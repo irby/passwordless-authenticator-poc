@@ -107,6 +107,7 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	access := e.Group("/access")
 	share := access.Group("/share", hankoMiddleware.Session(sessionManager))
 	share.POST("/initialize", accountSharingHandler.BeginShare)
+	share.GET("/grant/:id", accountSharingHandler.GetAccountShareGrantWithToken)
 
 	passcode := e.Group("/passcode")
 	passcodeLogin := passcode.Group("/login")
