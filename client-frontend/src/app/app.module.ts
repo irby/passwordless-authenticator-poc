@@ -18,7 +18,7 @@ import { ShareComponent } from './share/share.component';
 import { SocketService } from './core/services/socket.service';
 import { UserService } from './core/services/user.service';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { AuthenticationGuard } from './core/guards/authentication.guard';
+import { AuthenticationService } from './core/services/authentication.service';
 
 @NgModule({
   declarations: [				
@@ -43,7 +43,7 @@ import { AuthenticationGuard } from './core/guards/authentication.guard';
     MatProgressBarModule,
     HttpClientModule
   ],
-  providers: [SocketService, AuthenticationGuard, UserService],
+  providers: [SocketService, AuthenticationService, UserService],
   bootstrap: [AppComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })

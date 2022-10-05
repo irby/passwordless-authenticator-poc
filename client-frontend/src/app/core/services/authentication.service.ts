@@ -6,17 +6,8 @@ import { CookieService } from './cookie.service';
 
 @Injectable()
 export class AuthenticationService {
-    public static async isAuthenticated(): Promise<boolean> {
-        try {
-            await axios.get(`${environment.hankoApiUrl}/me`, { withCredentials: true });
-            return true;
-        }
-        catch (e) {
-            return false;
-        }
-    }
-    
-    public static async getUser(): Promise<string> {
+
+    public async getUser(): Promise<string> {
         const user = localStorage.getItem('user');
         if (user) {
             return user;
@@ -34,7 +25,7 @@ export class AuthenticationService {
         }
     }
 
-    public static async logout(): Promise<void> {
+    public async logout(): Promise<void> {
         localStorage.removeItem('user');
         await axios.post(
             `${environment.hankoApiUrl}/users/logout`,
