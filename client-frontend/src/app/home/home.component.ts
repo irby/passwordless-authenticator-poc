@@ -11,11 +11,14 @@ import { AccountSharingInitializationDialog } from './account-sharing-initializa
 })
 export class HomeComponent implements OnInit {
 
+  public user: string = "";
+
   constructor(
     private readonly router: Router, 
     private readonly matDialog: MatDialog) { }
 
   async ngOnInit() {
+    this.user = await AuthenticationService.getUser();
   }
 
   public async logout() {
