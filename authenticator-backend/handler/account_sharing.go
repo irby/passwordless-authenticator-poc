@@ -162,3 +162,11 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]string{})
 }
+
+func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) error {
+	grantId := c.Param("id")
+	token := c.QueryParam("token")
+	fmt.Printf("%s: %s\n", grantId, token)
+
+	return nil
+}

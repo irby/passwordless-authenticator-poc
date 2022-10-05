@@ -113,7 +113,7 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	passcodeLogin.POST("/initialize", passcodeHandler.Init)
 	passcodeLogin.POST("/finalize", passcodeHandler.Finish)
 
-	e.GET("/ws", ws.Hello)
+	e.GET("/ws", ws.WsPage)
 
 	return e
 }
