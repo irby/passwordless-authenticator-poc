@@ -15,6 +15,7 @@ export class AuthenticationService {
             return false;
         }
     }
+    
     public static async getUser(): Promise<string> {
         const user = localStorage.getItem('user');
         if (user) {

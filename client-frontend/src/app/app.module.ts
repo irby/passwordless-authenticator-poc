@@ -16,6 +16,9 @@ import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import { ShareComponent } from './share/share.component';
 import { SocketService } from './core/services/socket.service';
+import { UserService } from './core/services/user.service';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { AuthenticationGuard } from './core/guards/authentication.guard';
 
 @NgModule({
   declarations: [				
@@ -37,9 +40,10 @@ import { SocketService } from './core/services/socket.service';
     MatSlideToggleModule,
     FormsModule,
     ReactiveFormsModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    HttpClientModule
   ],
-  providers: [SocketService],
+  providers: [SocketService, AuthenticationGuard, UserService],
   bootstrap: [AppComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
