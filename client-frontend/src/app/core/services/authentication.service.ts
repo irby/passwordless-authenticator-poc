@@ -2,35 +2,43 @@ import { Injectable } from '@angular/core';
 import axios from 'axios';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { CookieService } from './cookie.service';
 
 @Injectable()
 export class AuthenticationService {
 
+    private readonly userCacheKey: string = 'user';
+
+    public async setLogin(): Promise<void> {
+        const email = await this.getAndSetUser();
+        localStorage.setItem(this.userCacheKey, email);
+    }
+
     public async getUser(): Promise<string> {
-        const user = localStorage.getItem('user');
+        const user = localStorage.getItem(this.userCacheKey);
         if (user) {
             return user;
         }
         try {
-            const userId = await axios.get(`${environment.hankoApiUrl}/me`, { withCredentials: true });
-            console.log('userId', userId);
-            const userData = await axios.get(`${environment.hankoApiUrl}/users/${userId.data.id}`, { withCredentials: true });
-            console.log('user', userData);
-            const email = userData.data.email;
-            localStorage.setItem('user', email);
-            return email;
+            return await this.getAndSetUser();
         } catch (e) {
             return "";
         }
     }
 
     public async logout(): Promise<void> {
-        localStorage.removeItem('user');
+        localStorage.removeItem(this.userCacheKey);
         await axios.post(
             `${environment.hankoApiUrl}/users/logout`,
             { },
             { withCredentials: true }
         );
+    }
+
+    private async getAndSetUser() : Promise<string> {
+        const userId = await axios.get(`${environment.hankoApiUrl}/me`, { withCredentials: true });
+        const userData = await axios.get(`${environment.hankoApiUrl}/users/${userId.data.id}`, { withCredentials: true });
+        const email = userData.data.email;
+        localStorage.setItem(this.userCacheKey, email);
+        return email;
     }
 }

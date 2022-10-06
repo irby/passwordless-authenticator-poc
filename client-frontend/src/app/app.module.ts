@@ -19,6 +19,7 @@ import { SocketService } from './core/services/socket.service';
 import { UserService } from './core/services/user.service';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { AuthenticationService } from './core/services/authentication.service';
+import { GrantService } from './core/services/grant.service';
 
 @NgModule({
   declarations: [				
@@ -43,7 +44,7 @@ import { AuthenticationService } from './core/services/authentication.service';
     MatProgressBarModule,
     HttpClientModule
   ],
-  providers: [SocketService, AuthenticationService, UserService],
+  providers: [SocketService, AuthenticationService, UserService, GrantService],
   bootstrap: [AppComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })

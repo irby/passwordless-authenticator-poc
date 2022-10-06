@@ -113,6 +113,11 @@ func (c *Client) write() {
 func WsPage(c echo.Context) error {
 	go manager.start()
 
+	ipAddr := c.Request().RemoteAddr
+	userAgent := c.Request().Header.Get("User-Agent")
+
+	fmt.Println(ipAddr, userAgent)
+
 	conn, error := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(c.Response(), c.Request(), nil)
 	if error != nil {
 		//http.NotFound(res, req)
@@ -126,8 +131,9 @@ func WsPage(c echo.Context) error {
 
 	if len(manager.clients) >= 2 {
 		fmt.Println("Too many connections")
-		return fmt.Errorf("")
 		conn.Close()
+		conn.WriteMessage(websocket.CloseMessage, []byte{})
+		return fmt.Errorf("")
 	}
 
 	client := &Client{id: uId.String(), socket: conn, send: make(chan []byte)}
