@@ -16,6 +16,7 @@ export class ShareComponent implements OnInit, OnDestroy {
   public chatBox: string;
 
   public isLoading: boolean = false;
+  public isConnected: boolean = false;
 
   public errorText: string = "";
 
@@ -55,11 +56,20 @@ export class ShareComponent implements OnInit, OnDestroy {
     this.socket.getEventListener().subscribe(event => {
       console.log(event);
       if (event.type === 'message') {
+        if (event.data.includes('A new socket has connected')) { // TODO: Handle this better
+          this.isConnected = true;
+          // this.socket.send('A new socket has connected');
+        } else if (event.data === '{\"content\":\"/A socket has disconnected.\"}') {
+          this.isConnected = false;
+        }
         let data = event.data;
         if (event.data.sender) {
           data = event.data.sender + ": " + data;
         }
         this.messages.push(data)
+      }
+      if (event.type === 'close') {
+        this.errorText = 'Disconnected -- either too many connections or already connected in another window'
       }
     })
   }

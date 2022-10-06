@@ -2,12 +2,56 @@ package ws
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
+	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/teamhanko/hanko/backend/config"
+	"github.com/teamhanko/hanko/backend/crypto"
+	"github.com/teamhanko/hanko/backend/mail"
+	"github.com/teamhanko/hanko/backend/persistence"
+	"github.com/teamhanko/hanko/backend/session"
 	"net/http"
 )
+
+type AccountSharingHandler struct {
+	mailer          mail.Mailer
+	renderer        *mail.Renderer
+	nanoidGenerator crypto.NanoidGenerator
+	sessionManager  session.Manager
+	persister       persistence.Persister
+	emailConfig     config.Email
+	serviceConfig   config.Service
+	cfg             *config.Config
+}
+
+type WebsocketHandler struct {
+	renderer        *mail.Renderer
+	nanoidGenerator crypto.NanoidGenerator
+	sessionManager  session.Manager
+	persister       persistence.Persister
+	emailConfig     config.Email
+	serviceConfig   config.Service
+	cfg             *config.Config
+}
+
+func NewWebsocketHandler(cfg *config.Config, persister persistence.Persister, sessionManager session.Manager) (*WebsocketHandler, error) {
+	renderer, err := mail.NewRenderer()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new renderer: %w", err)
+	}
+	return &WebsocketHandler{
+		renderer:        renderer,
+		nanoidGenerator: crypto.NewNanoidGenerator(),
+		persister:       persister,
+		emailConfig:     cfg.Passcode.Email, // TODO: Separate out into its own config value
+		serviceConfig:   cfg.Service,
+		sessionManager:  sessionManager,
+		cfg:             cfg,
+	}, nil
+}
 
 // Code borrowed from:
 // https://www.thepolyglotdeveloper.com/2016/12/create-real-time-chat-app-golang-angular-2-websockets/
@@ -109,25 +153,38 @@ func (c *Client) write() {
 	}
 }
 
-// func WsPage(res http.ResponseWriter, req *http.Request) {
-func WsPage(c echo.Context) error {
+func (p *WebsocketHandler) WsPage(c echo.Context) error {
+
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return errors.New("missing or malformed jwt")
+	}
+
 	go manager.start()
 
 	ipAddr := c.Request().RemoteAddr
 	userAgent := c.Request().Header.Get("User-Agent")
+	user, err := p.persister.GetUserPersister().Get(uuid.FromStringOrNil(sessionToken.Subject()))
+	if err != nil {
+		return fmt.Errorf("unable to get user: %w", err)
+	}
+	userEmail := user.Email
 
-	fmt.Println(ipAddr, userAgent)
+	fmt.Println(ipAddr, userAgent, userEmail)
 
 	conn, error := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(c.Response(), c.Request(), nil)
 	if error != nil {
 		//http.NotFound(res, req)
 		return fmt.Errorf("")
 	}
-	uId, err := uuid.NewV4()
-	if err != nil {
-		fmt.Println("Unable to generate a UID")
-		return fmt.Errorf("")
-	}
+
+	//for existingConn := range manager.clients {
+	//	if existingConn.id == sessionToken.Subject() {
+	//		fmt.Println("Session already connected for subject")
+	//		conn.Close()
+	//		conn.WriteMessage(websocket.CloseMessage, []byte{})
+	//	}
+	//}
 
 	if len(manager.clients) >= 2 {
 		fmt.Println("Too many connections")
@@ -136,7 +193,7 @@ func WsPage(c echo.Context) error {
 		return fmt.Errorf("")
 	}
 
-	client := &Client{id: uId.String(), socket: conn, send: make(chan []byte)}
+	client := &Client{id: sessionToken.Subject(), socket: conn, send: make(chan []byte)}
 
 	manager.register <- client
 
@@ -145,40 +202,3 @@ func WsPage(c echo.Context) error {
 
 	return nil
 }
-
-//var activeConnections = 0
-//
-//func Hello(c echo.Context) error {
-//	websocket.Handler(func(ws *websocket.Conn) {
-//		defer exit(ws)
-//		for {
-//			if activeConnections >= 2 {
-//				c.Logger().Error("Too many connections")
-//				return
-//			}
-//			activeConnections++
-//			// Write
-//			err := websocket.Message.Send(ws, fmt.Sprintf("Hello, Client! %d", time.Now().Unix()))
-//			if err != nil {
-//				c.Logger().Error(err)
-//				activeConnections--
-//				return
-//			}
-//
-//			// Read
-//			msg := ""
-//			err = websocket.Message.Receive(ws, &msg)
-//			if err != nil {
-//				c.Logger().Error(err)
-//				activeConnections--
-//				return
-//			}
-//			fmt.Printf("%s\n", msg)
-//		}
-//	}).ServeHTTP(c.Response(), c.Request())
-//	return nil
-//}
-//
-//func exit(ws *websocket.Conn) {
-//	ws.Close()
-//}
