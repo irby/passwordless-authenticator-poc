@@ -17,6 +17,7 @@ export class ShareComponent implements OnInit, OnDestroy {
 
   public isLoading: boolean = false;
   public isConnected: boolean = false;
+  public hasSentConnectionConfirmation: boolean = false;
 
   public errorText: string = "";
 
@@ -56,12 +57,19 @@ export class ShareComponent implements OnInit, OnDestroy {
     this.socket.getEventListener().subscribe(event => {
       console.log(event);
       if (event.type === 'message') {
-        if (event.data.includes('A new socket has connected')) { // TODO: Handle this better
-          this.isConnected = true;
-          // this.socket.send('A new socket has connected');
-        } else if (event.data === '{\"content\":\"/A socket has disconnected.\"}') {
-          this.isConnected = false;
+        let message: Message;
+        message = JSON.parse(event.data);
+        message.parsedContent = JSON.parse(message.content);
+        console.log('parsed message', message);
+        switch (message.parsedContent.code) {
+          case MessageCode.ConnectedSession:
+            this.handleConnectedSession();
+            break;
+          case MessageCode.DisconnectedSession:
+            this.handleDisconnectedSession();
+            break;
         }
+
         let data = event.data;
         if (event.data.sender) {
           data = event.data.sender + ": " + data;
@@ -90,6 +98,7 @@ export class ShareComponent implements OnInit, OnDestroy {
       return;
     }
     const grantData = await this.grantService.getGrantByIdAndToken(this.id, this.token);
+    console.log(this.isLoading);
     this.isLoading = false;
 
     if (grantData.type === 'data') {
@@ -110,4 +119,37 @@ export class ShareComponent implements OnInit, OnDestroy {
     }
   }
 
+  private handleConnectedSession(): void {
+    this.isConnected = true;
+
+    // When one party connects, we need to communicate to the other party that a session has been established.
+    if (!this.hasSentConnectionConfirmation) {
+      const sessionConfirmationMessage: SocketMessage = {
+        code: MessageCode.ConnectedSession
+      };
+      this.socket.send(JSON.stringify(sessionConfirmationMessage));
+      this.hasSentConnectionConfirmation = true;
+    }
+
+  }
+  private handleDisconnectedSession(): void {
+    this.isConnected = false;
+    this.hasSentConnectionConfirmation = false;
+  }
 }
+
+export interface Message {
+  content: string;
+  parsedContent: SocketMessage;
+}
+export interface SocketMessage {
+  code: MessageCode;
+}
+export enum MessageCode {
+  ConnectedSession = 101,
+	DisconnectedSession = 102,
+	SessionRequest  = 103,
+
+	ClientInformation = 201
+}
+

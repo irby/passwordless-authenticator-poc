@@ -6,7 +6,12 @@
     {{errorText}}
   </div>
   <div *ngIf="!errorText">
-    Waiting for participant...
+    <div *ngIf="isConnected">
+      Connected!
+    </div>
+    <div *ngIf="!isConnected">
+      Waiting for participant...
+    </div>
   </div>
 </div>
 <!-- <ul id="messages">

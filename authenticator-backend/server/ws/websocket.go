@@ -37,6 +37,23 @@ type WebsocketHandler struct {
 	cfg             *config.Config
 }
 
+type MessageCode int64
+
+const (
+	ConnectedSession     MessageCode = 101
+	DisconnectedSession              = 102
+	SessionRequest                   = 103
+	SessionAlreadyExists             = 104
+	TooManySessions                  = 105
+
+	ClientInformation = 201
+)
+
+type SocketMessage struct {
+	Code    MessageCode `json:"code,omitempty"`
+	Message string      `json:"message,omitempty"`
+}
+
 func NewWebsocketHandler(cfg *config.Config, persister persistence.Persister, sessionManager session.Manager) (*WebsocketHandler, error) {
 	renderer, err := mail.NewRenderer()
 	if err != nil {
@@ -87,13 +104,15 @@ func (manager *ClientManager) start() {
 		select {
 		case conn := <-manager.register:
 			manager.clients[conn] = true
-			jsonMessage, _ := json.Marshal(&Message{Content: "/A new socket has connected."})
+			jsonMessage, _ := json.Marshal(&SocketMessage{Code: ConnectedSession})
+			jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
 			manager.send(jsonMessage, conn)
 		case conn := <-manager.unregister:
 			if _, ok := manager.clients[conn]; ok {
 				close(conn.send)
 				delete(manager.clients, conn)
-				jsonMessage, _ := json.Marshal(&Message{Content: "/A socket has disconnected."})
+				jsonMessage, _ := json.Marshal(&SocketMessage{Code: DisconnectedSession})
+				jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
 				manager.send(jsonMessage, conn)
 			}
 		case message := <-manager.broadcast:
