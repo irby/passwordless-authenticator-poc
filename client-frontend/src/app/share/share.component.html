@@ -1,3 +1,25 @@
-<p>
-  share works!
-</p>
+<div *ngIf="isLoading">
+  Loading...
+</div>
+<div *ngIf="!isLoading">
+  <div *ngIf="errorText">
+    {{errorText}}
+  </div>
+  <div *ngIf="!errorText">
+    <div *ngIf="isConnected">
+      Connected!
+    </div>
+    <div *ngIf="!isConnected">
+      Waiting for participant...
+    </div>
+  </div>
+</div>
+<!-- <ul id="messages">
+  <li *ngFor="let message of messages">
+      <span [innerHTML]="message"></span>
+  </li>
+</ul>
+<form action="">
+  <input [(ngModel)]="chatBox" [ngModelOptions]="{standalone: true}" autocomplete="off" />
+  <button (click)="send()">Send</button>
+</form> -->

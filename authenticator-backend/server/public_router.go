@@ -11,6 +11,7 @@ import (
 	"github.com/teamhanko/hanko/backend/mail"
 	"github.com/teamhanko/hanko/backend/persistence"
 	hankoMiddleware "github.com/teamhanko/hanko/backend/server/middleware"
+	"github.com/teamhanko/hanko/backend/server/ws"
 	"github.com/teamhanko/hanko/backend/session"
 )
 
@@ -81,6 +82,10 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	if err != nil {
 		panic(fmt.Errorf("failed to create public account sharing handler: %w", err))
 	}
+	websocketHandler, err := ws.NewWebsocketHandler(cfg, persister, sessionManager)
+	if err != nil {
+		panic(fmt.Errorf("failed to create websocker handler: %w", err))
+	}
 
 	health := e.Group("/health")
 	health.GET("/alive", healthHandler.Alive)
@@ -106,11 +111,14 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	access := e.Group("/access")
 	share := access.Group("/share", hankoMiddleware.Session(sessionManager))
 	share.POST("/initialize", accountSharingHandler.BeginShare)
+	share.GET("/grant/:id", accountSharingHandler.GetAccountShareGrantWithToken)
 
 	passcode := e.Group("/passcode")
 	passcodeLogin := passcode.Group("/login")
 	passcodeLogin.POST("/initialize", passcodeHandler.Init)
 	passcodeLogin.POST("/finalize", passcodeHandler.Finish)
+
+	e.GET("/ws", websocketHandler.WsPage, hankoMiddleware.Session(sessionManager))
 
 	return e
 }

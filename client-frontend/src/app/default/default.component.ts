@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthenticationService } from '../core/services/authentication.service';
+import { UserService } from '../core/services/user.service';
 
 @Component({
   selector: 'app-default',
@@ -9,10 +10,11 @@ import { AuthenticationService } from '../core/services/authentication.service';
 })
 export class DefaultComponent implements OnInit {
 
-  constructor(private readonly router: Router) { }
+  constructor(private readonly router: Router, private readonly userService: UserService) { }
 
   async ngOnInit() {
-    if(await AuthenticationService.isAuthenticated()) {
+    const user = await this.userService.getMe();
+    if(user.type === 'data') {
       this.router.navigate(['/home'], { replaceUrl: true });
       return;
     }

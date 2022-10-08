@@ -4,6 +4,7 @@ import {FormControl, FormGroupDirective, NgForm, Validators} from '@angular/form
 import {ErrorStateMatcher} from '@angular/material/core';
 import axios from 'axios';
 import { environment } from 'src/environments/environment';
+import { CreateAccountGrantDto, GrantService } from 'src/app/core/services/grant.service';
 
 /** Error when invalid control is dirty, touched, or submitted. */
 export class MyErrorStateMatcher implements ErrorStateMatcher {
@@ -33,7 +34,8 @@ export class AccountSharingInitializationDialog implements OnInit {
   public isLoading: boolean = false;
 
   constructor(
-    private readonly dialogRef: MatDialogRef<AccountSharingInitializationDialog>
+    private readonly dialogRef: MatDialogRef<AccountSharingInitializationDialog>,
+    private readonly grantService: GrantService
   ) { }
 
   ngOnInit() {
@@ -45,14 +47,13 @@ export class AccountSharingInitializationDialog implements OnInit {
 
   public async submit() {
     this.isLoading = true;
-    const resp = await axios.post(
-      `${environment.hankoApiUrl}/access/share/initialize`,
-      { email: this.emailFormControl.getRawValue() },
-      { withCredentials: true }
-    );
+    const dto : CreateAccountGrantDto = {
+      email: this.emailFormControl.getRawValue() || ""
+    };
+    const resp = await this.grantService.createGrant(dto);
     this.isLoading = false;
-    if (resp.status >= 400) {
-
+    if (resp.type === 'error') {
+      // TODO: Handle
     }
   }
 

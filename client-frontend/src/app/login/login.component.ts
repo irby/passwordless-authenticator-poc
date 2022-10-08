@@ -1,6 +1,7 @@
 import { Component, OnInit, Renderer2 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
+import { AuthenticationService } from '../core/services/authentication.service';
 import { ScriptService } from '../core/services/script.service';
 
 @Component({
@@ -19,7 +20,8 @@ export class LoginComponent implements OnInit {
   constructor(private renderer: Renderer2,
     private scriptService: ScriptService,
     private readonly router: Router,
-    private readonly route: ActivatedRoute) { }
+    private readonly route: ActivatedRoute,
+    private readonly authenticationSerivce: AuthenticationService) { }
 
   ngOnInit() {
     const scriptElement = this.scriptService.loadJsScript(this.renderer, `${environment.hankoElementUrl}/element.hanko-auth.js`);
@@ -31,7 +33,8 @@ export class LoginComponent implements OnInit {
     }
   }
 
-  public redirectToIndex(e : any) {
+  public async redirectToIndex(e : any) {
+    await this.authenticationSerivce.setLogin();
     this.router.navigate([this.route.snapshot.queryParams[`redirect`] || '/'], { replaceUrl: true });
   }
 
