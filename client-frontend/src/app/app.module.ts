@@ -10,6 +10,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { AccountSharingInitializationDialog } from './home/account-sharing-initialization/account-sharing-initialization.component';
 import { MatCommonModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
+import {MatTableModule} from '@angular/material/table';
 import {MatInputModule} from '@angular/material/input';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
@@ -42,6 +43,7 @@ import { GrantService } from './core/services/grant.service';
     FormsModule,
     ReactiveFormsModule,
     MatProgressBarModule,
+    MatTableModule,
     HttpClientModule
   ],
   providers: [SocketService, AuthenticationService, UserService, GrantService],

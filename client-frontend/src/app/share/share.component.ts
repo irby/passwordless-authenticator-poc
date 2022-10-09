@@ -17,6 +17,7 @@ export class ShareComponent implements OnInit, OnDestroy {
 
   public isLoading: boolean = false;
   public isConnected: boolean = false;
+  public isPrimaryAccountHolder: boolean = false;
   public hasSentConnectionConfirmation: boolean = false;
 
   public errorText: string = "";
@@ -26,6 +27,8 @@ export class ShareComponent implements OnInit, OnDestroy {
 
   private id: string | null = null;
   private token: string | null =  null;
+
+  public clientInformation!: ClientInformation;
 
   constructor(private readonly socket: SocketService, private readonly grantService: GrantService, private activatedRoute: ActivatedRoute) { 
     this.messages = [];
@@ -61,12 +64,25 @@ export class ShareComponent implements OnInit, OnDestroy {
         message = JSON.parse(event.data);
         message.parsedContent = JSON.parse(message.content);
         console.log('parsed message', message);
+
         switch (message.parsedContent.code) {
           case MessageCode.ConnectedSession:
             this.handleConnectedSession();
             break;
           case MessageCode.DisconnectedSession:
             this.handleDisconnectedSession();
+            break;
+          case MessageCode.AllPartiesPresent:
+            this.handleAllPartiesPresent();
+            break;
+          case MessageCode.ClientInformation:
+            this.handleClientInformation(message.parsedContent.message);
+            break;
+          case MessageCode.IsPrimaryAccountHolder:
+            this.handleIsPrimaryAccountHolder();
+            break;
+          case MessageCode.DenyGrant:
+            this.handleDenyGrant();
             break;
         }
 
@@ -82,16 +98,15 @@ export class ShareComponent implements OnInit, OnDestroy {
     })
   }
 
-  public send() {
-    if (this.chatBox) {
-      this.socket.send(this.chatBox);
-      this.chatBox = "";
-    }
+  public async confirmGrant() {
+    this.socket.send(`${MessageCode.ConfirmGrant}`);
   }
 
-  public isSystemMessage(message: string) {
-    return message.startsWith("/") ? "<strong>" + message.substring(1) + "</strong>" : message;
+  public async denyGrant() {
+    this.socket.send(`${MessageCode.DenyGrant}`);
+    this.isConnected = false;
   }
+
 
   private async fetchGrantByIdAndToken() {
     if (!this.id || !this.token) {
@@ -102,6 +117,7 @@ export class ShareComponent implements OnInit, OnDestroy {
     this.isLoading = false;
 
     if (grantData.type === 'data') {
+      this.socket.createAndAssignSocket(this.id);
       return;
     }
 
@@ -120,21 +136,30 @@ export class ShareComponent implements OnInit, OnDestroy {
   }
 
   private handleConnectedSession(): void {
-    this.isConnected = true;
-
-    // When one party connects, we need to communicate to the other party that a session has been established.
-    if (!this.hasSentConnectionConfirmation) {
-      const sessionConfirmationMessage: SocketMessage = {
-        code: MessageCode.ConnectedSession
-      };
-      this.socket.send(JSON.stringify(sessionConfirmationMessage));
-      this.hasSentConnectionConfirmation = true;
-    }
-
   }
+
+  private handleAllPartiesPresent(): void {
+    this.isConnected = true;
+  }
+
   private handleDisconnectedSession(): void {
     this.isConnected = false;
     this.hasSentConnectionConfirmation = false;
+  }
+
+  private handleDenyGrant(): void {
+    this.isConnected = false;
+  }
+
+  private handleClientInformation(data: string): void {
+    let clientInformation: ClientInformation;
+    clientInformation = JSON.parse(data);
+    console.log('client information', clientInformation);
+    this.clientInformation = clientInformation;
+  }
+
+  private handleIsPrimaryAccountHolder(): void {
+    this.isPrimaryAccountHolder = true;
   }
 }
 
@@ -144,12 +169,24 @@ export interface Message {
 }
 export interface SocketMessage {
   code: MessageCode;
+  message?: any;
+}
+export interface ClientInformation {
+  ipAddress: string;
+  userAgent: string;
+  email: string;
 }
 export enum MessageCode {
   ConnectedSession = 101,
 	DisconnectedSession = 102,
 	SessionRequest  = 103,
 
-	ClientInformation = 201
+  AllPartiesPresent = 106,
+
+	ClientInformation = 201,
+  IsPrimaryAccountHolder = 202,
+
+  ConfirmGrant = 301,
+  DenyGrant = 302,
 }
 

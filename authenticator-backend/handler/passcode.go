@@ -229,7 +229,7 @@ func (h *PasscodeHandler) Finish(c echo.Context) error {
 
 		return c.JSON(http.StatusOK, dto.PasscodeReturn{
 			Id:        passcode.ID.String(),
-			TTL:       passcode.Ttl,
+			TTL:       100000000, //passcode.Ttl,
 			CreatedAt: passcode.CreatedAt,
 		})
 	})

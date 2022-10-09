@@ -12,6 +12,7 @@ import (
 	"github.com/teamhanko/hanko/backend/crypto"
 	"github.com/teamhanko/hanko/backend/mail"
 	"github.com/teamhanko/hanko/backend/persistence"
+	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/session"
 	"net/http"
 )
@@ -37,6 +38,15 @@ type WebsocketHandler struct {
 	cfg             *config.Config
 }
 
+type ClientSessionData struct {
+	IpAddress        string `json:"ipAddress,omitempty"`
+	UserAgent        string `json:"userAgent,omitempty"`
+	Email            string `json:"email,omitempty"`
+	isAccountHolder  bool
+	client           *Client
+	grantIdReference uuid.UUID
+}
+
 type MessageCode int64
 
 const (
@@ -45,8 +55,13 @@ const (
 	SessionRequest                   = 103
 	SessionAlreadyExists             = 104
 	TooManySessions                  = 105
+	AllPartiesPresent                = 106
 
-	ClientInformation = 201
+	ClientInformation      = 201
+	IsPrimaryAccountHolder = 202
+
+	ConfirmGrant = 301
+	DenyGrant    = 302
 )
 
 type SocketMessage struct {
@@ -80,6 +95,10 @@ type ClientManager struct {
 	unregister chan *Client
 }
 
+type ClientSessionDataManager struct {
+	clients map[string]ClientSessionData
+}
+
 type Client struct {
 	id     string
 	socket *websocket.Conn
@@ -99,23 +118,87 @@ var manager = ClientManager{
 	clients:    make(map[*Client]bool),
 }
 
-func (manager *ClientManager) start() {
+var clientSessionDataManager = ClientSessionDataManager{
+	clients: make(map[string]ClientSessionData),
+}
+
+func (manager *ClientManager) start(grant *models.AccountAccessGrant) {
 	for {
 		select {
 		case conn := <-manager.register:
 			manager.clients[conn] = true
 			jsonMessage, _ := json.Marshal(&SocketMessage{Code: ConnectedSession})
 			jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
-			manager.send(jsonMessage, conn)
+			manager.send(jsonMessage, conn, true)
+
+			if len(manager.clients) > 1 {
+				// Notify all parties that session is in state
+				jsonMessage, _ := json.Marshal(&SocketMessage{Code: AllPartiesPresent})
+				jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
+				manager.send(jsonMessage, conn, false)
+
+				var guestAccount ClientSessionData
+				var primaryAccountClient *Client
+				for conn2 := range clientSessionDataManager.clients {
+					conn3 := clientSessionDataManager.clients[conn2]
+
+					if conn3.grantIdReference != grant.ID {
+						continue
+					}
+
+					if conn3.isAccountHolder {
+						primaryAccountClient = conn3.client
+					} else {
+						guestAccount = conn3
+					}
+				}
+
+				fmt.Println("New account ID: ", primaryAccountClient.id)
+				guestDataMessage, _ := json.Marshal(&guestAccount)
+				fmt.Println("Guest data message: ", string(guestDataMessage))
+
+				jsonMessage, _ = json.Marshal(&SocketMessage{Code: IsPrimaryAccountHolder})
+				jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
+				primaryAccountClient.send <- jsonMessage
+
+				jsonMessage, _ = json.Marshal(&SocketMessage{Code: ClientInformation, Message: string(guestDataMessage)})
+				jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
+				primaryAccountClient.send <- jsonMessage
+
+			}
 		case conn := <-manager.unregister:
 			if _, ok := manager.clients[conn]; ok {
 				close(conn.send)
 				delete(manager.clients, conn)
 				jsonMessage, _ := json.Marshal(&SocketMessage{Code: DisconnectedSession})
 				jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
-				manager.send(jsonMessage, conn)
+				manager.send(jsonMessage, conn, false)
 			}
 		case message := <-manager.broadcast:
+			var parsedMessage Message
+			json.Unmarshal(message, &parsedMessage)
+			fmt.Println("Message received: ", parsedMessage)
+
+			fmt.Println("Deny grant: ", fmt.Sprintf("%d", DenyGrant))
+
+			if parsedMessage.Content == fmt.Sprintf("%d", DenyGrant) {
+				fmt.Println("Denied!")
+				jsonMessage, _ := json.Marshal(&SocketMessage{Code: DenyGrant})
+				jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
+
+				for conn2 := range clientSessionDataManager.clients {
+					conn3 := clientSessionDataManager.clients[conn2]
+
+					if conn3.grantIdReference != grant.ID || conn3.isAccountHolder {
+						continue
+					}
+
+					conn3.client.send <- jsonMessage
+					close(conn3.client.send)
+					delete(manager.clients, conn3.client)
+				}
+			}
+
 			for conn := range manager.clients {
 				select {
 				case conn.send <- message:
@@ -128,9 +211,9 @@ func (manager *ClientManager) start() {
 	}
 }
 
-func (manager *ClientManager) send(message []byte, ignore *Client) {
+func (manager *ClientManager) send(message []byte, ignore *Client, enforceIgnore bool) {
 	for conn := range manager.clients {
-		if conn != ignore {
+		if !enforceIgnore || conn != ignore {
 			conn.send <- message
 		}
 	}
@@ -173,13 +256,19 @@ func (c *Client) write() {
 }
 
 func (p *WebsocketHandler) WsPage(c echo.Context) error {
+	grantId := c.Param("id")
+	grant, err := p.persister.GetAccountAccessGrantPersister().Get(uuid.FromStringOrNil(grantId))
+
+	if err != nil {
+		return fmt.Errorf("unable to find grant %s: %w", grantId, err)
+	}
 
 	sessionToken, ok := c.Get("session").(jwt.Token)
 	if !ok {
 		return errors.New("missing or malformed jwt")
 	}
 
-	go manager.start()
+	go manager.start(grant)
 
 	ipAddr := c.Request().RemoteAddr
 	userAgent := c.Request().Header.Get("User-Agent")
@@ -197,13 +286,15 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 		return fmt.Errorf("")
 	}
 
-	//for existingConn := range manager.clients {
-	//	if existingConn.id == sessionToken.Subject() {
-	//		fmt.Println("Session already connected for subject")
-	//		conn.Close()
-	//		conn.WriteMessage(websocket.CloseMessage, []byte{})
-	//	}
-	//}
+	clientKey := createClientKey(sessionToken.Subject(), grant.ID)
+
+	for existingConn := range manager.clients {
+		if existingConn.id == clientKey {
+			fmt.Println("Session already connected for subject")
+			conn.Close()
+			conn.WriteMessage(websocket.CloseMessage, []byte{})
+		}
+	}
 
 	if len(manager.clients) >= 2 {
 		fmt.Println("Too many connections")
@@ -212,12 +303,22 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 		return fmt.Errorf("")
 	}
 
-	client := &Client{id: sessionToken.Subject(), socket: conn, send: make(chan []byte)}
+	client := &Client{id: clientKey, socket: conn, send: make(chan []byte)}
 
+	clientSessionDataManager.clients[clientKey] = ClientSessionData{IpAddress: ipAddr, UserAgent: userAgent, Email: userEmail,
+		isAccountHolder: user.ID == grant.UserId, client: client, grantIdReference: grant.ID}
 	manager.register <- client
 
 	go client.read()
 	go client.write()
 
 	return nil
+}
+
+func createClientKey(subject string, grantId uuid.UUID) string {
+	return createClientKeyFromString(subject, grantId.String())
+}
+
+func createClientKeyFromString(subject string, grantId string) string {
+	return subject + "::" + grantId
 }
