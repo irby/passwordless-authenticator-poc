@@ -15,4 +15,8 @@ export class GrantService extends BaseService {
 
 export interface CreateAccountGrantDto {
     email: string;
+    expireByLogin?: boolean;
+    loginsAllowed?: number;
+    expireByTime?: boolean;
+    minutesAllowed?: number;
 }

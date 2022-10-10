@@ -1,0 +1,1 @@
+drop_column("account_access_grants", "claimed_by")

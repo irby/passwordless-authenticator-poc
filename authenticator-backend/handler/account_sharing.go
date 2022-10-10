@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/gobuffalo/pop/v6"
@@ -53,16 +54,16 @@ func NewAccountSharingHandler(cfg *config.Config, persister persistence.Persiste
 
 type AccountShareRequest struct {
 	Email           string `json:"email" validate:"required,email"`
-	ExpireByTime    bool   `json:"expireByMinutes"`
-	LifetimeMinutes int32  `json:"expireTimeMinutes"`
-	ExpireByLogins  bool   `json:"expireByLogins"`
+	ExpireByTime    bool   `json:"expireByTime"`
+	LifetimeMinutes int32  `json:"minutesAllowed"`
+	ExpireByLogins  bool   `json:"expireByLogin"`
 	LoginsAllowed   int32  `json:"loginsAllowed"`
 }
 
 func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 
 	// Parse and validate request
-	var request UserGetByEmailBody
+	var request AccountShareRequest
 	if err := (&echo.DefaultBinder{}).BindBody(c, &request); err != nil {
 		return dto.ToHttpError(err)
 	}
@@ -103,14 +104,26 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to hash access token: %w", err)
 	}
+	var loginsAllowed sql.NullInt32
+	var minutesAllowed sql.NullInt32
+	if request.ExpireByLogins {
+		loginsAllowed.Int32 = request.LoginsAllowed
+		loginsAllowed.Valid = true
+	}
+	if request.ExpireByTime {
+		minutesAllowed.Int32 = request.LifetimeMinutes
+		minutesAllowed.Valid = true
+	}
 	accessGrantModel := models.AccountAccessGrant{
-		ID:        grantId,
-		UserId:    uId,
-		Ttl:       60 * TimeToLiveMinutes,
-		Token:     string(hashedAccessToken),
-		IsActive:  true,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:             grantId,
+		UserId:         uId,
+		Ttl:            60 * TimeToLiveMinutes,
+		Token:          string(hashedAccessToken),
+		IsActive:       true,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		LoginsAllowed:  loginsAllowed,
+		MinutesAllowed: minutesAllowed,
 	}
 
 	err = h.persister.GetAccountAccessGrantPersister().Create(accessGrantModel)
@@ -241,7 +254,7 @@ func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primar
 
 	grant.IsActive = false
 	grant.UpdatedAt = startTime
-	grant.ClaimedBy = guestUserId
+	grant.ClaimedBy = &guestUserId
 
 	h.persister.GetAccountAccessGrantPersister().Update(*grant)
 
