@@ -211,3 +211,30 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) er
 
 	return transactionError
 }
+
+func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primaryUserId uuid.UUID, guestUserId uuid.UUID) error {
+	currentTime := time.Now().UTC()
+	grant, err := h.persister.GetAccountAccessGrantPersister().Get(grantId)
+
+	if err != nil {
+		fmt.Println("Unable to find grant: ", err)
+		return err
+	}
+
+	if primaryUserId != grant.UserId {
+		return errors.New("primary user ID does not match grant's user ID")
+	}
+
+	if guestUserId == primaryUserId {
+		return errors.New("guest ID cannot equal primary user ID")
+	}
+
+	if currentTime.After(grant.CreatedAt.Add(time.Duration(grant.Ttl) * time.Second)) {
+		return errors.New("grant has expired")
+	}
+
+	grant.IsActive = false
+	grant.UpdatedAt = currentTime
+
+	return nil
+}

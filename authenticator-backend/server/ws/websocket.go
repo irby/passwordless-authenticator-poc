@@ -10,6 +10,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/teamhanko/hanko/backend/config"
 	"github.com/teamhanko/hanko/backend/crypto"
+	"github.com/teamhanko/hanko/backend/handler"
 	"github.com/teamhanko/hanko/backend/mail"
 	"github.com/teamhanko/hanko/backend/persistence"
 	"github.com/teamhanko/hanko/backend/persistence/models"
@@ -17,25 +18,15 @@ import (
 	"net/http"
 )
 
-type AccountSharingHandler struct {
-	mailer          mail.Mailer
-	renderer        *mail.Renderer
-	nanoidGenerator crypto.NanoidGenerator
-	sessionManager  session.Manager
-	persister       persistence.Persister
-	emailConfig     config.Email
-	serviceConfig   config.Service
-	cfg             *config.Config
-}
-
 type WebsocketHandler struct {
-	renderer        *mail.Renderer
-	nanoidGenerator crypto.NanoidGenerator
-	sessionManager  session.Manager
-	persister       persistence.Persister
-	emailConfig     config.Email
-	serviceConfig   config.Service
-	cfg             *config.Config
+	renderer              *mail.Renderer
+	nanoidGenerator       crypto.NanoidGenerator
+	sessionManager        session.Manager
+	persister             persistence.Persister
+	emailConfig           config.Email
+	serviceConfig         config.Service
+	cfg                   *config.Config
+	accountSharingHandler *handler.AccountSharingHandler
 }
 
 type ClientSessionData struct {
@@ -45,6 +36,7 @@ type ClientSessionData struct {
 	isAccountHolder  bool
 	client           *Client
 	grantIdReference uuid.UUID
+	userId           uuid.UUID
 }
 
 type MessageCode int64
@@ -62,6 +54,14 @@ const (
 
 	ConfirmGrant = 301
 	DenyGrant    = 302
+
+	InitializeGrantConfirm = 401
+	FinalizeGrantConfirm   = 402
+	CancelGrantConfirm     = 403
+
+	InitializeSubRegistrationConfirm = 501
+	FinalizeSubRegistrationConfirm   = 502
+	CancelSubRegistrationConfirm     = 503
 )
 
 type SocketMessage struct {
@@ -69,19 +69,20 @@ type SocketMessage struct {
 	Message string      `json:"message,omitempty"`
 }
 
-func NewWebsocketHandler(cfg *config.Config, persister persistence.Persister, sessionManager session.Manager) (*WebsocketHandler, error) {
+func NewWebsocketHandler(cfg *config.Config, persister persistence.Persister, sessionManager session.Manager, accountSharingHandler *handler.AccountSharingHandler) (*WebsocketHandler, error) {
 	renderer, err := mail.NewRenderer()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new renderer: %w", err)
 	}
 	return &WebsocketHandler{
-		renderer:        renderer,
-		nanoidGenerator: crypto.NewNanoidGenerator(),
-		persister:       persister,
-		emailConfig:     cfg.Passcode.Email, // TODO: Separate out into its own config value
-		serviceConfig:   cfg.Service,
-		sessionManager:  sessionManager,
-		cfg:             cfg,
+		renderer:              renderer,
+		nanoidGenerator:       crypto.NewNanoidGenerator(),
+		persister:             persister,
+		emailConfig:           cfg.Passcode.Email, // TODO: Separate out into its own config value
+		serviceConfig:         cfg.Service,
+		sessionManager:        sessionManager,
+		cfg:                   cfg,
+		accountSharingHandler: accountSharingHandler,
 	}, nil
 }
 
@@ -89,10 +90,11 @@ func NewWebsocketHandler(cfg *config.Config, persister persistence.Persister, se
 // https://www.thepolyglotdeveloper.com/2016/12/create-real-time-chat-app-golang-angular-2-websockets/
 
 type ClientManager struct {
-	clients    map[*Client]bool
-	broadcast  chan []byte
-	register   chan *Client
-	unregister chan *Client
+	clients          map[*Client]bool
+	broadcast        chan []byte
+	register         chan *Client
+	unregister       chan *Client
+	websocketHandler *WebsocketHandler
 }
 
 type ClientSessionDataManager struct {
@@ -175,36 +177,33 @@ func (manager *ClientManager) start(grant *models.AccountAccessGrant) {
 				manager.send(jsonMessage, conn, false)
 			}
 		case message := <-manager.broadcast:
+			var broadcastMessages = true
 			var parsedMessage Message
 			json.Unmarshal(message, &parsedMessage)
 			fmt.Println("Message received: ", parsedMessage)
 
-			fmt.Println("Deny grant: ", fmt.Sprintf("%d", DenyGrant))
-
+			// If deny grant, close out the guest session
 			if parsedMessage.Content == fmt.Sprintf("%d", DenyGrant) {
-				fmt.Println("Denied!")
-				jsonMessage, _ := json.Marshal(&SocketMessage{Code: DenyGrant})
-				jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
-
-				for conn2 := range clientSessionDataManager.clients {
-					conn3 := clientSessionDataManager.clients[conn2]
-
-					if conn3.grantIdReference != grant.ID || conn3.isAccountHolder {
-						continue
-					}
-
-					conn3.client.send <- jsonMessage
-					close(conn3.client.send)
-					delete(manager.clients, conn3.client)
-				}
+				handleDenyGrant(grant)
 			}
 
-			for conn := range manager.clients {
-				select {
-				case conn.send <- message:
-				default:
-					close(conn.send)
-					delete(manager.clients, conn)
+			// If confirm grant, prompt for biometric by account holder
+			if parsedMessage.Content == fmt.Sprintf("%d", ConfirmGrant) {
+				broadcastMessages = handleConfirmGrant(grant)
+			}
+
+			if parsedMessage.Content == fmt.Sprintf("%d", FinalizeGrantConfirm) {
+				_ = handleFinalizeGrantConfirm(grant)
+			}
+
+			if broadcastMessages {
+				for conn := range manager.clients {
+					select {
+					case conn.send <- message:
+					default:
+						close(conn.send)
+						delete(manager.clients, conn)
+					}
 				}
 			}
 		}
@@ -303,11 +302,29 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 		return fmt.Errorf("")
 	}
 
+	if len(manager.clients) > 0 {
+		for clientSessionKeys := range clientSessionDataManager.clients {
+			if clientSessionDataManager.clients[clientSessionKeys].isAccountHolder {
+				continue
+			}
+			if user.ID != grant.UserId {
+				fmt.Println("Invalid session: Need to satisfy a primary account holder and a guest")
+				conn.Close()
+				conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return fmt.Errorf("")
+			}
+		}
+	}
+
 	client := &Client{id: clientKey, socket: conn, send: make(chan []byte)}
 
 	clientSessionDataManager.clients[clientKey] = ClientSessionData{IpAddress: ipAddr, UserAgent: userAgent, Email: userEmail,
-		isAccountHolder: user.ID == grant.UserId, client: client, grantIdReference: grant.ID}
+		isAccountHolder: user.ID == grant.UserId, client: client, grantIdReference: grant.ID, userId: user.ID}
 	manager.register <- client
+
+	if manager.websocketHandler == nil {
+		manager.websocketHandler = p
+	}
 
 	go client.read()
 	go client.write()
@@ -321,4 +338,67 @@ func createClientKey(subject string, grantId uuid.UUID) string {
 
 func createClientKeyFromString(subject string, grantId string) string {
 	return subject + "::" + grantId
+}
+
+func handleDenyGrant(grant *models.AccountAccessGrant) {
+	fmt.Println("Denied!")
+	jsonMessage, _ := json.Marshal(&SocketMessage{Code: DenyGrant})
+	jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
+
+	for conn2 := range clientSessionDataManager.clients {
+		conn3 := clientSessionDataManager.clients[conn2]
+
+		if conn3.grantIdReference != grant.ID || conn3.isAccountHolder {
+			continue
+		}
+
+		conn3.client.send <- jsonMessage
+		close(conn3.client.send)
+		delete(manager.clients, conn3.client)
+		delete(clientSessionDataManager.clients, conn3.client.id)
+	}
+}
+
+func handleConfirmGrant(grant *models.AccountAccessGrant) bool {
+	fmt.Println("Confirming grant!")
+	jsonMessage, _ := json.Marshal(&SocketMessage{Code: InitializeGrantConfirm})
+	jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
+
+	for conn2 := range clientSessionDataManager.clients {
+		conn3 := clientSessionDataManager.clients[conn2]
+
+		if conn3.grantIdReference != grant.ID || !conn3.isAccountHolder {
+			continue
+		}
+
+		conn3.client.send <- jsonMessage
+		return false
+	}
+	return true
+}
+
+func handleFinalizeGrantConfirm(grant *models.AccountAccessGrant) error {
+	var primaryAccountHolderSession *ClientSessionData
+	var guestSession *ClientSessionData
+	for conn2 := range clientSessionDataManager.clients {
+		conn3 := clientSessionDataManager.clients[conn2]
+
+		if conn3.grantIdReference != grant.ID {
+			continue
+		}
+
+		if conn3.isAccountHolder {
+			primaryAccountHolderSession = &conn3
+		} else {
+			guestSession = &conn3
+		}
+	}
+
+	if primaryAccountHolderSession == nil || guestSession == nil {
+		return errors.New("both primary account holder and guest sessions are required")
+	}
+
+	manager.websocketHandler.accountSharingHandler.CreateAccountWithGrant(grant.ID, primaryAccountHolderSession.userId, guestSession.userId)
+
+	return nil
 }

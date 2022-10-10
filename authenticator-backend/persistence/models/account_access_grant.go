@@ -19,6 +19,7 @@ type AccountAccessGrant struct {
 	IsActive  bool      `db:"is_active"`
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
+	ClaimedBy uuid.UUID `db:"claimed_by"`
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.

@@ -84,6 +84,9 @@ export class ShareComponent implements OnInit, OnDestroy {
           case MessageCode.DenyGrant:
             this.handleDenyGrant();
             break;
+          case MessageCode.InitializeGrantConfirm:
+            this.handleInitializeGrantConfirmation();
+            break;
         }
 
         let data = event.data;
@@ -161,6 +164,14 @@ export class ShareComponent implements OnInit, OnDestroy {
   private handleIsPrimaryAccountHolder(): void {
     this.isPrimaryAccountHolder = true;
   }
+
+  private handleInitializeGrantConfirmation(): void {
+    if (confirm('Provide your biometric to continue')) {
+      this.socket.send(`${MessageCode.FinalizeGrantConfirm}`);
+    } else {
+      this.socket.send(`${MessageCode.CancelGrantConfirm}`);
+    }
+  }
 }
 
 export interface Message {
@@ -188,5 +199,13 @@ export enum MessageCode {
 
   ConfirmGrant = 301,
   DenyGrant = 302,
+
+  InitializeGrantConfirm = 401,
+	FinalizeGrantConfirm   = 402,
+	CancelGrantConfirm     = 403,
+
+	InitializeSubRegistrationConfirm = 501,
+	FinalizeSubRegistrationConfirm   = 502,
+	CancelSubRegistrationConfirm     = 503,
 }
 

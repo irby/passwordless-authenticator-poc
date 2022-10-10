@@ -82,7 +82,7 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	if err != nil {
 		panic(fmt.Errorf("failed to create public account sharing handler: %w", err))
 	}
-	websocketHandler, err := ws.NewWebsocketHandler(cfg, persister, sessionManager)
+	websocketHandler, err := ws.NewWebsocketHandler(cfg, persister, sessionManager, accountSharingHandler)
 	if err != nil {
 		panic(fmt.Errorf("failed to create websocker handler: %w", err))
 	}
