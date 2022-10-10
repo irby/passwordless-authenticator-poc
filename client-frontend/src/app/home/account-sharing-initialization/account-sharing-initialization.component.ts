@@ -46,9 +46,28 @@ export class AccountSharingInitializationDialog implements OnInit {
   }
 
   public async submit() {
+
+    if (!this.emailFormControl.valid) {
+      return; // TODO: Add errors
+    }
+
+    console.log(this.loginCountFormControl, this.loginCountFormControl.valid, this.timeMinutesCountFormControl, this.timeMinutesCountFormControl.valid, !!this.loginCountFormControl.errors, !!this.timeMinutesCountFormControl.errors);
+    
+    if (!!this.loginCountFormControl.errors) {
+      return; // TODO: Add errors
+    }
+
+    if (!!this.timeMinutesCountFormControl.errors) {
+      return; // TODO: Add errors
+    }
+
     this.isLoading = true;
     const dto : CreateAccountGrantDto = {
-      email: this.emailFormControl.getRawValue() || ""
+      email: this.emailFormControl.getRawValue() || "",
+      expireByLogin: this.expireByLogins,
+      loginsAllowed: this.loginCountFormControl.value ?? 0,
+      expireByTime: this.expireByTime,
+      minutesAllowed: this.timeMinutesCountFormControl.value ?? 0
     };
     const resp = await this.grantService.createGrant(dto);
     this.isLoading = false;
@@ -60,7 +79,7 @@ export class AccountSharingInitializationDialog implements OnInit {
   public toggleExpireByLogins() {
     this.expireByLogins = !this.expireByLogins;
     if (this.expireByLogins) {
-      this.loginCountFormControl.setValidators(Validators.required);
+      this.loginCountFormControl.setValidators([Validators.required, Validators.min(1), Validators.max(30)]);
 
       if (this.expireByTime) {
         this.toggleExpireByTime();
@@ -74,7 +93,7 @@ export class AccountSharingInitializationDialog implements OnInit {
   public toggleExpireByTime() {
     this.expireByTime = !this.expireByTime;
     if (this.expireByTime) {
-      this.timeMinutesCountFormControl.setValidators(Validators.required);
+      this.timeMinutesCountFormControl.setValidators([Validators.required, Validators.min(1), Validators.max(30)]);
 
       if (this.expireByLogins) {
         this.toggleExpireByLogins();

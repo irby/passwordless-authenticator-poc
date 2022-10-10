@@ -1,0 +1,1 @@
+add_column("account_access_grants", "claimed_by", "uuid", {"null": true})

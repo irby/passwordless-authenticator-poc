@@ -18,7 +18,7 @@
       <mat-slide-toggle [checked]="expireByLogins" (change)="toggleExpireByLogins()">Expire By Logins</mat-slide-toggle>
       <mat-form-field class="example-full-width w-100 ml-3" appearance="fill">
         <mat-label>Login Count</mat-label>
-        <input type="email" matInput [formControl]="loginCountFormControl" [readonly]="!expireByLogins"
+        <input type="number" matInput [formControl]="loginCountFormControl" [readonly]="!expireByLogins"
              placeholder="Ex. 10">
       </mat-form-field>
   </div>
@@ -26,7 +26,7 @@
     <mat-slide-toggle [checked]="expireByTime" (change)="toggleExpireByTime()">Expire By Time</mat-slide-toggle>
     <mat-form-field class="example-full-width w-100 ml-3" appearance="fill">
       <mat-label>Allowed Minutes</mat-label>
-      <input type="email" matInput [formControl]="timeMinutesCountFormControl" [readonly]="!expireByTime"
+      <input type="number" matInput [formControl]="timeMinutesCountFormControl" [readonly]="!expireByTime"
            placeholder="Ex. 10">
     </mat-form-field>
   </div>

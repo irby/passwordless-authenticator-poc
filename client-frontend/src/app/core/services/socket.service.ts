@@ -3,11 +3,15 @@ import { EventEmitter, Injectable } from "@angular/core";
 @Injectable()
 export class SocketService {
 
-    private socket: WebSocket;
+    private socket!: WebSocket;
     private listener: EventEmitter<any> = new EventEmitter();
 
     public constructor() {
-        this.socket = new WebSocket("ws://localhost:8000/ws");
+        
+    }
+
+    public createAndAssignSocket(id: string) {
+        this.socket = new WebSocket(`ws://localhost:8000/ws/${id}`);
         this.socket.onopen = event => {
             this.listener.emit({"type": "open", "data": event});
         }

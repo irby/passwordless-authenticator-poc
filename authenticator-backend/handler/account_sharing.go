@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/gobuffalo/pop/v6"
@@ -53,16 +54,16 @@ func NewAccountSharingHandler(cfg *config.Config, persister persistence.Persiste
 
 type AccountShareRequest struct {
 	Email           string `json:"email" validate:"required,email"`
-	ExpireByTime    bool   `json:"expireByMinutes"`
-	LifetimeMinutes int32  `json:"expireTimeMinutes"`
-	ExpireByLogins  bool   `json:"expireByLogins"`
+	ExpireByTime    bool   `json:"expireByTime"`
+	LifetimeMinutes int32  `json:"minutesAllowed"`
+	ExpireByLogins  bool   `json:"expireByLogin"`
 	LoginsAllowed   int32  `json:"loginsAllowed"`
 }
 
 func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 
 	// Parse and validate request
-	var request UserGetByEmailBody
+	var request AccountShareRequest
 	if err := (&echo.DefaultBinder{}).BindBody(c, &request); err != nil {
 		return dto.ToHttpError(err)
 	}
@@ -103,14 +104,26 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to hash access token: %w", err)
 	}
+	var loginsAllowed sql.NullInt32
+	var minutesAllowed sql.NullInt32
+	if request.ExpireByLogins {
+		loginsAllowed.Int32 = request.LoginsAllowed
+		loginsAllowed.Valid = true
+	}
+	if request.ExpireByTime {
+		minutesAllowed.Int32 = request.LifetimeMinutes
+		minutesAllowed.Valid = true
+	}
 	accessGrantModel := models.AccountAccessGrant{
-		ID:        grantId,
-		UserId:    uId,
-		Ttl:       60 * TimeToLiveMinutes,
-		Token:     string(hashedAccessToken),
-		IsActive:  true,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:             grantId,
+		UserId:         uId,
+		Ttl:            60 * TimeToLiveMinutes,
+		Token:          string(hashedAccessToken),
+		IsActive:       true,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		LoginsAllowed:  loginsAllowed,
+		MinutesAllowed: minutesAllowed,
 	}
 
 	err = h.persister.GetAccountAccessGrantPersister().Create(accessGrantModel)
@@ -188,6 +201,11 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) er
 			return nil
 		}
 
+		if !grant.IsActive {
+			businessError = dto.NewHTTPError(http.StatusNotFound, "grant is no longer active")
+			return nil
+		}
+
 		expirationTime := grant.CreatedAt.Add(time.Duration(grant.Ttl) * time.Second)
 		if expirationTime.Before(startTime) {
 			businessError = dto.NewHTTPError(http.StatusRequestTimeout, "grant request timed out").SetInternal(errors.New(fmt.Sprintf("createdAt: %s -> lastVerificationTime: %s", grant.CreatedAt, expirationTime)))
@@ -210,4 +228,35 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) er
 	}
 
 	return transactionError
+}
+
+func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primaryUserId uuid.UUID, guestUserId uuid.UUID) error {
+	startTime := time.Now().UTC()
+	grant, err := h.persister.GetAccountAccessGrantPersister().Get(grantId)
+
+	if err != nil {
+		fmt.Println("Unable to find grant: ", err)
+		return err
+	}
+
+	if primaryUserId != grant.UserId {
+		return errors.New("primary user ID does not match grant's user ID")
+	}
+
+	if guestUserId == primaryUserId {
+		return errors.New("guest ID cannot equal primary user ID")
+	}
+
+	expirationTime := grant.CreatedAt.Add(time.Duration(grant.Ttl) * time.Second)
+	if expirationTime.Before(startTime) {
+		return errors.New("grant has expired")
+	}
+
+	grant.IsActive = false
+	grant.UpdatedAt = startTime
+	grant.ClaimedBy = &guestUserId
+
+	h.persister.GetAccountAccessGrantPersister().Update(*grant)
+
+	return nil
 }
