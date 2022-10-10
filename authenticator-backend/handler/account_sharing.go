@@ -188,6 +188,11 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) er
 			return nil
 		}
 
+		if !grant.IsActive {
+			businessError = dto.NewHTTPError(http.StatusNotFound, "grant is no longer active")
+			return nil
+		}
+
 		expirationTime := grant.CreatedAt.Add(time.Duration(grant.Ttl) * time.Second)
 		if expirationTime.Before(startTime) {
 			businessError = dto.NewHTTPError(http.StatusRequestTimeout, "grant request timed out").SetInternal(errors.New(fmt.Sprintf("createdAt: %s -> lastVerificationTime: %s", grant.CreatedAt, expirationTime)))
@@ -213,7 +218,7 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) er
 }
 
 func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primaryUserId uuid.UUID, guestUserId uuid.UUID) error {
-	currentTime := time.Now().UTC()
+	startTime := time.Now().UTC()
 	grant, err := h.persister.GetAccountAccessGrantPersister().Get(grantId)
 
 	if err != nil {
@@ -229,12 +234,16 @@ func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primar
 		return errors.New("guest ID cannot equal primary user ID")
 	}
 
-	if currentTime.After(grant.CreatedAt.Add(time.Duration(grant.Ttl) * time.Second)) {
+	expirationTime := grant.CreatedAt.Add(time.Duration(grant.Ttl) * time.Second)
+	if expirationTime.Before(startTime) {
 		return errors.New("grant has expired")
 	}
 
 	grant.IsActive = false
-	grant.UpdatedAt = currentTime
+	grant.UpdatedAt = startTime
+	grant.ClaimedBy = guestUserId
+
+	h.persister.GetAccountAccessGrantPersister().Update(*grant)
 
 	return nil
 }
