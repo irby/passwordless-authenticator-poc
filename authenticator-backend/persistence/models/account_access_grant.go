@@ -21,10 +21,10 @@ type AccountAccessGrant struct {
 	CreatedAt      time.Time     `db:"created_at"`
 	UpdatedAt      time.Time     `db:"updated_at"`
 	ClaimedBy      *uuid.UUID    `db:"claimed_by"`
-	ExpireByLogins bool          `db:"expireByLogins"`
-	LoginsAllowed  sql.NullInt32 `db:"loginsAllowed"`
-	ExpireByTime   bool          `db:"ExpireByTime"`
-	MinutesAllowed sql.NullInt32 `db:"minutesAllowed"`
+	ExpireByLogins bool          `db:"expire_by_logins"`
+	LoginsAllowed  sql.NullInt32 `db:"logins_allowed"`
+	ExpireByTime   bool          `db:"expire_by_time"`
+	MinutesAllowed sql.NullInt32 `db:"minutes_allowed"`
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.

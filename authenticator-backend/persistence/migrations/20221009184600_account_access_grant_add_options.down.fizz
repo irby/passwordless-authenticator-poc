@@ -1,1 +1,2 @@
-drop_column("account_access_grants", "claimed_by")
+drop_column("account_access_grants", "logins_allowed")
+drop_column("account_access_grants", "minutes_allowed")

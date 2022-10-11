@@ -26,6 +26,7 @@ type persister struct {
 	webauthnSessionDataPersister persistence.WebauthnSessionDataPersister
 	passwordCredentialPersister  persistence.PasswordCredentialPersister
 	accountAccessGrantPersister  persistence.AccountAccessGrantPersister
+	userGuestRelationPersister   persistence.UserGuestRelationPersister
 }
 
 func (p *persister) GetPasswordCredentialPersister() persistence.PasswordCredentialPersister {
@@ -86,4 +87,8 @@ func (p *persister) GetJwkPersister() persistence.JwkPersister {
 
 func (p *persister) GetJwkPersisterWithConnection(tx *pop.Connection) persistence.JwkPersister {
 	return p.jwkPersister
+}
+
+func (p *persister) GetUserGuestRelationPersister() persistence.UserGuestRelationPersister {
+	return p.userGuestRelationPersister
 }

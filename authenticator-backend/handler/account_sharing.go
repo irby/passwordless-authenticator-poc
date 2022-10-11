@@ -104,16 +104,6 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to hash access token: %w", err)
 	}
-	var loginsAllowed sql.NullInt32
-	var minutesAllowed sql.NullInt32
-	if request.ExpireByLogins {
-		loginsAllowed.Int32 = request.LoginsAllowed
-		loginsAllowed.Valid = true
-	}
-	if request.ExpireByTime {
-		minutesAllowed.Int32 = request.LifetimeMinutes
-		minutesAllowed.Valid = true
-	}
 	accessGrantModel := models.AccountAccessGrant{
 		ID:             grantId,
 		UserId:         uId,
@@ -122,8 +112,10 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 		IsActive:       true,
 		CreatedAt:      now,
 		UpdatedAt:      now,
-		LoginsAllowed:  loginsAllowed,
-		MinutesAllowed: minutesAllowed,
+		ExpireByLogins: request.ExpireByLogins,
+		LoginsAllowed:  sql.NullInt32{Int32: request.LoginsAllowed, Valid: request.ExpireByLogins},
+		ExpireByTime:   request.ExpireByTime,
+		MinutesAllowed: sql.NullInt32{Int32: request.LifetimeMinutes, Valid: request.ExpireByTime},
 	}
 
 	err = h.persister.GetAccountAccessGrantPersister().Create(accessGrantModel)
@@ -258,5 +250,31 @@ func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primar
 
 	h.persister.GetAccountAccessGrantPersister().Update(*grant)
 
+	uuId, err := uuid.NewV4()
+	if err != nil {
+		return fmt.Errorf("unable to generate new UUID: %w", err)
+	}
+
+	expireTime := sql.NullTime{}
+	if grant.ExpireByTime {
+		expireTime.Valid = true
+		expireTime.Time = startTime.Add(time.Minute * time.Duration(grant.MinutesAllowed.Int32))
+	}
+
+	userGuestRelation := models.UserGuestRelation{
+		ID:              uuId,
+		ParentUserID:    primaryUserId,
+		GuestUserID:     guestUserId,
+		ExpireByLogins:  grant.ExpireByLogins,
+		LoginsRemaining: grant.LoginsAllowed,
+		ExpireByTime:    grant.ExpireByTime,
+		ExpireTime:      expireTime,
+		CreatedAt:       startTime,
+		UpdatedAt:       startTime,
+		IsActive:        true,
+	}
+
+	h.persister.GetUserGuestRelationPersister().Create(userGuestRelation)
+	
 	return nil
 }

@@ -1,0 +1,4 @@
+drop_column("account_access_grants", "expire_by_time")
+drop_column("account_access_grants", "expire_by_logins")
+
+drop_table("user_guest_relations")
