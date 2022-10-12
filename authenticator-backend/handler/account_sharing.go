@@ -125,24 +125,27 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 
 	lang := c.Request().Header.Get("Accept-Language")
 
-	data := map[string]interface{}{}
-	str1, err := h.renderer.Render("accountShareSenderMail", lang, data)
-	if err != nil {
-		return fmt.Errorf("failed to render email template: %w", err)
-	}
-
-	messageToUser := gomail.NewMessage(gomail.SetEncoding(gomail.Base64))
-	messageToUser.SetAddressHeader("To", user.Email, "")
-	messageToUser.SetAddressHeader("From", "no-reply@hanko.io", "Hanko")
-	messageToUser.SetHeader("Subject", "Access request provisioned for your account")
-	messageToUser.SetBody("text/plain", str1)
-
-	data = map[string]interface{}{
+	data := map[string]interface{}{
 		"BaseUrl": "http://localhost:4200/#",
 		"GrantId": grantId.String(),
 		"Token":   accessToken,
 		"TTL":     strconv.Itoa(TimeToLiveMinutes),
 	}
+	linkUrl := fmt.Sprintf("%s/%s?token=%s", data["BaseUrl"], data["GrantId"], data["Token"])
+	str1, err := h.renderer.Render("accountShareSenderMail", lang, data)
+	if err != nil {
+		return fmt.Errorf("failed to render email template: %w", err)
+	}
+
+	fmt.Println("Sender email body", str1)
+	fmt.Println("=====================================================")
+
+	messageToUser := gomail.NewMessage(gomail.SetEncoding(gomail.Base64))
+	messageToUser.SetAddressHeader("To", user.Email, "")
+	messageToUser.SetAddressHeader("From", "no-reply@hanko.io", "Hanko")
+	messageToUser.SetHeader("Subject", "Access request provisioned for your account")
+	messageToUser.SetBody("text/html", str1)
+
 	str2, err := h.renderer.Render("accountShareReceiverMail", lang, data)
 	if err != nil {
 		return fmt.Errorf("failed to render email template: %w", err)
@@ -166,7 +169,9 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 		return fmt.Errorf("failed to send passcode: %w", err)
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{})
+	return c.JSON(http.StatusOK, map[string]string{
+		"url": linkUrl,
+	})
 }
 
 func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) error {
@@ -244,37 +249,33 @@ func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primar
 		return errors.New("grant has expired")
 	}
 
-	grant.IsActive = false
-	grant.UpdatedAt = startTime
-	grant.ClaimedBy = &guestUserId
-
-	h.persister.GetAccountAccessGrantPersister().Update(*grant)
-
-	uuId, err := uuid.NewV4()
+	relationId, err := uuid.NewV4()
 	if err != nil {
 		return fmt.Errorf("unable to generate new UUID: %w", err)
 	}
 
-	expireTime := sql.NullTime{}
-	if grant.ExpireByTime {
-		expireTime.Valid = true
-		expireTime.Time = startTime.Add(time.Minute * time.Duration(grant.MinutesAllowed.Int32))
-	}
+	grant.IsActive = false
+	grant.UpdatedAt = startTime
+	grant.ClaimedBy = &guestUserId
+	grant.UserGuestRelationId = &relationId
+
+	h.persister.GetAccountAccessGrantPersister().Update(*grant)
 
 	userGuestRelation := models.UserGuestRelation{
-		ID:              uuId,
-		ParentUserID:    primaryUserId,
-		GuestUserID:     guestUserId,
-		ExpireByLogins:  grant.ExpireByLogins,
-		LoginsRemaining: grant.LoginsAllowed,
-		ExpireByTime:    grant.ExpireByTime,
-		ExpireTime:      expireTime,
-		CreatedAt:       startTime,
-		UpdatedAt:       startTime,
-		IsActive:        true,
+		ID:                      relationId,
+		ParentUserID:            primaryUserId,
+		GuestUserID:             guestUserId,
+		ExpireByLogins:          grant.ExpireByLogins,
+		LoginsAllowed:           grant.LoginsAllowed,
+		ExpireByTime:            grant.ExpireByTime,
+		MinutesAllowed:          grant.MinutesAllowed,
+		CreatedAt:               startTime,
+		UpdatedAt:               startTime,
+		AssociatedAccessGrantId: grant.ID,
+		IsActive:                true,
 	}
 
 	h.persister.GetUserGuestRelationPersister().Create(userGuestRelation)
-	
+
 	return nil
 }
