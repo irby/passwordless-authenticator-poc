@@ -13,10 +13,10 @@ import (
 type UserGuestRelation struct {
 	ID                      uuid.UUID     `db:"id" json:"id"`
 	GuestUserID             uuid.UUID     `db:"guest_user_id" json:"guestUserId"`
-	ParentUserID            uuid.UUID     `db:"parent_user_id" json:"parent_user_id"`
+	ParentUserID            uuid.UUID     `db:"parent_user_id" json:"parentUserId"`
 	CreatedAt               time.Time     `db:"created_at" json:"createdAt"`
 	UpdatedAt               time.Time     `db:"updated_at" json:"updatedAt"`
-	IsActive                bool          `db:"is_active" json:"is_active"`
+	IsActive                bool          `db:"is_active" json:"isActive"`
 	ExpireByLogins          bool          `db:"expire_by_logins" json:"-"`
 	LoginsAllowed           sql.NullInt32 `db:"logins_allowed" json:"-"`
 	ExpireByTime            bool          `db:"expire_by_time" json:"-"`
