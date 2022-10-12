@@ -1,9 +1,15 @@
 <div>
-<span style="margin-right: 1em;">
+<span class="sp-1">
   <button mat-raised-button (click)="logout()" color="warn">logout</button>
 </span>
-<span>
+<span class="sp-1">
   <button mat-raised-button (click)="openShareDialog()">share account</button>
+</span>
+<span class="sp-1">
+  <button mat-raised-button (click)="openGrantsDialog(GrantsContext.Guest)" *ngIf="hasGuestGrants">login as guest</button>
+</span>
+<span class="sp-1">
+  <button mat-raised-button (click)="openGrantsDialog(GrantsContext.Parent)" *ngIf="hasParentGrants">manage account shares</button>
 </span>
 </div>
 

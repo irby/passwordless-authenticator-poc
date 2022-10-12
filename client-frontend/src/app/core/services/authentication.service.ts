@@ -2,9 +2,12 @@ import { Injectable } from '@angular/core';
 import axios from 'axios';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { ServiceResponse } from '../models/service-response.interface';
+import { WebauthnLoginInitializeResponse } from '../models/webauthn/webauthn-login-initialize-response.interface';
+import { BaseService } from './service.base';
 
 @Injectable()
-export class AuthenticationService {
+export class AuthenticationService extends BaseService {
 
     private readonly userCacheKey: string = 'user';
 
@@ -32,6 +35,10 @@ export class AuthenticationService {
             { },
             { withCredentials: true }
         );
+    }
+
+    public async beginFakeWebauthnLogin(userId: string): Promise<ServiceResponse<WebauthnLoginInitializeResponse>> {
+        return await this.postAsync(`webauthn/login/initialize-fake`, {"user_id": userId});
     }
 
     private async getAndSetUser() : Promise<string> {

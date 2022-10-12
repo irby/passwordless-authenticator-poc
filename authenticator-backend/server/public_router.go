@@ -109,7 +109,9 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 
 	webauthnLogin := webauthn.Group("/login")
 	webauthnLogin.POST("/initialize", webauthnHandler.BeginAuthentication)
+	webauthnLogin.POST("/initialize-fake", webauthnHandler.BeginAuthenticationFake)
 	webauthnLogin.POST("/finalize", webauthnHandler.FinishAuthentication)
+	webauthnLogin.POST("/finalize-fake", webauthnHandler.FinishAuthenticationFake)
 
 	access := e.Group("/access")
 	share := access.Group("/share", hankoMiddleware.Session(sessionManager))

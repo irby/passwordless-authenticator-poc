@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { Router } from '@angular/router';
+import { GrantsContext } from '../core/enums/grants-context.enum';
 import { AuthenticationService } from '../core/services/authentication.service';
+import { UserService } from '../core/services/user.service';
 import { AccountSharingInitializationDialog } from './account-sharing-initialization/account-sharing-initialization.component';
 
 @Component({
@@ -16,10 +18,20 @@ export class HomeComponent implements OnInit {
   constructor(
     private readonly router: Router, 
     private readonly matDialog: MatDialog,
-    private readonly authenticationService: AuthenticationService) { }
+    private readonly authenticationService: AuthenticationService,
+    private readonly userService: UserService) { }
+
+    public hasGuestGrants: boolean = false;
+    public hasParentGrants: boolean = false;
+    public GrantsContext = GrantsContext;
 
   async ngOnInit() {
     this.user = await this.authenticationService.getUser();
+    const relationsOverviewResponse = await this.userService.getAccountSharingOverview();
+    if (relationsOverviewResponse.type === 'data') {
+      this.hasGuestGrants = relationsOverviewResponse.data.hasGuestGrants;
+      this.hasParentGrants = relationsOverviewResponse.data.hasParentGrants;
+    }
   }
 
   public async logout() {
@@ -32,6 +44,14 @@ export class HomeComponent implements OnInit {
       width: '45em',
       height: '30em'
     });
+  }
+
+  public async openGrantsDialog(context: GrantsContext) {
+    const config: MatDialogConfig = {
+      width: '45em',
+      height: '30em'
+    }
+    this.matDialog.open(AccountSharingInitializationDialog, config);
   }
 
 }
