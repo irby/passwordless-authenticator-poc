@@ -118,6 +118,79 @@ func (h *UserHandler) GetUserIdByEmail(c echo.Context) error {
 	})
 }
 
+func (h *UserHandler) GetUserGuestRelationsAsGuest(c echo.Context) error {
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return errors.New("missing or malformed jwt")
+	}
+
+	uuid := uuid.FromStringOrNil(sessionToken.Subject())
+
+	guestGrants, err := h.persister.GetUserGuestRelationPersister().GetByGuestUserId(&uuid)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(errors.New("could not get guest grants"))
+	}
+
+	return c.JSON(http.StatusOK, struct {
+		GuestGrants []models.UserGuestRelation `json:"guestGrants"`
+	}{
+		GuestGrants: *guestGrants,
+	})
+
+	return nil
+}
+
+func (h *UserHandler) GetUserGuestRelationsAsAccountHolder(c echo.Context) error {
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return errors.New("missing or malformed jwt")
+	}
+
+	uuid := uuid.FromStringOrNil(sessionToken.Subject())
+
+	parentGrants, err := h.persister.GetUserGuestRelationPersister().GetByParentUserId(&uuid)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(errors.New("could not get parent grants"))
+	}
+
+	return c.JSON(http.StatusOK, struct {
+		ParentGrants []models.UserGuestRelation `json:"parentGrants"`
+	}{
+		ParentGrants: *parentGrants,
+	})
+
+	return nil
+}
+
+func (h *UserHandler) GetUserGuestRelationsOverview(c echo.Context) error {
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return errors.New("missing or malformed jwt")
+	}
+
+	uuid := uuid.FromStringOrNil(sessionToken.Subject())
+
+	guestGrants, err := h.persister.GetUserGuestRelationPersister().GetByGuestUserId(&uuid)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(errors.New("could not get guest grants"))
+	}
+
+	parentGrants, err := h.persister.GetUserGuestRelationPersister().GetByParentUserId(&uuid)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(errors.New("could not get parent grants"))
+	}
+
+	return c.JSON(http.StatusOK, struct {
+		HasGuestGrants  bool `json:"hasGuestGrants"`
+		HasParentGrants bool `json:"hasParentGrants"`
+	}{
+		HasGuestGrants:  len(*guestGrants) > 0,
+		HasParentGrants: len(*parentGrants) > 0,
+	})
+
+	return nil
+}
+
 func (h *UserHandler) Me(c echo.Context) error {
 	sessionToken, ok := c.Get("session").(jwt.Token)
 	if !ok {

@@ -1,2 +1,2 @@
-add_column("account_access_grants", "loginsAllowed", "integer", {"null": true})
-add_column("account_access_grants", "minutesAllowed", "integer", {"null": true})
+add_column("account_access_grants", "logins_allowed", "integer", {"null": true})
+add_column("account_access_grants", "minutes_allowed", "integer", {"null": true})

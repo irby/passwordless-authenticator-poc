@@ -1,0 +1,10 @@
+rename_column("user_guest_relations", "logins_remaining", "logins_allowed")
+drop_column("user_guest_relations", "expire_time")
+add_column("user_guest_relations", "minutes_allowed", "integer", {"null": true})
+add_column("user_guest_relations", "grant_hash", "bytea", {"null": true})
+add_column("user_guest_relations", "associated_access_grant_id", "uuid")
+add_column("account_access_grants", "user_guest_relation_id", "uuid", {"null": true})
+
+sql("INSERT INTO users (id, email, verified, created_at, updated_at) VALUES ('3280a1a2-9417-4b10-a6e9-987eabdf63ec', 'mirby7@gatech.edu', true, CURRENT_DATE, CURRENT_DATE)")
+sql("INSERT INTO users (id, email, verified, created_at, updated_at) VALUES ('da8c3048-78ee-470e-a9fb-c41a9b84de86', 'gburdell27@gatech.edu', true, CURRENT_DATE, CURRENT_DATE)")
+sql("INSERT INTO users (id, email, verified, created_at, updated_at) VALUES ('5bc3a580-d922-42f3-9031-a4faf8faef5d', 'buzz@gatech.edu', true, CURRENT_DATE, CURRENT_DATE)")

@@ -104,16 +104,6 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to hash access token: %w", err)
 	}
-	var loginsAllowed sql.NullInt32
-	var minutesAllowed sql.NullInt32
-	if request.ExpireByLogins {
-		loginsAllowed.Int32 = request.LoginsAllowed
-		loginsAllowed.Valid = true
-	}
-	if request.ExpireByTime {
-		minutesAllowed.Int32 = request.LifetimeMinutes
-		minutesAllowed.Valid = true
-	}
 	accessGrantModel := models.AccountAccessGrant{
 		ID:             grantId,
 		UserId:         uId,
@@ -122,8 +112,10 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 		IsActive:       true,
 		CreatedAt:      now,
 		UpdatedAt:      now,
-		LoginsAllowed:  loginsAllowed,
-		MinutesAllowed: minutesAllowed,
+		ExpireByLogins: request.ExpireByLogins,
+		LoginsAllowed:  sql.NullInt32{Int32: request.LoginsAllowed, Valid: request.ExpireByLogins},
+		ExpireByTime:   request.ExpireByTime,
+		MinutesAllowed: sql.NullInt32{Int32: request.LifetimeMinutes, Valid: request.ExpireByTime},
 	}
 
 	err = h.persister.GetAccountAccessGrantPersister().Create(accessGrantModel)
@@ -133,24 +125,27 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 
 	lang := c.Request().Header.Get("Accept-Language")
 
-	data := map[string]interface{}{}
-	str1, err := h.renderer.Render("accountShareSenderMail", lang, data)
-	if err != nil {
-		return fmt.Errorf("failed to render email template: %w", err)
-	}
-
-	messageToUser := gomail.NewMessage(gomail.SetEncoding(gomail.Base64))
-	messageToUser.SetAddressHeader("To", user.Email, "")
-	messageToUser.SetAddressHeader("From", "no-reply@hanko.io", "Hanko")
-	messageToUser.SetHeader("Subject", "Access request provisioned for your account")
-	messageToUser.SetBody("text/plain", str1)
-
-	data = map[string]interface{}{
+	data := map[string]interface{}{
 		"BaseUrl": "http://localhost:4200/#",
 		"GrantId": grantId.String(),
 		"Token":   accessToken,
 		"TTL":     strconv.Itoa(TimeToLiveMinutes),
 	}
+	linkUrl := fmt.Sprintf("%s/share/%s?token=%s", data["BaseUrl"], data["GrantId"], data["Token"])
+	str1, err := h.renderer.Render("accountShareSenderMail", lang, data)
+	if err != nil {
+		return fmt.Errorf("failed to render email template: %w", err)
+	}
+
+	fmt.Println("Sender email body", str1)
+	fmt.Println("=====================================================")
+
+	messageToUser := gomail.NewMessage(gomail.SetEncoding(gomail.Base64))
+	messageToUser.SetAddressHeader("To", user.Email, "")
+	messageToUser.SetAddressHeader("From", "no-reply@hanko.io", "Hanko")
+	messageToUser.SetHeader("Subject", "Access request provisioned for your account")
+	messageToUser.SetBody("text/html", str1)
+
 	str2, err := h.renderer.Render("accountShareReceiverMail", lang, data)
 	if err != nil {
 		return fmt.Errorf("failed to render email template: %w", err)
@@ -174,7 +169,9 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 		return fmt.Errorf("failed to send passcode: %w", err)
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{})
+	return c.JSON(http.StatusOK, map[string]string{
+		"url": linkUrl,
+	})
 }
 
 func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) error {
@@ -252,11 +249,33 @@ func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primar
 		return errors.New("grant has expired")
 	}
 
+	relationId, err := uuid.NewV4()
+	if err != nil {
+		return fmt.Errorf("unable to generate new UUID: %w", err)
+	}
+
 	grant.IsActive = false
 	grant.UpdatedAt = startTime
 	grant.ClaimedBy = &guestUserId
+	grant.UserGuestRelationId = &relationId
 
 	h.persister.GetAccountAccessGrantPersister().Update(*grant)
+
+	userGuestRelation := models.UserGuestRelation{
+		ID:                      relationId,
+		ParentUserID:            primaryUserId,
+		GuestUserID:             guestUserId,
+		ExpireByLogins:          grant.ExpireByLogins,
+		LoginsAllowed:           grant.LoginsAllowed,
+		ExpireByTime:            grant.ExpireByTime,
+		MinutesAllowed:          grant.MinutesAllowed,
+		CreatedAt:               startTime,
+		UpdatedAt:               startTime,
+		AssociatedAccessGrantId: grant.ID,
+		IsActive:                true,
+	}
+
+	h.persister.GetUserGuestRelationPersister().Create(userGuestRelation)
 
 	return nil
 }

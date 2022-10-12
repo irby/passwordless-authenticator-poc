@@ -1,6 +1,6 @@
 import { HttpStatusCode } from '@angular/common/http';
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GrantService } from '../core/services/grant.service';
 import { SocketService } from '../core/services/socket.service';
@@ -30,13 +30,19 @@ export class ShareComponent implements OnInit, OnDestroy {
 
   public clientInformation!: ClientInformation;
 
-  constructor(private readonly socket: SocketService, private readonly grantService: GrantService, private activatedRoute: ActivatedRoute) { 
+  public accessGrantSuccessful: boolean | null = null;
+
+  constructor(
+    private readonly socket: SocketService, 
+    private readonly grantService: GrantService, 
+    private readonly activatedRoute: ActivatedRoute,
+    private readonly router: Router) { 
     this.messages = [];
     this.chatBox = "";
   }
 
   ngOnDestroy(): void {
-    this.socket.close();
+    this.socket?.close();
     this.routeSub.unsubscribe();
     this.querySub.unsubscribe();
   }
@@ -57,7 +63,7 @@ export class ShareComponent implements OnInit, OnDestroy {
       this.fetchGrantByIdAndToken();
     })
 
-    this.socket.getEventListener().subscribe(event => {
+    this.socket?.getEventListener().subscribe(event => {
       console.log(event);
       if (event.type === 'message') {
         let message: Message;
@@ -87,6 +93,12 @@ export class ShareComponent implements OnInit, OnDestroy {
           case MessageCode.InitializeGrantConfirm:
             this.handleInitializeGrantConfirmation();
             break;
+          case MessageCode.AccessGrantSuccess:
+            this.handleAccessGrantValue(true);
+            break;
+          case MessageCode.AccessGrantFailure:
+            this.handleAccessGrantValue(false);
+            break;
         }
 
         let data = event.data;
@@ -102,12 +114,16 @@ export class ShareComponent implements OnInit, OnDestroy {
   }
 
   public async confirmGrant() {
-    this.socket.send(`${MessageCode.ConfirmGrant}`);
+    this.socket?.send(`${MessageCode.ConfirmGrant}`);
   }
 
   public async denyGrant() {
-    this.socket.send(`${MessageCode.DenyGrant}`);
+    this.socket?.send(`${MessageCode.DenyGrant}`);
     this.isConnected = false;
+  }
+
+  public backToHome() {
+    this.router.navigate(['../../home'])
   }
 
 
@@ -120,7 +136,7 @@ export class ShareComponent implements OnInit, OnDestroy {
     this.isLoading = false;
 
     if (grantData.type === 'data') {
-      this.socket.createAndAssignSocket(this.id);
+      this.socket?.createAndAssignSocket(this.id);
       return;
     }
 
@@ -167,10 +183,14 @@ export class ShareComponent implements OnInit, OnDestroy {
 
   private handleInitializeGrantConfirmation(): void {
     if (confirm('Provide your biometric to continue')) {
-      this.socket.send(`${MessageCode.FinalizeGrantConfirm}`);
+      this.socket?.send(`${MessageCode.FinalizeGrantConfirm}`);
     } else {
-      this.socket.send(`${MessageCode.CancelGrantConfirm}`);
+      this.socket?.send(`${MessageCode.CancelGrantConfirm}`);
     }
+  }
+
+  private handleAccessGrantValue(isSuccess : boolean): void {
+    this.accessGrantSuccessful = isSuccess;
   }
 }
 
@@ -207,5 +227,8 @@ export enum MessageCode {
 	InitializeSubRegistrationConfirm = 501,
 	FinalizeSubRegistrationConfirm   = 502,
 	CancelSubRegistrationConfirm     = 503,
+
+  AccessGrantSuccess = 601,
+  AccessGrantFailure = 602
 }
 

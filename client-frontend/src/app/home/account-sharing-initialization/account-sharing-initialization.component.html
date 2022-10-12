@@ -4,7 +4,7 @@
     <div>
     <mat-form-field class="example-full-width w-100" appearance="fill">
       <mat-label>Email</mat-label>
-      <input type="email" matInput [formControl]="emailFormControl" [errorStateMatcher]="matcher"
+      <input type="email" matInput [formControl]="emailFormControl" [errorStateMatcher]="matcher" [disabled]="shareUrl !== null"
              placeholder="Ex. gburdell@gatech.edu">
       <mat-error *ngIf="emailFormControl.hasError('email') && !emailFormControl.hasError('required')">
         Please enter a valid email address
@@ -18,7 +18,7 @@
       <mat-slide-toggle [checked]="expireByLogins" (change)="toggleExpireByLogins()">Expire By Logins</mat-slide-toggle>
       <mat-form-field class="example-full-width w-100 ml-3" appearance="fill">
         <mat-label>Login Count</mat-label>
-        <input type="number" matInput [formControl]="loginCountFormControl" [readonly]="!expireByLogins"
+        <input type="number" matInput [formControl]="loginCountFormControl" [readonly]="!expireByLogins" [disabled]="shareUrl !== null"
              placeholder="Ex. 10">
       </mat-form-field>
   </div>
@@ -26,7 +26,7 @@
     <mat-slide-toggle [checked]="expireByTime" (change)="toggleExpireByTime()">Expire By Time</mat-slide-toggle>
     <mat-form-field class="example-full-width w-100 ml-3" appearance="fill">
       <mat-label>Allowed Minutes</mat-label>
-      <input type="number" matInput [formControl]="timeMinutesCountFormControl" [readonly]="!expireByTime"
+      <input type="number" matInput [formControl]="timeMinutesCountFormControl" [readonly]="!expireByTime" [disabled]="shareUrl !== null"
            placeholder="Ex. 10">
     </mat-form-field>
   </div>
@@ -37,6 +37,8 @@
 </mat-dialog-content>
 
 <mat-dialog-actions>
-  <button mat-raised-button mat-dialog-close color="warn">Close</button>
-  <button mat-raised-button (click)="submit()" cdkFocusInitial color="primary" [disabled]="isLoading">Share</button>
+  <button *ngIf="!shareUrl" mat-raised-button mat-dialog-close color="warn">Close</button>
+  <button *ngIf="!shareUrl" mat-raised-button (click)="submit()" cdkFocusInitial color="primary" [disabled]="isLoading">Share</button>
+  <a [href]="shareUrl" *ngIf="shareUrl !== null" target="_blank">Open Share Link</a>
+  <button mat-raised-button (click)="shareUrl = ''" *ngIf="shareUrl !== null">Share With Someone Else</button>
 </mat-dialog-actions>

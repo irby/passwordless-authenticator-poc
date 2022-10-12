@@ -4,7 +4,7 @@ import { BaseService } from "./service.base";
 
 @Injectable()
 export class GrantService extends BaseService {
-    public async createGrant(dto : CreateAccountGrantDto) : Promise<ServiceResponse<void>> {
+    public async createGrant(dto : CreateAccountGrantDto) : Promise<ServiceResponse<CreateAccountGrantResponseDto>> {
         return await this.postAsync(`access/share/initialize`, dto);
     }
 
@@ -19,4 +19,8 @@ export interface CreateAccountGrantDto {
     loginsAllowed?: number;
     expireByTime?: boolean;
     minutesAllowed?: number;
+}
+
+export interface CreateAccountGrantResponseDto {
+    url: string;
 }

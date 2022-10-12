@@ -24,11 +24,11 @@ export class SocketService {
     }
 
     public send(data: string) {
-        this.socket.send(data);
+        this.socket?.send(data);
     }
 
     public close() {
-        this.socket.close();
+        this.socket?.close();
     }
 
     public getEventListener() {

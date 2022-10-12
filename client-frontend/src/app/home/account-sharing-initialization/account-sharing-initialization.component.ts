@@ -33,6 +33,8 @@ export class AccountSharingInitializationDialog implements OnInit {
   public accessLifespanMinutes: Date = new Date();
   public isLoading: boolean = false;
 
+  public shareUrl: string | null = null;
+
   constructor(
     private readonly dialogRef: MatDialogRef<AccountSharingInitializationDialog>,
     private readonly grantService: GrantService
@@ -46,6 +48,8 @@ export class AccountSharingInitializationDialog implements OnInit {
   }
 
   public async submit() {
+
+    this.shareUrl = null;
 
     if (!this.emailFormControl.valid) {
       return; // TODO: Add errors
@@ -71,9 +75,12 @@ export class AccountSharingInitializationDialog implements OnInit {
     };
     const resp = await this.grantService.createGrant(dto);
     this.isLoading = false;
-    if (resp.type === 'error') {
-      // TODO: Handle
+
+    if (resp.type === 'data') {
+      this.shareUrl = resp.data.url;
+      return;
     }
+    
   }
 
   public toggleExpireByLogins() {

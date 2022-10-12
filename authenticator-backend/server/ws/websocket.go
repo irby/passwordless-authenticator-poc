@@ -16,6 +16,7 @@ import (
 	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/session"
 	"net/http"
+	"strings"
 )
 
 type WebsocketHandler struct {
@@ -62,6 +63,9 @@ const (
 	InitializeSubRegistrationConfirm = 501
 	FinalizeSubRegistrationConfirm   = 502
 	CancelSubRegistrationConfirm     = 503
+
+	AccessGrantSuccess = 601
+	AccessGrantFailure = 602
 )
 
 type SocketMessage struct {
@@ -194,6 +198,7 @@ func (manager *ClientManager) start(grant *models.AccountAccessGrant) {
 
 			if parsedMessage.Content == fmt.Sprintf("%d", FinalizeGrantConfirm) {
 				_ = handleFinalizeGrantConfirm(grant)
+				broadcastMessages = false
 			}
 
 			if broadcastMessages {
@@ -303,8 +308,11 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 	}
 
 	if len(manager.clients) > 0 {
-		for clientSessionKeys := range clientSessionDataManager.clients {
-			if clientSessionDataManager.clients[clientSessionKeys].isAccountHolder {
+		for clientSessionKey := range clientSessionDataManager.clients {
+			if !strings.Contains(clientSessionKey, "::"+grantId) {
+				continue
+			}
+			if clientSessionDataManager.clients[clientSessionKey].isAccountHolder {
 				continue
 			}
 			if user.ID != grant.UserId {
@@ -398,7 +406,16 @@ func handleFinalizeGrantConfirm(grant *models.AccountAccessGrant) error {
 		return errors.New("both primary account holder and guest sessions are required")
 	}
 
-	manager.websocketHandler.accountSharingHandler.CreateAccountWithGrant(grant.ID, primaryAccountHolderSession.userId, guestSession.userId)
+	err := manager.websocketHandler.accountSharingHandler.CreateAccountWithGrant(grant.ID, primaryAccountHolderSession.userId, guestSession.userId)
+
+	if err != nil {
+		return errors.New(fmt.Sprintf("an error occurred while creating relationship: %w", err))
+	}
+
+	jsonMessage, _ := json.Marshal(&SocketMessage{Code: AccessGrantSuccess})
+	jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
+	primaryAccountHolderSession.client.send <- jsonMessage
+	guestSession.client.send <- jsonMessage
 
 	return nil
 }

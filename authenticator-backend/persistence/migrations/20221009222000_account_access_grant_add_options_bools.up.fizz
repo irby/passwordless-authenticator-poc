@@ -1,0 +1,16 @@
+add_column("account_access_grants", "expire_by_time", "bool", {default: "false"})
+add_column("account_access_grants", "expire_by_logins", "bool", {default: "false"})
+
+create_table("user_guest_relations") {
+    t.Column("id", "uuid", {"primary": true})
+    t.Column("guest_user_id", "uuid", {})
+    t.Column("parent_user_id", "uuid", {})
+    t.Column("is_active", "bool", {"default": false})
+    t.Column("expire_by_time", "bool", {"default": false})
+    t.Column("expire_by_logins", "bool", {"default": false})
+    t.Column("logins_remaining", "integer", {"null": true})
+    t.Column("expire_time", "timestamp", {"null": true})
+    t.Timestamps()
+    t.ForeignKey("guest_user_id", {"users": ["id"]}, {})
+    t.ForeignKey("parent_user_id", {"users": ["id"]}, {})
+}
