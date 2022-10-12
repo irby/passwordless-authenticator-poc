@@ -409,7 +409,7 @@ func handleFinalizeGrantConfirm(grant *models.AccountAccessGrant) error {
 	err := manager.websocketHandler.accountSharingHandler.CreateAccountWithGrant(grant.ID, primaryAccountHolderSession.userId, guestSession.userId)
 
 	if err != nil {
-		return errors.New(fmt.Sprintf("an error occurred while creating relationship: %w", err))
+		return fmt.Errorf("an error occurred when creating account with grant: %w", err)
 	}
 
 	jsonMessage, _ := json.Marshal(&SocketMessage{Code: AccessGrantSuccess})
