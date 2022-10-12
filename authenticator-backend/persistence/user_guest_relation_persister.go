@@ -12,8 +12,8 @@ type UserGuestRelationPersister interface {
 	Get(uuid uuid.UUID) (*models.UserGuestRelation, error)
 	Create(model models.UserGuestRelation) error
 	Update(model models.UserGuestRelation) error
-	GetByGuestUserId(guestUserId uuid.UUID) (*[]models.UserGuestRelation, error)
-	GetByParentUserId(parentUserId uuid.UUID) (*[]models.UserGuestRelation, error)
+	GetByGuestUserId(guestUserId *uuid.UUID) (*[]models.UserGuestRelation, error)
+	GetByParentUserId(parentUserId *uuid.UUID) (*[]models.UserGuestRelation, error)
 }
 
 type userGuestRelationPersister struct {
@@ -62,20 +62,20 @@ func (p *userGuestRelationPersister) Update(model models.UserGuestRelation) erro
 	return nil
 }
 
-func (p *userGuestRelationPersister) GetByGuestUserId(guestUserId uuid.UUID) (*[]models.UserGuestRelation, error) {
+func (p *userGuestRelationPersister) GetByGuestUserId(guestUserId *uuid.UUID) (*[]models.UserGuestRelation, error) {
 	models := []models.UserGuestRelation{}
-	conn := p.db.Where("guest_user_id = ?", guestUserId)
-	err := conn.All(models)
+	conn := p.db.RawQuery("select * from user_guest_relations where guest_user_id = ? AND is_active = true", guestUserId)
+	err := conn.All(&models)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve user guest relations by guest id: %w", err)
 	}
 	return &models, nil
 }
 
-func (p *userGuestRelationPersister) GetByParentUserId(parentUserId uuid.UUID) (*[]models.UserGuestRelation, error) {
+func (p *userGuestRelationPersister) GetByParentUserId(parentUserId *uuid.UUID) (*[]models.UserGuestRelation, error) {
 	models := []models.UserGuestRelation{}
-	conn := p.db.Where("parent_user_id = ?", parentUserId)
-	err := conn.All(models)
+	conn := p.db.RawQuery("select * from user_guest_relations where parent_user_id = ? AND is_active = true", &parentUserId)
+	err := conn.All(&models)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve user guest relations by parent id: %w", err)
 	}

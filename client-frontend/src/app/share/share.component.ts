@@ -30,6 +30,8 @@ export class ShareComponent implements OnInit, OnDestroy {
 
   public clientInformation!: ClientInformation;
 
+  public accessGrantSuccessful: boolean | null = null;
+
   constructor(
     private readonly socket: SocketService, 
     private readonly grantService: GrantService, 
@@ -90,6 +92,12 @@ export class ShareComponent implements OnInit, OnDestroy {
             break;
           case MessageCode.InitializeGrantConfirm:
             this.handleInitializeGrantConfirmation();
+            break;
+          case MessageCode.AccessGrantSuccess:
+            this.handleAccessGrantValue(true);
+            break;
+          case MessageCode.AccessGrantFailure:
+            this.handleAccessGrantValue(false);
             break;
         }
 
@@ -180,6 +188,10 @@ export class ShareComponent implements OnInit, OnDestroy {
       this.socket?.send(`${MessageCode.CancelGrantConfirm}`);
     }
   }
+
+  private handleAccessGrantValue(isSuccess : boolean): void {
+    this.accessGrantSuccessful = isSuccess;
+  }
 }
 
 export interface Message {
@@ -215,5 +227,8 @@ export enum MessageCode {
 	InitializeSubRegistrationConfirm = 501,
 	FinalizeSubRegistrationConfirm   = 502,
 	CancelSubRegistrationConfirm     = 503,
+
+  AccessGrantSuccess = 601,
+  AccessGrantFailure = 602
 }
 

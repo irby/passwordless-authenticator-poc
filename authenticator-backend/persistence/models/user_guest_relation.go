@@ -11,18 +11,18 @@ import (
 )
 
 type UserGuestRelation struct {
-	ID                      uuid.UUID     `db:"id"`
-	GuestUserID             uuid.UUID     `db:"guest_user_id"`
-	ParentUserID            uuid.UUID     `db:"parent_user_id"`
-	CreatedAt               time.Time     `db:"created_at"`
-	UpdatedAt               time.Time     `db:"updated_at"`
-	IsActive                bool          `db:"is_active"`
-	ExpireByLogins          bool          `db:"expire_by_logins"`
-	LoginsAllowed           sql.NullInt32 `db:"logins_allowed"`
-	ExpireByTime            bool          `db:"expire_by_time"`
-	MinutesAllowed          sql.NullInt32 `db:"minutes_allowed"`
-	AssociatedAccessGrantId uuid.UUID     `db:"associated_access_grant_id"`
-	GrantHash               *[]byte       `db:"grant_hash"`
+	ID                      uuid.UUID     `db:"id" json:"id"`
+	GuestUserID             uuid.UUID     `db:"guest_user_id" json:"guestUserId"`
+	ParentUserID            uuid.UUID     `db:"parent_user_id" json:"parent_user_id"`
+	CreatedAt               time.Time     `db:"created_at" json:"createdAt"`
+	UpdatedAt               time.Time     `db:"updated_at" json:"updatedAt"`
+	IsActive                bool          `db:"is_active" json:"is_active"`
+	ExpireByLogins          bool          `db:"expire_by_logins" json:"-"`
+	LoginsAllowed           sql.NullInt32 `db:"logins_allowed" json:"-"`
+	ExpireByTime            bool          `db:"expire_by_time" json:"-"`
+	MinutesAllowed          sql.NullInt32 `db:"minutes_allowed" json:"-"`
+	AssociatedAccessGrantId uuid.UUID     `db:"associated_access_grant_id" json:"-"`
+	GrantHash               *[]byte       `db:"grant_hash" json:"-"`
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.

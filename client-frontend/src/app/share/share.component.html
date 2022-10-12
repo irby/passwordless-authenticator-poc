@@ -10,31 +10,51 @@
   <div *ngIf="!errorText">
     <div *ngIf="isConnected">
       Connected!
-      <div *ngIf="!isPrimaryAccountHolder">
-        Waiting for account holder to confirm your access...
+      <div *ngIf="accessGrantSuccessful === null">
+        <div *ngIf="!isPrimaryAccountHolder">
+          Waiting for account holder to confirm your access...
+        </div>
+        <div *ngIf="isPrimaryAccountHolder">
+          <div *ngIf="!!clientInformation">
+            Please confirm you wish to share your account with the following party:
+
+            <table>
+              <td>
+                <tr>Client IP Address: </tr>
+                <tr>Client Browser: </tr>
+                <tr>Email: </tr>
+              </td>
+              <td>
+                <tr>{{clientInformation.ipAddress}}</tr>
+                <tr>{{clientInformation.userAgent}}</tr>
+                <tr>{{clientInformation.email}}</tr>
+              </td>
+            </table>
+
+            <div style="margin-top: 1.5em; margin-bottom: 1.5em;"></div>
+
+            <button mat-raised-button color="primary" (click)="confirmGrant()">Confirm</button>
+            <span style="margin-left: 1em; margin-right: 1em;"></span>
+            <button mat-raised-button color="warn" (click)="denyGrant()">Deny</button>
+          </div>
+        </div>
       </div>
-      <div *ngIf="isPrimaryAccountHolder">
-        <div *ngIf="!!clientInformation">
-          Please confirm you wish to share your account with the following party:
-  
-          <table >
-            <td>
-              <tr>Client IP Address: </tr>
-              <tr>Client Browser: </tr>
-              <tr>Email: </tr>
-            </td>
-            <td>
-              <tr>{{clientInformation.ipAddress}}</tr>
-              <tr>{{clientInformation.userAgent}}</tr>
-              <tr>{{clientInformation.email}}</tr>
-            </td>
-          </table>
-
-          <div style="margin-top: 1.5em; margin-bottom: 1.5em;"></div>
-
-          <button mat-raised-button color="primary" (click)="confirmGrant()">Confirm</button>
-          <span style="margin-left: 1em; margin-right: 1em;"></span>
-          <button mat-raised-button color="warn" (click)="denyGrant()">Deny</button>
+      <div *ngIf="accessGrantSuccessful !== null">
+        <div *ngIf="!isPrimaryAccountHolder">
+          <div *ngIf="accessGrantSuccessful">
+            Your access has been approved and successfully provisioned!
+          </div>
+          <div *ngIf="!accessGrantSuccessful">
+            An error occurred provisioning your access grant.
+          </div>
+        </div>
+        <div *ngIf="isPrimaryAccountHolder">
+          <div *ngIf="accessGrantSuccessful">
+            You have successfully provisioned access!
+          </div>
+          <div *ngIf="!accessGrantSuccessful">
+            An error occurred provisioning access grant.
+          </div>
         </div>
       </div>
     </div>
