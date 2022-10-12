@@ -131,7 +131,7 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 		"Token":   accessToken,
 		"TTL":     strconv.Itoa(TimeToLiveMinutes),
 	}
-	linkUrl := fmt.Sprintf("%s/%s?token=%s", data["BaseUrl"], data["GrantId"], data["Token"])
+	linkUrl := fmt.Sprintf("%s/share/%s?token=%s", data["BaseUrl"], data["GrantId"], data["Token"])
 	str1, err := h.renderer.Render("accountShareSenderMail", lang, data)
 	if err != nil {
 		return fmt.Errorf("failed to render email template: %w", err)
