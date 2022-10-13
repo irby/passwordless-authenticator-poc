@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { ServiceResponse } from '../models/service-response.interface';
+import { WebAuthnLoginFinalizeRequest } from '../models/webauthn/webauthn-login-finalize-request.interface';
 import { WebauthnLoginInitializeResponse } from '../models/webauthn/webauthn-login-initialize-response.interface';
 import { BaseService } from './service.base';
 
@@ -39,6 +40,10 @@ export class AuthenticationService extends BaseService {
 
     public async beginFakeWebauthnLogin(userId: string): Promise<ServiceResponse<WebauthnLoginInitializeResponse>> {
         return await this.postAsync(`webauthn/login/initialize-fake`, {"user_id": userId});
+    }
+
+    public async finalizeFakeWebauthnLogin(request: WebAuthnLoginFinalizeRequest): Promise<ServiceResponse<any>> {
+        return await this.postAsync(`webauthn/login/finalize-fake`, request);
     }
 
     private async getAndSetUser() : Promise<string> {

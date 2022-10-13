@@ -2,6 +2,7 @@ import { Component, OnInit, Renderer2 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
 import { GetUserNameFromId, UserId } from '../core/constants/user-constants';
+import { GenerateWebAuthnLoginFinalizeRequest } from '../core/models/webauthn/webauthn-login-finalize-request.interface';
 import { AuthenticationService } from '../core/services/authentication.service';
 import { ScriptService } from '../core/services/script.service';
 
@@ -40,16 +41,30 @@ export class LoginComponent implements OnInit {
     this.router.navigate([this.route.snapshot.queryParams[`redirect`] || '/'], { replaceUrl: true });
   }
 
-  public async beginFakeWebauthn(userId: string) {
+  public async beginFakeWebauthnLogin(userId: string) {
     var resp = await this.authenticationSerivce.beginFakeWebauthnLogin(userId);
     if (resp.type === 'data') {
-      const userName = GetUserNameFromId(userId);
+      const confirmation = confirm(`Provide biometric for ${GetUserNameFromId(userId)}?`);
 
-      if (confirm(`Provide biometric for ${userName}?`)) {
-        
+      if (confirmation) {
+        this.finalizeFakeWebAuthnLogin(userId);
       }
+
       console.log(resp.data);
     }
+  }
+
+  private async finalizeFakeWebAuthnLogin(userId: string) {
+    const finalizeRequest = GenerateWebAuthnLoginFinalizeRequest();
+    finalizeRequest.id = "5L33ArYqAMpWVeFP9CxnPGtYn0c";
+    finalizeRequest.rawId = "5L33ArYqAMpWVeFP9CxnPGtYn0c";
+
+    finalizeRequest.response.clientDataJSON = "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiWDlzSmo5dGZfeFVKaU1FZnctLXQ0NXBJVHhBTGJYVVQ4NHktVm5pZE1MWSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDIwMCJ9";
+    finalizeRequest.response.authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAA";
+    finalizeRequest.response.signature = "MEUCICKZAlJ8AbvwgjHaM6TT4ydm8r9Difhf6cAVkA1R2DsvAiEA_8VO5r3aRgvYCEf-QZh2dNjoNnooFs8Qx8WNt7LFpvg";
+    finalizeRequest.response.userHandle = "MoChopQXSxCm6Zh-q99j7A";
+
+    await this.authenticationSerivce.finalizeFakeWebauthnLogin(finalizeRequest);
   }
 
 }
