@@ -4,7 +4,7 @@ import axios, { AxiosRequestConfig, AxiosError } from 'axios';
 import { Router } from '@angular/router';
 import { ErrorResponse } from '../models/error-response.interface';
 import { Observable, of } from 'rxjs';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpStatusCode } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { ServiceError } from '../models/service-error.interface';
 import { ServiceData } from '../models/service-data.interface';
@@ -50,12 +50,11 @@ export abstract class BaseService {
             //     retError.body = error.response.data.toString();
             // }
 
-            // if (retError.statusCode === 401) {
-            //     AuthenticationService.clearAuthentication();
-            //     AuthenticationService.loginRedirect(this.router);
-            // } else if (retError.statusCode === 403) {
-            //     // do something
-            // }
+            if (retError.statusCode === HttpStatusCode.Unauthorized) {
+                this.router.navigate(['/']);
+            } else if (retError.statusCode === HttpStatusCode.Forbidden) {
+                // do something
+            }
         }
 
         return retError;

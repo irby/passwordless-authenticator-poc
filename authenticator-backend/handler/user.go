@@ -13,6 +13,7 @@ import (
 	"github.com/teamhanko/hanko/backend/session"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type UserHandler struct {
@@ -118,6 +119,16 @@ func (h *UserHandler) GetUserIdByEmail(c echo.Context) error {
 	})
 }
 
+type GetUserGuestRelationDto struct {
+	GrantId         uuid.UUID `json:"relationId"`
+	GuestUserId     uuid.UUID `json:"guestUserId"`
+	GuestUserEmail  string    `json:"guestUserEmail"`
+	ParentUserId    uuid.UUID `json:"parentUserId"`
+	ParentUserEmail string    `json:"parentUserEmail"`
+	CreatedAt       time.Time `json:"createdAt"`
+	IsActive        bool      `json:"isActive"`
+}
+
 func (h *UserHandler) GetUserGuestRelationsAsGuest(c echo.Context) error {
 	sessionToken, ok := c.Get("session").(jwt.Token)
 	if !ok {
@@ -131,11 +142,28 @@ func (h *UserHandler) GetUserGuestRelationsAsGuest(c echo.Context) error {
 		return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(errors.New("could not get guest grants"))
 	}
 
-	return c.JSON(http.StatusOK, struct {
-		GuestGrants []models.UserGuestRelation `json:"guestGrants"`
-	}{
-		GuestGrants: *guestGrants,
-	})
+	result := []GetUserGuestRelationDto{}
+
+	userPersister := h.persister.GetUserPersister()
+
+	guestUser, _ := userPersister.Get(uuid)
+
+	for i := 0; i < len(guestGrants); i++ {
+		grant := guestGrants[i]
+		parentUser, _ := userPersister.Get(grant.ParentUserID)
+		intermediate := GetUserGuestRelationDto{
+			GrantId:         grant.ID,
+			GuestUserId:     grant.GuestUserID,
+			GuestUserEmail:  guestUser.Email,
+			ParentUserId:    grant.ParentUserID,
+			ParentUserEmail: parentUser.Email,
+			CreatedAt:       grant.CreatedAt,
+			IsActive:        grant.IsActive,
+		}
+		result = append(result, intermediate)
+	}
+
+	return c.JSON(http.StatusOK, result)
 
 	return nil
 }
@@ -153,11 +181,28 @@ func (h *UserHandler) GetUserGuestRelationsAsAccountHolder(c echo.Context) error
 		return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(errors.New("could not get parent grants"))
 	}
 
-	return c.JSON(http.StatusOK, struct {
-		ParentGrants []models.UserGuestRelation `json:"parentGrants"`
-	}{
-		ParentGrants: *parentGrants,
-	})
+	result := []GetUserGuestRelationDto{}
+
+	userPersister := h.persister.GetUserPersister()
+
+	parentUser, _ := userPersister.Get(uuid)
+
+	for i := 0; i < len(parentGrants); i++ {
+		grant := parentGrants[i]
+		guestUser, _ := userPersister.Get(grant.GuestUserID)
+		intermediate := GetUserGuestRelationDto{
+			GrantId:         grant.ID,
+			GuestUserId:     grant.GuestUserID,
+			GuestUserEmail:  guestUser.Email,
+			ParentUserId:    grant.ParentUserID,
+			ParentUserEmail: parentUser.Email,
+			CreatedAt:       grant.CreatedAt,
+			IsActive:        grant.IsActive,
+		}
+		result = append(result, intermediate)
+	}
+
+	return c.JSON(http.StatusOK, result)
 
 	return nil
 }
@@ -184,9 +229,107 @@ func (h *UserHandler) GetUserGuestRelationsOverview(c echo.Context) error {
 		HasGuestGrants  bool `json:"hasGuestGrants"`
 		HasParentGrants bool `json:"hasParentGrants"`
 	}{
-		HasGuestGrants:  len(*guestGrants) > 0,
-		HasParentGrants: len(*parentGrants) > 0,
+		HasGuestGrants:  len(guestGrants) > 0,
+		HasParentGrants: len(parentGrants) > 0,
 	})
+
+	return nil
+}
+
+type UserGuestRelationRequest struct {
+	RelationId string `json:"relationId" validate:"required"`
+}
+
+func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return errors.New("missing or malformed jwt")
+	}
+
+	var body UserGuestRelationRequest
+	if err := (&echo.DefaultBinder{}).BindBody(c, &body); err != nil {
+		return dto.ToHttpError(err)
+	}
+
+	if err := c.Validate(body); err != nil {
+		return dto.ToHttpError(err)
+	}
+
+	relation, err := h.persister.GetUserGuestRelationPersister().Get(uuid.FromStringOrNil(body.RelationId))
+	if err != nil {
+		return dto.ToHttpError(err)
+	}
+
+	if relation == nil {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(errors.New("user guest relation not found"))
+	}
+
+	// Check to verify guest user ID matches the ID coming over on request
+	if relation.GuestUserID.String() != sessionToken.Subject() {
+		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", sessionToken.Subject(), relation.ID)))
+	}
+
+	if relation.ExpireByTime && time.Now().UTC().Before(relation.CreatedAt.Add(time.Duration(relation.MinutesAllowed.Int32)*time.Minute)) {
+		relation.IsActive = false
+		relation.UpdatedAt = time.Now().UTC()
+
+		_ = h.persister.GetUserGuestRelationPersister().Update(*relation)
+
+		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("Access on relation ID %s has expired", relation.ID)))
+	}
+
+	// TODO: Check the expire by logins
+
+	token, err := h.sessionManager.GenerateJWT(relation.ParentUserID)
+	if err != nil {
+		return fmt.Errorf("failed to generate jwt: %w", err)
+	}
+
+	cookie, err := h.sessionManager.GenerateCookie(token)
+	if err != nil {
+		return fmt.Errorf("failed to create session token: %w", err)
+	}
+
+	c.SetCookie(cookie)
+
+	// TODO: Record login on relation
+
+	return c.JSON(http.StatusOK, struct{}{})
+
+	return nil
+}
+
+func (h *UserHandler) RemoveAccessToRelation(c echo.Context) error {
+	relationId := c.Param("id")
+
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return errors.New("missing or malformed jwt")
+	}
+
+	relation, err := h.persister.GetUserGuestRelationPersister().Get(uuid.FromStringOrNil(relationId))
+	if err != nil {
+		return dto.ToHttpError(err)
+	}
+
+	if relation == nil {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(errors.New("user guest relation not found"))
+	}
+
+	// Check to verify parent user ID matches the ID coming over on request
+	if relation.ParentUserID.String() != sessionToken.Subject() {
+		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", sessionToken.Subject(), relation.ID)))
+	}
+
+	relation.IsActive = false
+	relation.UpdatedAt = time.Now().UTC()
+
+	err = h.persister.GetUserGuestRelationPersister().Update(*relation)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(errors.New(fmt.Sprintf("An error occurred while updating the relation ID %s", relation.ID)))
+	}
+
+	return c.JSON(http.StatusOK, struct{}{})
 
 	return nil
 }

@@ -5,6 +5,8 @@ import { GrantsContext } from '../core/enums/grants-context.enum';
 import { AuthenticationService } from '../core/services/authentication.service';
 import { UserService } from '../core/services/user.service';
 import { AccountSharingInitializationDialog } from './account-sharing-initialization/account-sharing-initialization.component';
+import { GrantsGuestModalComponent } from './grants-guest-modal/grants-guest-modal.component';
+import { GrantsParentModalComponent } from './grants-parent-modal/grants-parent-modal.component';
 
 @Component({
   selector: 'app-home',
@@ -51,7 +53,15 @@ export class HomeComponent implements OnInit {
       width: '45em',
       height: '30em'
     }
-    this.matDialog.open(AccountSharingInitializationDialog, config);
+    switch (context) {
+      case GrantsContext.Guest:
+        this.matDialog.open(GrantsGuestModalComponent, config);
+        break;
+      case GrantsContext.Parent:
+        this.matDialog.open(GrantsParentModalComponent, config);
+        break;
+    }
+    
   }
 
 }

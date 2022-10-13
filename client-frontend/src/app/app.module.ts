@@ -21,6 +21,8 @@ import { UserService } from './core/services/user.service';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { AuthenticationService } from './core/services/authentication.service';
 import { GrantService } from './core/services/grant.service';
+import { GrantsGuestModalComponent } from './home/grants-guest-modal/grants-guest-modal.component';
+import { GrantsParentModalComponent } from './home/grants-parent-modal/grants-parent-modal.component';
 
 @NgModule({
   declarations: [				
@@ -29,7 +31,9 @@ import { GrantService } from './core/services/grant.service';
       DefaultComponent,
       AccountSharingInitializationDialog,
       HomeComponent,
-      ShareComponent
+      ShareComponent,
+      GrantsGuestModalComponent,
+      GrantsParentModalComponent
    ],
   imports: [
     BrowserModule,
