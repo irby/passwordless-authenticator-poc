@@ -12,7 +12,7 @@ import (
 )
 
 type Manager interface {
-	GenerateJWT(uuid.UUID) (string, error)
+	GenerateJWT(uuid.UUID, uuid.UUID) (string, error)
 	Verify(string) (jwt.Token, error)
 	GenerateCookie(token string) (*http.Cookie, error)
 	DeleteCookie() (*http.Cookie, error)
@@ -72,12 +72,15 @@ func NewManager(jwkManager hankoJwk.Manager, config config.Session) (Manager, er
 }
 
 // GenerateJWT creates a new session JWT for the given user
-func (g *manager) GenerateJWT(userId uuid.UUID) (string, error) {
+func (g *manager) GenerateJWT(subjectUserId uuid.UUID, audienceUserId uuid.UUID) (string, error) {
 	issuedAt := time.Now()
 	expiration := issuedAt.Add(g.sessionLength)
+	var audArray []string
+	audArray = append(audArray, audienceUserId.String())
 
 	token := jwt.New()
-	_ = token.Set(jwt.SubjectKey, userId.String())
+	_ = token.Set(jwt.SubjectKey, subjectUserId.String())
+	_ = token.Set(jwt.AudienceKey, audArray)
 	_ = token.Set(jwt.IssuedAtKey, issuedAt)
 	_ = token.Set(jwt.ExpirationKey, expiration)
 	//_ = token.Set(jwt.AudienceKey, []string{"http://localhost"})

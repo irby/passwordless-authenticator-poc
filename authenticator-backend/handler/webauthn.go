@@ -379,7 +379,7 @@ func (h *WebauthnHandler) FinishAuthentication(c echo.Context) error {
 			return fmt.Errorf("failed to delete assertion session data: %w", err)
 		}
 
-		token, err := h.sessionManager.GenerateJWT(webauthnUser.UserId)
+		token, err := h.sessionManager.GenerateJWT(webauthnUser.UserId, webauthnUser.UserId)
 		if err != nil {
 			return fmt.Errorf("failed to generate jwt: %w", err)
 		}
@@ -475,7 +475,7 @@ func (h *WebauthnHandler) FinishAuthenticationFake(c echo.Context) error {
 			return fmt.Errorf("failed to delete assertion session data: %w", err)
 		}
 
-		token, err := h.sessionManager.GenerateJWT(webauthnUser.UserId)
+		token, err := h.sessionManager.GenerateJWT(webauthnUser.UserId, webauthnUser.UserId)
 		if err != nil {
 			return fmt.Errorf("failed to generate jwt: %w", err)
 		}

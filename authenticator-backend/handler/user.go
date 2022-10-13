@@ -135,7 +135,7 @@ func (h *UserHandler) GetUserGuestRelationsAsGuest(c echo.Context) error {
 		return errors.New("missing or malformed jwt")
 	}
 
-	uuid := uuid.FromStringOrNil(sessionToken.Subject())
+	uuid := uuid.FromStringOrNil(sessionToken.Audience()[0])
 
 	guestGrants, err := h.persister.GetUserGuestRelationPersister().GetByGuestUserId(&uuid)
 	if err != nil {
@@ -174,7 +174,7 @@ func (h *UserHandler) GetUserGuestRelationsAsAccountHolder(c echo.Context) error
 		return errors.New("missing or malformed jwt")
 	}
 
-	uuid := uuid.FromStringOrNil(sessionToken.Subject())
+	uuid := uuid.FromStringOrNil(sessionToken.Audience()[0])
 
 	parentGrants, err := h.persister.GetUserGuestRelationPersister().GetByParentUserId(&uuid)
 	if err != nil {
@@ -213,14 +213,25 @@ func (h *UserHandler) GetUserGuestRelationsOverview(c echo.Context) error {
 		return errors.New("missing or malformed jwt")
 	}
 
-	uuid := uuid.FromStringOrNil(sessionToken.Subject())
+	uuId := uuid.FromStringOrNil(sessionToken.Audience()[0])
+	actingUserId := uuid.FromStringOrNil(sessionToken.Subject())
 
-	guestGrants, err := h.persister.GetUserGuestRelationPersister().GetByGuestUserId(&uuid)
+	if uuId != actingUserId {
+		return c.JSON(http.StatusOK, struct {
+			HasGuestGrants  bool `json:"hasGuestGrants"`
+			HasParentGrants bool `json:"hasParentGrants"`
+		}{
+			HasGuestGrants:  false,
+			HasParentGrants: false,
+		})
+	}
+
+	guestGrants, err := h.persister.GetUserGuestRelationPersister().GetByGuestUserId(&uuId)
 	if err != nil {
 		return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(errors.New("could not get guest grants"))
 	}
 
-	parentGrants, err := h.persister.GetUserGuestRelationPersister().GetByParentUserId(&uuid)
+	parentGrants, err := h.persister.GetUserGuestRelationPersister().GetByParentUserId(&uuId)
 	if err != nil {
 		return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(errors.New("could not get parent grants"))
 	}
@@ -265,8 +276,8 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 	}
 
 	// Check to verify guest user ID matches the ID coming over on request
-	if relation.GuestUserID.String() != sessionToken.Subject() {
-		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", sessionToken.Subject(), relation.ID)))
+	if relation.GuestUserID.String() != sessionToken.Audience()[0] {
+		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", sessionToken.Audience()[0], relation.ID)))
 	}
 
 	if relation.ExpireByTime && time.Now().UTC().Before(relation.CreatedAt.Add(time.Duration(relation.MinutesAllowed.Int32)*time.Minute)) {
@@ -280,7 +291,7 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 
 	// TODO: Check the expire by logins
 
-	token, err := h.sessionManager.GenerateJWT(relation.ParentUserID)
+	token, err := h.sessionManager.GenerateJWT(relation.ParentUserID, relation.GuestUserID)
 	if err != nil {
 		return fmt.Errorf("failed to generate jwt: %w", err)
 	}
@@ -317,8 +328,8 @@ func (h *UserHandler) RemoveAccessToRelation(c echo.Context) error {
 	}
 
 	// Check to verify parent user ID matches the ID coming over on request
-	if relation.ParentUserID.String() != sessionToken.Subject() {
-		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", sessionToken.Subject(), relation.ID)))
+	if relation.ParentUserID.String() != sessionToken.Audience()[0] {
+		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", sessionToken.Audience()[0], relation.ID)))
 	}
 
 	relation.IsActive = false
