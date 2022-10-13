@@ -7,6 +7,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/lestrrat-go/jwx/v2/jwt"
+	jwt2 "github.com/teamhanko/hanko/backend/crypto/jwt"
 	"github.com/teamhanko/hanko/backend/dto"
 	"github.com/teamhanko/hanko/backend/persistence"
 	"github.com/teamhanko/hanko/backend/persistence/models"
@@ -135,7 +136,12 @@ func (h *UserHandler) GetUserGuestRelationsAsGuest(c echo.Context) error {
 		return errors.New("missing or malformed jwt")
 	}
 
-	uuid := uuid.FromStringOrNil(sessionToken.Audience()[0])
+	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err))
+	}
+
+	uuid := uuid.FromStringOrNil(surrogateId)
 
 	guestGrants, err := h.persister.GetUserGuestRelationPersister().GetByGuestUserId(&uuid)
 	if err != nil {
@@ -174,7 +180,12 @@ func (h *UserHandler) GetUserGuestRelationsAsAccountHolder(c echo.Context) error
 		return errors.New("missing or malformed jwt")
 	}
 
-	uuid := uuid.FromStringOrNil(sessionToken.Audience()[0])
+	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err))
+	}
+
+	uuid := uuid.FromStringOrNil(surrogateId)
 
 	parentGrants, err := h.persister.GetUserGuestRelationPersister().GetByParentUserId(&uuid)
 	if err != nil {
@@ -213,7 +224,12 @@ func (h *UserHandler) GetUserGuestRelationsOverview(c echo.Context) error {
 		return errors.New("missing or malformed jwt")
 	}
 
-	uuId := uuid.FromStringOrNil(sessionToken.Audience()[0])
+	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err))
+	}
+
+	uuId := uuid.FromStringOrNil(surrogateId)
 	actingUserId := uuid.FromStringOrNil(sessionToken.Subject())
 
 	if uuId != actingUserId {
@@ -257,6 +273,11 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 		return errors.New("missing or malformed jwt")
 	}
 
+	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err))
+	}
+
 	var body UserGuestRelationRequest
 	if err := (&echo.DefaultBinder{}).BindBody(c, &body); err != nil {
 		return dto.ToHttpError(err)
@@ -276,8 +297,8 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 	}
 
 	// Check to verify guest user ID matches the ID coming over on request
-	if relation.GuestUserID.String() != sessionToken.Audience()[0] {
-		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", sessionToken.Audience()[0], relation.ID)))
+	if relation.GuestUserID.String() != surrogateId {
+		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", surrogateId, relation.ID)))
 	}
 
 	if relation.ExpireByTime && time.Now().UTC().Before(relation.CreatedAt.Add(time.Duration(relation.MinutesAllowed.Int32)*time.Minute)) {
@@ -318,6 +339,11 @@ func (h *UserHandler) RemoveAccessToRelation(c echo.Context) error {
 		return errors.New("missing or malformed jwt")
 	}
 
+	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err))
+	}
+
 	relation, err := h.persister.GetUserGuestRelationPersister().Get(uuid.FromStringOrNil(relationId))
 	if err != nil {
 		return dto.ToHttpError(err)
@@ -328,8 +354,8 @@ func (h *UserHandler) RemoveAccessToRelation(c echo.Context) error {
 	}
 
 	// Check to verify parent user ID matches the ID coming over on request
-	if relation.ParentUserID.String() != sessionToken.Audience()[0] {
-		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", sessionToken.Audience()[0], relation.ID)))
+	if relation.ParentUserID.String() != surrogateId {
+		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", surrogateId, relation.ID)))
 	}
 
 	relation.IsActive = false

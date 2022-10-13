@@ -72,15 +72,13 @@ func NewManager(jwkManager hankoJwk.Manager, config config.Session) (Manager, er
 }
 
 // GenerateJWT creates a new session JWT for the given user
-func (g *manager) GenerateJWT(subjectUserId uuid.UUID, audienceUserId uuid.UUID) (string, error) {
+func (g *manager) GenerateJWT(subjectUserId uuid.UUID, surrogateUserId uuid.UUID) (string, error) {
 	issuedAt := time.Now()
 	expiration := issuedAt.Add(g.sessionLength)
-	var audArray []string
-	audArray = append(audArray, audienceUserId.String())
 
 	token := jwt.New()
 	_ = token.Set(jwt.SubjectKey, subjectUserId.String())
-	_ = token.Set(jwt.AudienceKey, audArray)
+	_ = token.Set(hankoJwt.SurrogateKey, surrogateUserId.String())
 	_ = token.Set(jwt.IssuedAtKey, issuedAt)
 	_ = token.Set(jwt.ExpirationKey, expiration)
 	//_ = token.Set(jwt.AudienceKey, []string{"http://localhost"})
