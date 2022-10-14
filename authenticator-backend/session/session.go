@@ -12,7 +12,7 @@ import (
 )
 
 type Manager interface {
-	GenerateJWT(uuid.UUID) (string, error)
+	GenerateJWT(uuid.UUID, uuid.UUID, uuid.UUID) (string, error)
 	Verify(string) (jwt.Token, error)
 	GenerateCookie(token string) (*http.Cookie, error)
 	DeleteCookie() (*http.Cookie, error)
@@ -72,14 +72,19 @@ func NewManager(jwkManager hankoJwk.Manager, config config.Session) (Manager, er
 }
 
 // GenerateJWT creates a new session JWT for the given user
-func (g *manager) GenerateJWT(userId uuid.UUID) (string, error) {
+func (g *manager) GenerateJWT(subjectUserId uuid.UUID, surrogateUserId uuid.UUID, grant uuid.UUID) (string, error) {
 	issuedAt := time.Now()
 	expiration := issuedAt.Add(g.sessionLength)
 
 	token := jwt.New()
-	_ = token.Set(jwt.SubjectKey, userId.String())
+	_ = token.Set(jwt.SubjectKey, subjectUserId.String())
+	_ = token.Set(hankoJwt.SurrogateKey, surrogateUserId.String())
 	_ = token.Set(jwt.IssuedAtKey, issuedAt)
 	_ = token.Set(jwt.ExpirationKey, expiration)
+
+	if grant != uuid.Nil {
+		_ = token.Set(hankoJwt.GrantKey, grant.String())
+	}
 	//_ = token.Set(jwt.AudienceKey, []string{"http://localhost"})
 
 	signed, err := g.jwtGenerator.Sign(token)
@@ -95,6 +100,18 @@ func (g *manager) Verify(token string) (jwt.Token, error) {
 	parsedToken, err := g.jwtGenerator.Verify([]byte(token))
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify session token: %w", err)
+	}
+
+	surrogateId, err := hankoJwt.GetSurrogateKeyFromToken(parsedToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get surrogate id from token: %w", err)
+	}
+
+	if surrogateId != parsedToken.Subject() {
+		_, err = hankoJwt.GetGrantKeyFromToken(parsedToken)
+		if err != nil {
+			return nil, fmt.Errorf("unable to pull grant key from jwt: %w", err)
+		}
 	}
 
 	return parsedToken, nil

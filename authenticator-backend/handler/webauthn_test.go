@@ -181,7 +181,7 @@ var defaultConfig = config.Config{
 type sessionManager struct {
 }
 
-func (s sessionManager) GenerateJWT(uuid uuid.UUID) (string, error) {
+func (s sessionManager) GenerateJWT(uuid uuid.UUID, surrogateUid uuid.UUID, relationId uuid.UUID) (string, error) {
 	return userId, nil
 }
 

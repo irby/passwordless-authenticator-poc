@@ -29,7 +29,7 @@ func TestGenerator_Generate(t *testing.T) {
 	userId, err := uuid.NewV4()
 	assert.NoError(t, err)
 
-	session, err := sessionGenerator.GenerateJWT(userId)
+	session, err := sessionGenerator.GenerateJWT(userId, userId, uuid.Nil)
 	assert.NoError(t, err)
 	require.NotEmpty(t, session)
 }
@@ -45,7 +45,7 @@ func TestGenerator_Verify(t *testing.T) {
 	userId, err := uuid.NewV4()
 	assert.NoError(t, err)
 
-	session, err := sessionGenerator.GenerateJWT(userId)
+	session, err := sessionGenerator.GenerateJWT(userId, userId, uuid.Nil)
 	assert.NoError(t, err)
 	require.NotEmpty(t, session)
 

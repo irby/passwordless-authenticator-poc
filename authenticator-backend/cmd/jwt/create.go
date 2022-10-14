@@ -44,7 +44,7 @@ func NewCreateCommand(config *config.Config) *cobra.Command {
 				return
 			}
 
-			token, err := sessionManager.GenerateJWT(uuid.FromStringOrNil(args[0]))
+			token, err := sessionManager.GenerateJWT(uuid.FromStringOrNil(args[0]), uuid.FromStringOrNil(args[0]), uuid.Nil)
 			if err != nil {
 				fmt.Printf("failed to generate token: %s", err)
 				return

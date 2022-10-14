@@ -19,6 +19,12 @@ export class UserService extends BaseService {
     public async getAccountSharesAsParent(): Promise<ServiceResponse<GetAccountSharesResponseDto[]>> {
         return await this.getAsync(`${this.usersBase}/${this.sharesBase}/parent`)
     }
+    public async initiateLoginAsGuest(request: UserGuestRelationRequest): Promise<ServiceResponse<void>> {
+        return await this.postAsync(`login/guest`, request);
+    }
+    public async removeAccessToRelation(relationId: string): Promise<ServiceResponse<void>> {
+        return await this.deleteAsync(`${this.usersBase}/${this.sharesBase}/${relationId}`);
+    }
 }
 
 export interface GetAccountSharingOverviewResponseDto {
@@ -27,10 +33,15 @@ export interface GetAccountSharingOverviewResponseDto {
 }
 
 export interface GetAccountSharesResponseDto {
-    id: string;
+    relationId: string;
     guestUserId: string;
+    guestUserEmail: string;
     parentUserId: string;
+    parentUserEmail: string;
     createdAt: Date;
-    updatedAt: Date;
     isActive: boolean;
+}
+
+export interface UserGuestRelationRequest {
+    relationId: string;
 }
