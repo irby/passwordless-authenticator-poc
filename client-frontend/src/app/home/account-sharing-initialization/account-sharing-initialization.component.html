@@ -2,7 +2,7 @@
 <mat-dialog-content *ngIf="!isLoading">
   <form class="example-form w-100">
     <div>
-    <mat-form-field class="example-full-width w-100" appearance="fill">
+    <mat-form-field class="example-full-width" appearance="fill">
       <mat-label>Email</mat-label>
       <input type="email" matInput [formControl]="emailFormControl" [errorStateMatcher]="matcher" [disabled]="shareUrl !== null"
              placeholder="Ex. gburdell@gatech.edu">
@@ -16,7 +16,7 @@
   </div>
   <div>
       <mat-slide-toggle [checked]="expireByLogins" (change)="toggleExpireByLogins()">Expire By Logins</mat-slide-toggle>
-      <mat-form-field class="example-full-width w-100 ml-3" appearance="fill">
+      <mat-form-field class="example-full-width ml-3" appearance="fill">
         <mat-label>Login Count</mat-label>
         <input type="number" matInput [formControl]="loginCountFormControl" [readonly]="!expireByLogins" [disabled]="shareUrl !== null"
              placeholder="Ex. 10">
@@ -24,7 +24,7 @@
   </div>
   <div>
     <mat-slide-toggle [checked]="expireByTime" (change)="toggleExpireByTime()">Expire By Time</mat-slide-toggle>
-    <mat-form-field class="example-full-width w-100 ml-3" appearance="fill">
+    <mat-form-field class="example-full-width ml-3" appearance="fill">
       <mat-label>Allowed Minutes</mat-label>
       <input type="number" matInput [formControl]="timeMinutesCountFormControl" [readonly]="!expireByTime" [disabled]="shareUrl !== null"
            placeholder="Ex. 10">

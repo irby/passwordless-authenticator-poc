@@ -312,7 +312,7 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 
 	// TODO: Check the expire by logins
 
-	token, err := h.sessionManager.GenerateJWT(relation.ParentUserID, relation.GuestUserID)
+	token, err := h.sessionManager.GenerateJWT(relation.ParentUserID, relation.GuestUserID, relation.ID)
 	if err != nil {
 		return fmt.Errorf("failed to generate jwt: %w", err)
 	}

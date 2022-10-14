@@ -21,6 +21,7 @@ type generator struct {
 
 const (
 	SurrogateKey = "surr"
+	GrantKey     = "grant"
 )
 
 // NewGenerator returns a new jwt generator which signs JWTs with the given signing key and verifies JWTs with the given verificationKeys
@@ -65,6 +66,18 @@ func GetSurrogateKeyFromToken(token jwt.Token) (string, error) {
 		return "", errors.New("unable to get surrogate key from token: private claims not found")
 	}
 	key := claims[SurrogateKey]
+	if key == nil {
+		return "", errors.New("unable to get surrogate key from token: key not found")
+	}
+	return key.(string), nil
+}
+
+func GetGrantKeyFromToken(token jwt.Token) (string, error) {
+	claims := token.PrivateClaims()
+	if claims == nil {
+		return "", errors.New("unable to get surrogate key from token: private claims not found")
+	}
+	key := claims[GrantKey]
 	if key == nil {
 		return "", errors.New("unable to get surrogate key from token: key not found")
 	}

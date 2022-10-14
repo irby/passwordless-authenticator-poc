@@ -146,7 +146,7 @@ func (h *PasswordHandler) Login(c echo.Context) error {
 		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(err)
 	}
 
-	token, err := h.sessionManager.GenerateJWT(pw.UserId, pw.UserId)
+	token, err := h.sessionManager.GenerateJWT(pw.UserId, pw.UserId, uuid.Nil)
 	if err != nil {
 		return fmt.Errorf("failed to generate jwt: %w", err)
 	}

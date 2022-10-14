@@ -211,7 +211,7 @@ func (h *PasscodeHandler) Finish(c echo.Context) error {
 			}
 		}
 
-		token, err := h.sessionManager.GenerateJWT(passcode.UserId, passcode.UserId)
+		token, err := h.sessionManager.GenerateJWT(passcode.UserId, passcode.UserId, uuid.Nil)
 		if err != nil {
 			return fmt.Errorf("failed to generate jwt: %w", err)
 		}
