@@ -8,6 +8,9 @@
 #### Contributors:
 - Matthew H. Irby (mirby7@gatech.edu)
 
+#### Related Projects
+- Hanko ([repo](https://github.com/teamhanko/hanko)) - The authenticator backend of this project is branched off of this project.
+
 
 <br/>
 
@@ -32,13 +35,13 @@ The project contains the following structure:
 - ### Authenticator Backend
   - This contains the code to run the authenticator API. The authenticator API will be consume by the authenticator front end, client front-end and client back-end.
 
-- ### Authenticator Front-End
+- ### Authenticator Frontend
   - The contains the code for the authenticator front-end that will be run by two different users on differing sessions: the primary account holder and another user the account holder will share the account with.
 
 - ### Client API
   - This contains the code to run the client app's backend. The client API will send the authentication token to the authenticator API to validate session tokens and send refresh tokens. The API will also handle logic of its own, such as serving its content to the client front-end.
 
-- ### Client Front-End
+- ### Client Frontend
   - This contains the code for the front-end that will be consumed by the primary account owner and the guest. It will have a login page and a page that requires a valid session token to access.
 
 - ### Deploy
@@ -53,3 +56,4 @@ The project contains the following structure:
   - When running, the services can be reached at the following URLs:
     - Authenticator Backend - http://localhost:8000
     - Mailslurper - http://localhost:8080
+    - Client Frontend - http://localhost:4200
