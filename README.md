@@ -57,3 +57,10 @@ The project contains the following structure:
     - Authenticator Backend - http://localhost:8000
     - Mailslurper - http://localhost:8080
     - Client Frontend - http://localhost:4200
+
+
+# Accounts
+The following accounts are scaffolded when the project is built out with Docker Compose:
+- mirby7@gatech.edu
+- gburdell27@gatech.edu
+- buzz@gatech.edu
