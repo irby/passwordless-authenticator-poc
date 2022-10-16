@@ -2,9 +2,10 @@ import { Component, OnInit, Renderer2 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
 import { GetUserNameFromId, UserId } from '../core/constants/user-constants';
-import { GenerateWebAuthnLoginFinalizeRequest } from '../core/models/webauthn/webauthn-login-finalize-request.interface';
+import { GenerateWebAuthnLoginFinalizeRequest, WebAuthnLoginFinalizeRequest } from '../core/models/webauthn/webauthn-login-finalize-request.interface';
 import { AuthenticationService } from '../core/services/authentication.service';
 import { ScriptService } from '../core/services/script.service';
+import { PublicKey } from '../core/models/webauthn/webauthn-login-initialize-response.interface';
 
 @Component({
   selector: 'app-login',
@@ -47,19 +48,25 @@ export class LoginComponent implements OnInit {
       const confirmation = confirm(`Provide biometric for ${GetUserNameFromId(userId)}?`);
 
       if (confirmation) {
-        this.finalizeFakeWebAuthnLogin(userId);
+        this.finalizeFakeWebAuthnLogin(userId, resp.data.publicKey);
       }
 
       console.log(resp.data);
     }
   }
 
-  private async finalizeFakeWebAuthnLogin(userId: string) {
+  private async finalizeFakeWebAuthnLogin(userId: string, publicKey: PublicKey) {
     const finalizeRequest = GenerateWebAuthnLoginFinalizeRequest();
     finalizeRequest.id = "5L33ArYqAMpWVeFP9CxnPGtYn0c";
     finalizeRequest.rawId = "5L33ArYqAMpWVeFP9CxnPGtYn0c";
 
-    finalizeRequest.response.clientDataJSON = "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiWDlzSmo5dGZfeFVKaU1FZnctLXQ0NXBJVHhBTGJYVVQ4NHktVm5pZE1MWSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDIwMCJ9";
+    const clientData = {
+      type: "webauthn.get",
+      challenge: publicKey.challenge.replace(/=/g, ''),
+      origin: "http://localhost:4200"
+    }
+
+    finalizeRequest.response.clientDataJSON = btoa(JSON.stringify(clientData)).replace(/=/g, "");
     finalizeRequest.response.authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAA";
     finalizeRequest.response.signature = "MEUCICKZAlJ8AbvwgjHaM6TT4ydm8r9Difhf6cAVkA1R2DsvAiEA_8VO5r3aRgvYCEf-QZh2dNjoNnooFs8Qx8WNt7LFpvg";
     finalizeRequest.response.userHandle = "MoChopQXSxCm6Zh-q99j7A";
