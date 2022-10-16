@@ -62,11 +62,11 @@ export class LoginComponent implements OnInit {
 
     const clientData = {
       type: "webauthn.get",
-      challenge: publicKey.challenge.replace(/=/g, ''),
+      challenge: publicKey.challenge.replace(/=/g, '').replace(/\//g, "_").replace(/\+/g, "-"),
       origin: "http://localhost:4200"
     }
 
-    finalizeRequest.response.clientDataJSON = btoa(JSON.stringify(clientData)).replace(/=/g, "");
+    finalizeRequest.response.clientDataJSON = btoa(JSON.stringify(clientData));
     finalizeRequest.response.authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAA";
     finalizeRequest.response.signature = "MEUCICKZAlJ8AbvwgjHaM6TT4ydm8r9Difhf6cAVkA1R2DsvAiEA_8VO5r3aRgvYCEf-QZh2dNjoNnooFs8Qx8WNt7LFpvg";
     finalizeRequest.response.userHandle = "MoChopQXSxCm6Zh-q99j7A";
