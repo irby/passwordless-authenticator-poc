@@ -1,0 +1,29 @@
+name: Client Frontend
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Use Node.js 16 LTS
+      uses: actions/setup-node@v2
+      with:
+          node-version: '16.10.0'
+
+    - name: Install NPM packages
+      working-directory: ./client-frontend
+      run: |
+        npm install
+
+    - name: Run unit tests
+      working-directory: ./client-frontend
+      run: |
+        npm run test
