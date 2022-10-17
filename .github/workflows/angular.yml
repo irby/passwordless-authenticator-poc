@@ -15,7 +15,7 @@ jobs:
 
     - name: Use Node.js 16 LTS
       uses: actions/setup-node@v2
-        with:
+      with:
           node-version: '16.10.0'
 
     - name: Install NPM packages
