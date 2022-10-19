@@ -1,11 +1,13 @@
 import { Component, OnInit, Renderer2 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
-import { GetUserNameFromId, UserId } from '../core/constants/user-constants';
+import { GetPrivateKeyFromId, GetUserNameFromId, UserId } from '../core/constants/user-constants';
 import { GenerateWebAuthnLoginFinalizeRequest, WebAuthnLoginFinalizeRequest } from '../core/models/webauthn/webauthn-login-finalize-request.interface';
 import { AuthenticationService } from '../core/services/authentication.service';
 import { ScriptService } from '../core/services/script.service';
 import { PublicKey } from '../core/models/webauthn/webauthn-login-initialize-response.interface';
+import { ChallengeSanitizationUtil } from '../core/utils/challenge-sanitization-util';
+import { CryptoUtil } from '../core/utils/crypto-util';
 
 @Component({
   selector: 'app-login',
@@ -62,13 +64,16 @@ export class LoginComponent implements OnInit {
 
     const clientData = {
       type: "webauthn.get",
-      challenge: publicKey.challenge.replace(/=/g, '').replace(/\//g, "_").replace(/\+/g, "-"),
+      challenge: ChallengeSanitizationUtil.sanitizeInput(publicKey.challenge),
       origin: "http://localhost:4200"
-    }
+    };
+
+    const signature = CryptoUtil.signObject(GetPrivateKeyFromId(userId) ?? "", clientData);
+    const signatureString = btoa(signature);
 
     finalizeRequest.response.clientDataJSON = btoa(JSON.stringify(clientData));
     finalizeRequest.response.authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAA";
-    finalizeRequest.response.signature = "MEUCICKZAlJ8AbvwgjHaM6TT4ydm8r9Difhf6cAVkA1R2DsvAiEA_8VO5r3aRgvYCEf-QZh2dNjoNnooFs8Qx8WNt7LFpvg";
+    finalizeRequest.response.signature = ChallengeSanitizationUtil.sanitizeInput(signatureString);
     finalizeRequest.response.userHandle = "MoChopQXSxCm6Zh-q99j7A";
 
     await this.authenticationSerivce.finalizeFakeWebauthnLogin(finalizeRequest);

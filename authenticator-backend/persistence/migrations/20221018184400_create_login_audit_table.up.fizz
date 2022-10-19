@@ -1,0 +1,11 @@
+create_table("login_audit_logs") {
+    t.Column("id", "uuid", {"primary": true})
+    t.Column("user_id", "uuid", {})
+    t.Column("surrogate_user_id", "uuid", {"null": true})
+    t.Column("user_guest_relation_id", "uuid", {"null": true})
+    t.Column("client_ip_address", "string", {"null": true})
+    t.Column("client_user_agent", "string", {"null": true})
+    t.Column("login_method", "integer")
+    t.Timestamps()
+    t.ForeignKey("user_id", {"users": ["id"]}, {})
+}

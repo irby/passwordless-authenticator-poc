@@ -221,6 +221,17 @@ func (h *PasscodeHandler) Finish(c echo.Context) error {
 			return fmt.Errorf("failed to create session token: %w", err)
 		}
 
+		log := models.LoginAuditLog{
+			UserId:          passcode.UserId,
+			ClientIpAddress: c.Request().RemoteAddr,
+			ClientUserAgent: c.Request().UserAgent(),
+			LoginMethod:     dto.LoginMethodToValue(dto.Passcode),
+		}
+		err = h.persister.GetLoginAuditLogPersister().Create(log)
+		if err != nil {
+			return dto.NewHTTPError(http.StatusInternalServerError, "An error occurred generating login audit record", err.Error())
+		}
+
 		c.SetCookie(cookie)
 
 		if h.cfg.Session.EnableAuthTokenHeader {
