@@ -38,7 +38,7 @@ func NewCreateCommand(config *config.Config) *cobra.Command {
 				return
 			}
 
-			sessionManager, err := session.NewManager(jwkManager, config.Session)
+			sessionManager, err := session.NewManager(jwkManager, config.Session, nil)
 			if err != nil {
 				fmt.Printf("failed to create session generator: %s", err)
 				return

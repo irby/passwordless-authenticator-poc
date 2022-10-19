@@ -7,6 +7,7 @@ import (
 	"github.com/teamhanko/hanko/backend/config"
 	hankoJwk "github.com/teamhanko/hanko/backend/crypto/jwk"
 	hankoJwt "github.com/teamhanko/hanko/backend/crypto/jwt"
+	"github.com/teamhanko/hanko/backend/persistence"
 	"net/http"
 	"time"
 )
@@ -23,6 +24,7 @@ type manager struct {
 	jwtGenerator  hankoJwt.Generator
 	sessionLength time.Duration
 	cookieConfig  cookieConfig
+	persister     persistence.Persister
 }
 
 type cookieConfig struct {
@@ -33,7 +35,7 @@ type cookieConfig struct {
 }
 
 // NewManager returns a new Manager which will be used to create and verify sessions JWTs
-func NewManager(jwkManager hankoJwk.Manager, config config.Session) (Manager, error) {
+func NewManager(jwkManager hankoJwk.Manager, config config.Session, persister persistence.Persister) (Manager, error) {
 	signatureKey, err := jwkManager.GetSigningKey()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session generator: %w", err)
@@ -68,13 +70,14 @@ func NewManager(jwkManager hankoJwk.Manager, config config.Session) (Manager, er
 			SameSite: sameSite,
 			Secure:   config.Cookie.Secure,
 		},
+		persister: persister,
 	}, nil
 }
 
 // GenerateJWT creates a new session JWT for the given user
-func (g *manager) GenerateJWT(subjectUserId uuid.UUID, surrogateUserId uuid.UUID, grant uuid.UUID) (string, error) {
-	issuedAt := time.Now()
-	expiration := issuedAt.Add(g.sessionLength)
+func (g *manager) GenerateJWT(subjectUserId uuid.UUID, surrogateUserId uuid.UUID, grantId uuid.UUID) (string, error) {
+	issuedAt := time.Now().UTC()
+	var expiration time.Time
 
 	token := jwt.New()
 	_ = token.Set(jwt.SubjectKey, subjectUserId.String())
@@ -82,9 +85,24 @@ func (g *manager) GenerateJWT(subjectUserId uuid.UUID, surrogateUserId uuid.UUID
 	_ = token.Set(jwt.IssuedAtKey, issuedAt)
 	_ = token.Set(jwt.ExpirationKey, expiration)
 
-	if grant != uuid.Nil {
-		_ = token.Set(hankoJwt.GrantKey, grant.String())
+	if grantId != uuid.Nil {
+		grant, err := g.persister.GetUserGuestRelationPersister().Get(grantId)
+		if err != nil {
+			return "", fmt.Errorf("unable to get user guest relationship: %w", err)
+		}
+		_ = token.Set(hankoJwt.GrantKey, grantId.String())
+
+		grantExpiry := grant.CreatedAt.Add(time.Duration(grant.MinutesAllowed.Int32) * time.Minute)
+
+		if issuedAt.Add(g.sessionLength).Before(grantExpiry) {
+			expiration = issuedAt.Add(g.sessionLength)
+		} else {
+			expiration = grantExpiry
+		}
+	} else {
+		expiration = issuedAt.Add(g.sessionLength)
 	}
+	_ = token.Set(jwt.ExpirationKey, expiration)
 	//_ = token.Set(jwt.AudienceKey, []string{"http://localhost"})
 
 	signed, err := g.jwtGenerator.Sign(token)
@@ -107,10 +125,26 @@ func (g *manager) Verify(token string) (jwt.Token, error) {
 		return nil, fmt.Errorf("failed to get surrogate id from token: %w", err)
 	}
 
+	user, err := g.persister.GetUserPersister().Get(uuid.FromStringOrNil(parsedToken.Subject()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user from database: %w", err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf("user does not exist")
+	}
+
 	if surrogateId != parsedToken.Subject() {
-		_, err = hankoJwt.GetGrantKeyFromToken(parsedToken)
+		grantId, err := hankoJwt.GetGrantKeyFromToken(parsedToken)
 		if err != nil {
 			return nil, fmt.Errorf("unable to pull grant key from jwt: %w", err)
+		}
+
+		grant, err := g.persister.GetUserGuestRelationPersister().Get(uuid.FromStringOrNil(grantId))
+		if err != nil {
+			return nil, fmt.Errorf("unable to get grant from database %w", err)
+		}
+		if !grant.IsActive {
+			return nil, fmt.Errorf("grant %s is not active", grant.IsActive)
 		}
 	}
 
