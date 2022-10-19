@@ -301,7 +301,7 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", surrogateId, relation.ID)))
 	}
 
-	if relation.ExpireByTime && time.Now().UTC().After(relation.CreatedAt.Add(time.Duration(relation.MinutesAllowed.Int32)*time.Minute)) {
+	if relation.ExpireByTime && time.Now().UTC().After(relation.CreatedAt.UTC().Add(time.Duration(relation.MinutesAllowed.Int32)*time.Minute)) {
 		relation.IsActive = false
 		relation.UpdatedAt = time.Now().UTC()
 
@@ -310,7 +310,20 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("Access on relation ID %s has expired", relation.ID)))
 	}
 
-	// TODO: Check the expire by logins
+	if relation.ExpireByLogins {
+		models, err := h.persister.GetLoginAuditLogPersister().GetByGuestUserIdAndGrantId(relation.GuestUserID, relation.ID)
+		if err != nil {
+			return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(fmt.Errorf("an error occurred while fetching login audit records: %w", err))
+		}
+		if int32(len(models)) > relation.LoginsAllowed.Int32 {
+			relation.IsActive = false
+			relation.UpdatedAt = time.Now().UTC()
+
+			_ = h.persister.GetUserGuestRelationPersister().Update(*relation)
+
+			return dto.NewHTTPError(http.StatusForbidden).SetInternal(fmt.Errorf("access on relation ID %s has expired", relation.ID))
+		}
+	}
 
 	token, err := h.sessionManager.GenerateJWT(relation.ParentUserID, relation.GuestUserID, relation.ID)
 	if err != nil {
