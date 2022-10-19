@@ -301,7 +301,7 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", surrogateId, relation.ID)))
 	}
 
-	if relation.ExpireByTime && time.Now().UTC().Before(relation.CreatedAt.Add(time.Duration(relation.MinutesAllowed.Int32)*time.Minute)) {
+	if relation.ExpireByTime && time.Now().UTC().After(relation.CreatedAt.Add(time.Duration(relation.MinutesAllowed.Int32)*time.Minute)) {
 		relation.IsActive = false
 		relation.UpdatedAt = time.Now().UTC()
 
@@ -324,7 +324,18 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 
 	c.SetCookie(cookie)
 
-	// TODO: Record login on relation
+	log := models.LoginAuditLog{
+		UserId:              relation.ParentUserID,
+		SurrogateUserId:     &relation.GuestUserID,
+		UserGuestRelationId: &relation.ID,
+		ClientIpAddress:     c.Request().RemoteAddr,
+		ClientUserAgent:     c.Request().UserAgent(),
+		LoginMethod:         dto.LoginMethodToValue(dto.Webauthn),
+	}
+	err = h.persister.GetLoginAuditLogPersister().Create(log)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusInternalServerError, "An error occurred generating login audit record", err.Error())
+	}
 
 	return c.JSON(http.StatusOK, struct{}{})
 

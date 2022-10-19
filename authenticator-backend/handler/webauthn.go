@@ -389,6 +389,17 @@ func (h *WebauthnHandler) FinishAuthentication(c echo.Context) error {
 			return fmt.Errorf("failed to create session cookie: %w", err)
 		}
 
+		log := models.LoginAuditLog{
+			UserId:          webauthnUser.UserId,
+			ClientIpAddress: c.Request().RemoteAddr,
+			ClientUserAgent: c.Request().UserAgent(),
+			LoginMethod:     dto.LoginMethodToValue(dto.Webauthn),
+		}
+		err = h.persister.GetLoginAuditLogPersister().Create(log)
+		if err != nil {
+			return dto.NewHTTPError(http.StatusInternalServerError, "An error occurred generating login audit record", err.Error())
+		}
+
 		c.SetCookie(cookie)
 
 		if h.cfg.Session.EnableAuthTokenHeader {
@@ -483,6 +494,17 @@ func (h *WebauthnHandler) FinishAuthenticationFake(c echo.Context) error {
 		cookie, err := h.sessionManager.GenerateCookie(token)
 		if err != nil {
 			return fmt.Errorf("failed to create session cookie: %w", err)
+		}
+
+		log := models.LoginAuditLog{
+			UserId:          webauthnUser.UserId,
+			ClientIpAddress: c.Request().RemoteAddr,
+			ClientUserAgent: c.Request().UserAgent(),
+			LoginMethod:     dto.LoginMethodToValue(dto.Webauthn),
+		}
+		err = h.persister.GetLoginAuditLogPersister().Create(log)
+		if err != nil {
+			return dto.NewHTTPError(http.StatusInternalServerError, "An error occurred generating login audit record", err.Error())
 		}
 
 		c.SetCookie(cookie)

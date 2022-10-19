@@ -156,6 +156,17 @@ func (h *PasswordHandler) Login(c echo.Context) error {
 		return fmt.Errorf("failed to create session cookie: %w", err)
 	}
 
+	log := models.LoginAuditLog{
+		UserId:          pw.UserId,
+		ClientIpAddress: c.Request().RemoteAddr,
+		ClientUserAgent: c.Request().UserAgent(),
+		LoginMethod:     dto.LoginMethodToValue(dto.Password),
+	}
+	err = h.persister.GetLoginAuditLogPersister().Create(log)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusInternalServerError, "An error occurred generating login audit record", err.Error())
+	}
+
 	c.SetCookie(cookie)
 
 	if h.cfg.Session.EnableAuthTokenHeader {

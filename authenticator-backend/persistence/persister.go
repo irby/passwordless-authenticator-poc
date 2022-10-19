@@ -31,6 +31,7 @@ type Persister interface {
 	GetJwkPersisterWithConnection(tx *pop.Connection) JwkPersister
 	GetAccountAccessGrantPersister() AccountAccessGrantPersister
 	GetUserGuestRelationPersister() UserGuestRelationPersister
+	GetLoginAuditLogPersister() LoginAuditLogPersister
 }
 
 type Migrator interface {
@@ -157,4 +158,8 @@ func (p *persister) Transaction(fn func(tx *pop.Connection) error) error {
 
 func (p *persister) GetUserGuestRelationPersister() UserGuestRelationPersister {
 	return NewUserGuestRelationPersister(p.DB)
+}
+
+func (p *persister) GetLoginAuditLogPersister() LoginAuditLogPersister {
+	return NewLoginAuditLogPersister(p.DB)
 }
