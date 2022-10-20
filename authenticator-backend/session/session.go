@@ -144,7 +144,7 @@ func (g *manager) Verify(token string) (jwt.Token, error) {
 			return nil, fmt.Errorf("unable to get grant from database %w", err)
 		}
 		if !grant.IsActive {
-			return nil, fmt.Errorf("grant %s is not active", grant.IsActive)
+			return nil, fmt.Errorf("grant %s is not active", grant.ID)
 		}
 	}
 
