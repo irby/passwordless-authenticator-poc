@@ -1,0 +1,2 @@
+drop_column("users", "is_active")
+drop_column("users", "is_admin")

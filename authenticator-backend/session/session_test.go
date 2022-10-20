@@ -1,6 +1,7 @@
 package session
 
 import (
+	"database/sql"
 	"errors"
 	"github.com/gofrs/uuid"
 	"github.com/lestrrat-go/jwx/v2/jwk"
@@ -16,7 +17,7 @@ import (
 func TestNewGenerator(t *testing.T) {
 	manager := jwkManager{}
 	cfg := config.Session{}
-	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(nil, nil, nil, nil, nil, nil, nil))
+	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil))
 	assert.NoError(t, err)
 	require.NotEmpty(t, sessionGenerator)
 }
@@ -24,7 +25,7 @@ func TestNewGenerator(t *testing.T) {
 func TestGenerator_Generate(t *testing.T) {
 	manager := jwkManager{}
 	cfg := config.Session{}
-	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(nil, nil, nil, nil, nil, nil, nil))
+	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil))
 	assert.NoError(t, err)
 	require.NotEmpty(t, sessionGenerator)
 
@@ -47,7 +48,7 @@ func TestGenerator_Verify(t *testing.T) {
 	sessionLifespan := "5m"
 	manager := jwkManager{}
 	cfg := config.Session{Lifespan: sessionLifespan}
-	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(append([]models.User{}, user), nil, nil, nil, nil, nil, nil))
+	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(append([]models.User{}, user), nil, nil, nil, nil, nil, nil, nil, nil))
 	assert.NoError(t, err)
 	require.NotEmpty(t, sessionGenerator)
 
@@ -66,48 +67,85 @@ func TestGenerator_Verify(t *testing.T) {
 	assert.True(t, token.IssuedAt().Add(sessionDuration).Equal(token.Expiration()))
 }
 
-//func TestGenerator_Verify(t *testing.T) {
-//	userId, err := uuid.NewV4()
-//	assert.NoError(t, err)
-//	surrogateId, err := uuid.NewV4()
-//	assert.NoError(t, err)
-//	grantId, err := uuid.NewV4()
-//	assert.NoError(t, err)
-//
-//	user1 := models.User{
-//		ID: userId,
-//	}
-//	user2 := models.User{
-//		ID: surrogateId,
-//	}
-//	grant := models.UserGuestRelation{
-//		ID:           grantId,
-//		ParentUserID: userId,
-//		GuestUserID:  surrogateId,
-//		IsActive:     true,
-//	}
-//
-//	sessionLifespan := "5m"
-//	manager := jwkManager{}
-//	cfg := config.Session{Lifespan: sessionLifespan}
-//	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(append([]models.User{}, user1, user2), nil, nil, nil, nil, nil, nil))
-//	assert.NoError(t, err)
-//	require.NotEmpty(t, sessionGenerator)
-//
-//	session, err := sessionGenerator.GenerateJWT(userId, userId, uuid.Nil)
-//	assert.NoError(t, err)
-//	require.NotEmpty(t, session)
-//
-//	token, err := sessionGenerator.Verify(session)
-//	assert.NoError(t, err)
-//	require.NotEmpty(t, token)
-//	assert.Equal(t, token.Subject(), userId.String())
-//	assert.False(t, time.Time{}.Equal(token.IssuedAt()))
-//	assert.False(t, time.Time{}.Equal(token.Expiration()))
-//
-//	sessionDuration, _ := time.ParseDuration(sessionLifespan)
-//	assert.True(t, token.IssuedAt().Add(sessionDuration).Equal(token.Expiration()))
-//}
+func TestGenerator_Verify_WhenGrantExpires_Errors(t *testing.T) {
+	userId, err := uuid.NewV4()
+	assert.NoError(t, err)
+	surrogateId, err := uuid.NewV4()
+	assert.NoError(t, err)
+	grantId, err := uuid.NewV4()
+	assert.NoError(t, err)
+
+	user1 := models.User{
+		ID: userId,
+	}
+	user2 := models.User{
+		ID: surrogateId,
+	}
+	grant := models.UserGuestRelation{
+		ID:             grantId,
+		ParentUserID:   userId,
+		GuestUserID:    surrogateId,
+		IsActive:       true,
+		CreatedAt:      time.Now().UTC().Add(time.Duration(-5) * time.Minute),
+		MinutesAllowed: sql.NullInt32{Valid: true, Int32: 1},
+		ExpireByTime:   true,
+	}
+
+	sessionLifespan := "5m"
+	manager := jwkManager{}
+	cfg := config.Session{Lifespan: sessionLifespan}
+	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(append([]models.User{}, user1, user2), nil, nil, nil, nil, nil, nil, append([]models.UserGuestRelation{}, grant), nil))
+	assert.NoError(t, err)
+	require.NotEmpty(t, sessionGenerator)
+
+	session, err := sessionGenerator.GenerateJWT(userId, userId, grantId)
+	assert.NoError(t, err)
+	require.NotEmpty(t, session)
+
+	token, err := sessionGenerator.Verify(session)
+	assert.Error(t, err)
+	assert.Nil(t, token)
+}
+
+func TestGenerator_Verify_WhenGrantIsNoLongerActive_Errors(t *testing.T) {
+	userId, err := uuid.NewV4()
+	assert.NoError(t, err)
+	surrogateId, err := uuid.NewV4()
+	assert.NoError(t, err)
+	grantId, err := uuid.NewV4()
+	assert.NoError(t, err)
+
+	user1 := models.User{
+		ID: userId,
+	}
+	user2 := models.User{
+		ID: surrogateId,
+	}
+	grant := models.UserGuestRelation{
+		ID:             grantId,
+		ParentUserID:   userId,
+		GuestUserID:    surrogateId,
+		IsActive:       false,
+		CreatedAt:      time.Now().UTC().Add(time.Duration(-5) * time.Minute),
+		MinutesAllowed: sql.NullInt32{Valid: true, Int32: 1},
+		ExpireByTime:   true,
+	}
+
+	sessionLifespan := "5m"
+	manager := jwkManager{}
+	cfg := config.Session{Lifespan: sessionLifespan}
+	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(append([]models.User{}, user1, user2), nil, nil, nil, nil, nil, nil, append([]models.UserGuestRelation{}, grant), nil))
+	assert.NoError(t, err)
+	require.NotEmpty(t, sessionGenerator)
+
+	session, err := sessionGenerator.GenerateJWT(userId, userId, grantId)
+	assert.NoError(t, err)
+	require.NotEmpty(t, session)
+
+	token, err := sessionGenerator.Verify(session)
+	assert.Error(t, err)
+	assert.Nil(t, token)
+}
 
 func TestGenerator_Verify_Error(t *testing.T) {
 	user := models.User{
@@ -115,7 +153,7 @@ func TestGenerator_Verify_Error(t *testing.T) {
 	}
 	manager := jwkManager{}
 	cfg := config.Session{}
-	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(append([]models.User{}, user), nil, nil, nil, nil, nil, nil))
+	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(append([]models.User{}, user), nil, nil, nil, nil, nil, nil, nil, nil))
 	assert.NoError(t, err)
 	require.NotEmpty(t, sessionGenerator)
 

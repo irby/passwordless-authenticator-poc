@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewAccountSharingHandler(t *testing.T) {
-	handler, err := NewAccountSharingHandler(&config.Config{}, test.NewPersister(nil, nil, nil, nil, nil, nil, nil), sessionManager{}, mailer{})
+	handler, err := NewAccountSharingHandler(&config.Config{}, test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil), sessionManager{}, mailer{})
 	assert.NoError(t, err)
 	assert.NotEmpty(t, handler)
 }
