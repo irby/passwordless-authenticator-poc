@@ -40,7 +40,7 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	if err != nil {
 		panic(fmt.Errorf("failed to create jwk manager: %w", err))
 	}
-	sessionManager, err := session.NewManager(jwkManager, cfg.Session)
+	sessionManager, err := session.NewManager(jwkManager, cfg.Session, persister)
 	if err != nil {
 		panic(fmt.Errorf("failed to create session generator: %w", err))
 	}
