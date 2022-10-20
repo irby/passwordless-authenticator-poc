@@ -42,7 +42,7 @@ func TestUserHandler_Create(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	if assert.NoError(t, handler.Create(c)) {
@@ -78,7 +78,7 @@ func TestUserHandler_Create_CaseInsensitive(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	if assert.NoError(t, handler.Create(c)) {
@@ -113,7 +113,7 @@ func TestUserHandler_Create_UserExists(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	err = handler.Create(c)
@@ -146,7 +146,7 @@ func TestUserHandler_Create_UserExists_CaseInsensitive(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	err = handler.Create(c)
@@ -165,7 +165,7 @@ func TestUserHandler_Create_InvalidEmail(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	err := handler.Create(c)
@@ -184,7 +184,7 @@ func TestUserHandler_Create_EmailMissing(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	err := handler.Create(c)
@@ -220,7 +220,7 @@ func TestUserHandler_Get(t *testing.T) {
 	require.NoError(t, err)
 	c.Set("session", token)
 
-	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	if assert.NoError(t, handler.Get(c)) {
@@ -270,7 +270,7 @@ func TestUserHandler_GetUserWithWebAuthnCredential(t *testing.T) {
 	require.NoError(t, err)
 	c.Set("session", token)
 
-	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	if assert.NoError(t, handler.Get(c)) {
@@ -295,7 +295,7 @@ func TestUserHandler_Get_InvalidUserId(t *testing.T) {
 	require.NoError(t, err)
 	c.Set("session", token)
 
-	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	err = handler.Get(c)
@@ -313,7 +313,7 @@ func TestUserHandler_GetUserIdByEmail_InvalidEmail(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	err := handler.GetUserIdByEmail(c)
@@ -330,7 +330,7 @@ func TestUserHandler_GetUserIdByEmail_InvalidJson(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	assert.Error(t, handler.GetUserIdByEmail(c))
@@ -344,7 +344,7 @@ func TestUserHandler_GetUserIdByEmail_UserNotFound(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	err := handler.GetUserIdByEmail(c)
@@ -372,7 +372,7 @@ func TestUserHandler_GetUserIdByEmail(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	if assert.NoError(t, handler.GetUserIdByEmail(c)) {
@@ -406,7 +406,7 @@ func TestUserHandler_GetUserIdByEmail_CaseInsensitive(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	if assert.NoError(t, handler.GetUserIdByEmail(c)) {
@@ -436,7 +436,7 @@ func TestUserHandler_Me(t *testing.T) {
 	require.NoError(t, err)
 	c.Set("session", token)
 
-	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	if assert.NoError(t, handler.Me(c)) {
@@ -464,7 +464,7 @@ func TestUserHandler_Logout(t *testing.T) {
 	require.NoError(t, err)
 	c.Set("session", token)
 
-	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil)
+	p := test.NewPersister(users, nil, nil, nil, nil, nil, nil, nil, nil)
 	handler := NewUserHandler(p, sessionManager{})
 
 	if assert.NoError(t, handler.Logout(c)) {

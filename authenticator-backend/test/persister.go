@@ -6,7 +6,7 @@ import (
 	"github.com/teamhanko/hanko/backend/persistence/models"
 )
 
-func NewPersister(user []models.User, passcodes []models.Passcode, jwks []models.Jwk, credentials []models.WebauthnCredential, sessionData []models.WebauthnSessionData, passwords []models.PasswordCredential, accessGrants []models.AccountAccessGrant) persistence.Persister {
+func NewPersister(user []models.User, passcodes []models.Passcode, jwks []models.Jwk, credentials []models.WebauthnCredential, sessionData []models.WebauthnSessionData, passwords []models.PasswordCredential, accessGrants []models.AccountAccessGrant, userGuestRelations []models.UserGuestRelation, loginAudits []models.LoginAuditLog) persistence.Persister {
 	return &persister{
 		userPersister:                NewUserPersister(user),
 		passcodePersister:            NewPasscodePersister(passcodes),
@@ -15,8 +15,8 @@ func NewPersister(user []models.User, passcodes []models.Passcode, jwks []models
 		webauthnSessionDataPersister: NewWebauthnSessionDataPersister(sessionData),
 		passwordCredentialPersister:  NewPasswordCredentialPersister(passwords),
 		accountAccessGrantPersister:  NewAccountAccessGrantPersister(accessGrants),
-		userGuestRelationPersister:   NewUserGuestRelationPersister(nil),
-		loginAuditLogPersister:       NewLoginAuditLogPersister(nil),
+		userGuestRelationPersister:   NewUserGuestRelationPersister(userGuestRelations),
+		loginAuditLogPersister:       NewLoginAuditLogPersister(loginAudits),
 	}
 }
 

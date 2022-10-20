@@ -16,7 +16,7 @@ import (
 func TestNewGenerator(t *testing.T) {
 	manager := jwkManager{}
 	cfg := config.Session{}
-	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(nil, nil, nil, nil, nil, nil, nil))
+	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil))
 	assert.NoError(t, err)
 	require.NotEmpty(t, sessionGenerator)
 }
@@ -24,7 +24,7 @@ func TestNewGenerator(t *testing.T) {
 func TestGenerator_Generate(t *testing.T) {
 	manager := jwkManager{}
 	cfg := config.Session{}
-	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(nil, nil, nil, nil, nil, nil, nil))
+	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil))
 	assert.NoError(t, err)
 	require.NotEmpty(t, sessionGenerator)
 
@@ -47,7 +47,7 @@ func TestGenerator_Verify(t *testing.T) {
 	sessionLifespan := "5m"
 	manager := jwkManager{}
 	cfg := config.Session{Lifespan: sessionLifespan}
-	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(append([]models.User{}, user), nil, nil, nil, nil, nil, nil))
+	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(append([]models.User{}, user), nil, nil, nil, nil, nil, nil, nil, nil))
 	assert.NoError(t, err)
 	require.NotEmpty(t, sessionGenerator)
 
@@ -115,7 +115,7 @@ func TestGenerator_Verify_Error(t *testing.T) {
 	}
 	manager := jwkManager{}
 	cfg := config.Session{}
-	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(append([]models.User{}, user), nil, nil, nil, nil, nil, nil))
+	sessionGenerator, err := NewManager(&manager, cfg, test.NewPersister(append([]models.User{}, user), nil, nil, nil, nil, nil, nil, nil, nil))
 	assert.NoError(t, err)
 	require.NotEmpty(t, sessionGenerator)
 
