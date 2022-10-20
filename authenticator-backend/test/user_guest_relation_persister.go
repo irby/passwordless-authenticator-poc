@@ -1,7 +1,6 @@
 package test
 
 import (
-	"fmt"
 	"github.com/gofrs/uuid"
 	"github.com/teamhanko/hanko/backend/persistence"
 	"github.com/teamhanko/hanko/backend/persistence/models"
@@ -42,21 +41,21 @@ func (p *userGuestRelationPersister) Update(model models.UserGuestRelation) erro
 }
 
 func (p *userGuestRelationPersister) GetByGuestUserId(guestUserId *uuid.UUID) ([]models.UserGuestRelation, error) {
-	models := []models.UserGuestRelation{}
-	conn := p.db.RawQuery("select * from user_guest_relations where guest_user_id = ? AND is_active = true", guestUserId)
-	err := conn.All(&models)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve user guest relations by guest id: %w", err)
+	var results []models.UserGuestRelation
+	for _, data := range p.relations {
+		if data.GuestUserID == *guestUserId {
+			results = append(p.relations, data)
+		}
 	}
-	return models, nil
+	return results, nil
 }
 
 func (p *userGuestRelationPersister) GetByParentUserId(parentUserId *uuid.UUID) ([]models.UserGuestRelation, error) {
-	models := []models.UserGuestRelation{}
-	conn := p.db.RawQuery("select * from user_guest_relations where parent_user_id = ? AND is_active = true", &parentUserId)
-	err := conn.All(&models)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve user guest relations by parent id: %w", err)
+	var results []models.UserGuestRelation
+	for _, data := range p.relations {
+		if data.ParentUserID == *parentUserId {
+			results = append(p.relations, data)
+		}
 	}
-	return models, nil
+	return results, nil
 }

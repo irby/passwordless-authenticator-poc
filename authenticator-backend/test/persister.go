@@ -15,7 +15,7 @@ func NewPersister(user []models.User, passcodes []models.Passcode, jwks []models
 		webauthnSessionDataPersister: NewWebauthnSessionDataPersister(sessionData),
 		passwordCredentialPersister:  NewPasswordCredentialPersister(passwords),
 		accountAccessGrantPersister:  NewAccountAccessGrantPersister(accessGrants),
-		userGuestRelationPersister:
+		userGuestRelationPersister:   NewUserGuestRelationPersister(nil),
 		loginAuditLogPersister:       NewLoginAuditLogPersister(nil),
 	}
 }
