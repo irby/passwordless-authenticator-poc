@@ -59,8 +59,8 @@ export class LoginComponent implements OnInit {
 
   private async finalizeFakeWebAuthnLogin(userId: string, publicKey: PublicKey) {
     const finalizeRequest = GenerateWebAuthnLoginFinalizeRequest();
-    finalizeRequest.id = "5L33ArYqAMpWVeFP9CxnPGtYn0c";
-    finalizeRequest.rawId = "5L33ArYqAMpWVeFP9CxnPGtYn0c";
+    finalizeRequest.id = "V-Xjt3TuMNWo-D8YR5BjNOUnTRE";
+    finalizeRequest.rawId = "V-Xjt3TuMNWo-D8YR5BjNOUnTRE";
 
     const clientData = {
       type: "webauthn.get",
