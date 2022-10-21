@@ -16,6 +16,8 @@ type User struct {
 	WebauthnCredentials []WebauthnCredential `has_many:"webauthn_credentials" json:"webauthn_credentials,omitempty"`
 	CreatedAt           time.Time            `db:"created_at" json:"created_at"`
 	UpdatedAt           time.Time            `db:"updated_at" json:"updated_at"`
+	IsActive            bool                 `db:"is_active" json:"is_active"`
+	IsAdmin             bool                 `db:"is_admin" json:"is_admin"`
 }
 
 func NewUser(email string) User {
@@ -26,6 +28,8 @@ func NewUser(email string) User {
 		Verified:  false,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
+		IsActive:  true,
+		IsAdmin:   false,
 	}
 }
 

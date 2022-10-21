@@ -92,13 +92,16 @@ func (g *manager) GenerateJWT(subjectUserId uuid.UUID, surrogateUserId uuid.UUID
 		}
 		_ = token.Set(hankoJwt.GrantKey, grantId.String())
 
-		grantExpiry := grant.CreatedAt.Add(time.Duration(grant.MinutesAllowed.Int32) * time.Minute)
+		expiration = issuedAt.Add(g.sessionLength)
 
-		if issuedAt.Add(g.sessionLength).Before(grantExpiry) {
-			expiration = issuedAt.Add(g.sessionLength)
-		} else {
-			expiration = grantExpiry
+		if grant.ExpireByTime {
+			grantExpiry := grant.CreatedAt.Add(time.Duration(grant.MinutesAllowed.Int32) * time.Minute)
+
+			if expiration.After(grantExpiry) {
+				expiration = grantExpiry
+			}
 		}
+
 	} else {
 		expiration = issuedAt.Add(g.sessionLength)
 	}
@@ -131,6 +134,10 @@ func (g *manager) Verify(token string) (jwt.Token, error) {
 	}
 	if user == nil {
 		return nil, fmt.Errorf("user does not exist")
+	}
+
+	if !user.IsActive {
+		return nil, fmt.Errorf("user id %s is not active", user.ID)
 	}
 
 	if surrogateId != parsedToken.Subject() {

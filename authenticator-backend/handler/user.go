@@ -395,13 +395,32 @@ func (h *UserHandler) RemoveAccessToRelation(c echo.Context) error {
 	return nil
 }
 
+type MeResponseDto struct {
+	Id              uuid.UUID `json:"id"`
+	Email           string    `json:"email"`
+	IsAccountHolder bool      `json:"is_account_holder"`
+}
+
 func (h *UserHandler) Me(c echo.Context) error {
 	sessionToken, ok := c.Get("session").(jwt.Token)
 	if !ok {
 		return errors.New("failed to cast session object")
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"id": sessionToken.Subject()})
+	user, err := h.persister.GetUserPersister().Get(uuid.FromStringOrNil(sessionToken.Subject()))
+	if err != nil {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(fmt.Errorf("user id %s could not found: %w", sessionToken.Subject(), err))
+	}
+
+	surrogateId, _ := jwt2.GetSurrogateKeyFromToken(sessionToken)
+
+	dto := MeResponseDto{
+		Email:           user.Email,
+		Id:              user.ID,
+		IsAccountHolder: sessionToken.Subject() == surrogateId,
+	}
+
+	return c.JSON(http.StatusOK, dto)
 }
 
 func (h *UserHandler) Logout(c echo.Context) error {

@@ -249,6 +249,18 @@ func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primar
 		return errors.New("grant has expired")
 	}
 
+	existingUserGuestRelationships, err := h.persister.GetUserGuestRelationPersister().GetByGuestUserId(&guestUserId)
+	if err != nil {
+		fmt.Println("an error occurred fetching existing user guest relationships: ", err)
+		return err
+	}
+
+	for _, relation := range existingUserGuestRelationships {
+		if relation.ParentUserID == primaryUserId && relation.IsActive {
+			return fmt.Errorf("an existing user guest relationship exists for this guest and primary pair: %s", relation.ID)
+		}
+	}
+
 	relationId, err := uuid.NewV4()
 	if err != nil {
 		return fmt.Errorf("unable to generate new UUID: %w", err)
