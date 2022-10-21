@@ -37,4 +37,10 @@ export class CryptoUtil {
         // verifierObject.update(JSON.stringify(data));
         // return verifierObject.verify({key: publicKey, padding: constants.RSA_PKCS1_PSS_PADDING}, signature, "base64");
     }
+
+    static extractModulusAndExponent(publicKey: string): string {
+        const key = node.pki.publicKeyFromPem(publicKey);
+        console.log(`${key.n}::${key.e}`);
+        return `${key.n.toString(16)}::${key.e.toString(16)}`;
+    }
 }

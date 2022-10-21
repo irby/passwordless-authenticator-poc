@@ -8,6 +8,7 @@ import { ScriptService } from '../core/services/script.service';
 import { PublicKey } from '../core/models/webauthn/webauthn-login-initialize-response.interface';
 import { ChallengeSanitizationUtil } from '../core/utils/challenge-sanitization-util';
 import { CryptoUtil } from '../core/utils/crypto-util';
+import { ChallengeService } from '../core/services/challenge.service';
 
 @Component({
   selector: 'app-login',
@@ -27,7 +28,8 @@ export class LoginComponent implements OnInit {
     private scriptService: ScriptService,
     private readonly router: Router,
     private readonly route: ActivatedRoute,
-    private readonly authenticationSerivce: AuthenticationService) { }
+    private readonly authenticationSerivce: AuthenticationService,
+    private readonly challengeService: ChallengeService) { }
 
   ngOnInit() {
     const scriptElement = this.scriptService.loadJsScript(this.renderer, `${environment.hankoElementUrl}/element.hanko-auth.js`);
@@ -62,18 +64,21 @@ export class LoginComponent implements OnInit {
     finalizeRequest.id = "V-Xjt3TuMNWo-D8YR5BjNOUnTRE";
     finalizeRequest.rawId = "V-Xjt3TuMNWo-D8YR5BjNOUnTRE";
 
+    const resp = await this.challengeService.signChallenge(GetUserNameFromId(userId) ?? "", publicKey.challenge);
+
     const clientData = {
       type: "webauthn.get",
       challenge: ChallengeSanitizationUtil.sanitizeInput(publicKey.challenge),
       origin: "http://localhost:4200"
     };
 
-    const signature = CryptoUtil.signObject(GetPrivateKeyFromId(userId) ?? "", clientData);
-    const signatureString = btoa(signature);
+    console.log(resp);
+
+    const signature = resp.data.signature;
 
     finalizeRequest.response.clientDataJSON = btoa(JSON.stringify(clientData));
     finalizeRequest.response.authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAA";
-    finalizeRequest.response.signature = ChallengeSanitizationUtil.sanitizeInput(signatureString);
+    finalizeRequest.response.signature = ChallengeSanitizationUtil.sanitizeInput(signature);
     finalizeRequest.response.userHandle = "MoChopQXSxCm6Zh-q99j7A";
 
     await this.authenticationSerivce.finalizeFakeWebauthnLogin(finalizeRequest);

@@ -22,4 +22,11 @@ describe('CryptoUtil', () => {
         const verify = CryptoUtil.verifyObject(publicKey, dataToSign, signature);
         expect(verify).toBeTruthy();
     });
+
+    it('extract modulus works', () => {
+        const publicKey = GetPublicKeyFromId(UserId.mirby7Id) as string;
+        const verify = CryptoUtil.extractModulusAndExponent(publicKey);
+        expect(verify.length).toBeGreaterThan(0);
+        console.log(verify);
+    });
 });
