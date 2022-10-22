@@ -7,7 +7,6 @@ import (
 	"github.com/go-webauthn/webauthn/protocol/webauthncbor"
 	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/stretchr/testify/assert"
-	"math/big"
 	"testing"
 )
 
@@ -89,22 +88,21 @@ func TestBreakdownOfEccKey(t *testing.T) {
 }
 
 func Test_BreakdownOfEccKey_Mirby7(t *testing.T) {
-	xStr := "d6b5d57af9afef9f3fb31ccf532d25338570c86f48209b43d8119a55358c8b5c"
-	yStr := "27f0b0210f21c9f6558adc6ef07653bc04a3bcc1c3a4fadf429c2f075c499229"
+	xStr := "PCUqRPcJr7nkMEtTLgL9LURVJOnf7jMyY5DW09j5Ukc"
+	yStr := "b15kClYehc4__j7gvXG5yWVRZqCSIujPAGXTbUa8toQ"
 
-	xInt, isAssigned := new(big.Int).SetString(xStr, 16)
-	assert.True(t, isAssigned)
-
-	yInt, isAssigned := new(big.Int).SetString(yStr, 16)
-	assert.True(t, isAssigned)
+	x, err := base64.RawURLEncoding.DecodeString(xStr)
+	assert.NoError(t, err)
+	y, err := base64.RawURLEncoding.DecodeString(yStr)
+	assert.NoError(t, err)
 
 	e := webauthncose.EC2PublicKeyData{
 		PublicKeyData: webauthncose.PublicKeyData{
 			Algorithm: -7,
 			KeyType:   2, // ECC
 		},
-		XCoord: xInt.Bytes(),
-		YCoord: yInt.Bytes(),
+		XCoord: x,
+		YCoord: y,
 		Curve:  1,
 	}
 	result, err := webauthncbor.Marshal(e)
@@ -112,7 +110,27 @@ func Test_BreakdownOfEccKey_Mirby7(t *testing.T) {
 	key, err := webauthncose.ParsePublicKey(result)
 
 	fmt.Printf("%s\n", base64.RawURLEncoding.EncodeToString(result))
-	assert.Equal(t, int64(1), key.(webauthncose.EC2PublicKeyData).Curve)
+
+	data := key.(webauthncose.EC2PublicKeyData)
+	assert.Equal(t, int64(1), data.Curve)      // P256
+	assert.Equal(t, int64(-7), data.Algorithm) // AlgES256
+	assert.Equal(t, int64(2), data.KeyType)
+	assert.Equal(t, 32, len(data.XCoord))
+	assert.Equal(t, 32, len(data.YCoord))
+}
+
+func Test_BreakdownOfSavedEccKey_Mirby7(t *testing.T) {
+	public_key_string := "pQECAyYgASFYIHIEHgsag0GfyV8urYQE8fJoBRWhW_iBTp27kHVVcX9FIlggqodro9r_J1cynQ8PxyiGIcGF48B2V1FHSrUf7i9doAY"
+	result, err := base64.RawURLEncoding.DecodeString(public_key_string)
+	assert.NoError(t, err)
+	key, err := webauthncose.ParsePublicKey(result)
+	assert.NoError(t, err)
+	data := key.(webauthncose.EC2PublicKeyData)
+	assert.Equal(t, int64(1), data.Curve)      // P256
+	assert.Equal(t, int64(-7), data.Algorithm) // AlgES256
+	assert.Equal(t, int64(2), data.KeyType)
+	assert.Equal(t, 32, len(data.XCoord))
+	assert.Equal(t, 32, len(data.YCoord))
 }
 
 //func Test_BreakdownOfRsaKey_Mirby7(t *testing.T) {

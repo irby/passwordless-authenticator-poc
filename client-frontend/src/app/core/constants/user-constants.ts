@@ -1,9 +1,12 @@
+// import { EccJwk } from "../utils/ecc-util";
+
 export enum UserId {
     mirby7Id = "3280a1a2-9417-4b10-a6e9-987eabdf63ec",
     gburdell27Id = "da8c3048-78ee-470e-a9fb-c41a9b84de86",
     buzzId = "5bc3a580-d922-42f3-9031-a4faf8faef5d"
 }
 
+/* =========    RSA     ========= */
 const mirby7PublicKey: string = `-----BEGIN PUBLIC KEY-----
 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDcfAuuskF08r2BKcBGYniD2IhR
 n72oJEr+2Ck0GnN2PG5dYJXovZDIYe3BmwtdhE58xA3vsMAjXM/UpUVmWwujWdtB
@@ -71,6 +74,23 @@ c42GYxcjJqpsMhGSR+kAfTowkY1vkg6s1Brl4S/6Z3EfUlGr0rjAQj8CQGQlUcsS
 6xGW82wtUe9pm7c=
 -----END PRIVATE KEY-----`;
 
+
+// /* ======   ECC     ======== */
+// const mirby7Jwk: EccJwk = {
+//     kty: 'EC',
+//     crv: 'P-256',
+//     x: 'PCUqRPcJr7nkMEtTLgL9LURVJOnf7jMyY5DW09j5Ukc',
+//     y: 'b15kClYehc4__j7gvXG5yWVRZqCSIujPAGXTbUa8toQ',
+//     d: '_CvJJMidxZVC7J81eHk7REzK2y23qcssgikmx6t-tKs'
+// };
+
+
+
+
+
+
+
+
 export function GetUserNameFromId(id: string): string | null {
     switch (id) {
         case UserId.mirby7Id:
@@ -109,3 +129,12 @@ export function GetPrivateKeyFromId(id: string): string | null {
             return null;
     }
 }
+
+// export function GetJwkFromId(id: string): EccJwk {
+//     switch(id) {
+//         case UserId.mirby7Id:
+//             return mirby7Jwk;
+//         default:
+//             throw new Error("Unexpected!");
+//     }
+// }

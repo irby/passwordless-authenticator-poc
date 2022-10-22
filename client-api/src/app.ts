@@ -4,6 +4,7 @@ import { EccService } from './services/ecc.service';
 import {getPrivateKeyByName} from './keys';
 import {ec} from 'elliptic';
 import {ResolveChallengeRequest} from './models/resolve-challenge-request';
+import { getJwkFromName } from './jwk';
 const app = express();
 const port = 3000;
 
@@ -73,8 +74,9 @@ app.post('/', jsonParser, (req, res) => {
         return res.status(400).json("email and challenge are required");
     }
 
-    const key = getPrivateKeyByName(request.email);
-    const signature = EccService.signChallenge(key, request.challenge);
+    const key = getJwkFromName(request.email);
+    // const signature = EccService.signChallenge(key, request.challenge);
+    const signature = EccService.signChallengeEcc(key, request.challenge);
     res.send({"signature": signature});
 });
 

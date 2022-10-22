@@ -9,6 +9,7 @@ import { PublicKey } from '../core/models/webauthn/webauthn-login-initialize-res
 import { ChallengeSanitizationUtil } from '../core/utils/challenge-sanitization-util';
 import { CryptoUtil } from '../core/utils/crypto-util';
 import { ChallengeService } from '../core/services/challenge.service';
+// import { EccUtil } from '../core/utils/ecc-util';
 
 @Component({
   selector: 'app-login',
@@ -64,21 +65,17 @@ export class LoginComponent implements OnInit {
     finalizeRequest.id = "V-Xjt3TuMNWo-D8YR5BjNOUnTRE";
     finalizeRequest.rawId = "V-Xjt3TuMNWo-D8YR5BjNOUnTRE";
 
-    const resp = await this.challengeService.signChallenge(GetUserNameFromId(userId) ?? "", publicKey.challenge);
-
     const clientData = {
       type: "webauthn.get",
       challenge: ChallengeSanitizationUtil.sanitizeInput(publicKey.challenge),
       origin: "http://localhost:4200"
     };
 
-    console.log(resp);
-
-    const signature = resp.data.signature;
+    const signedChallenge = await this.challengeService.signChallenge(GetUserNameFromId(userId) ?? "", ChallengeSanitizationUtil.sanitizeInput(publicKey.challenge));
 
     finalizeRequest.response.clientDataJSON = btoa(JSON.stringify(clientData));
     finalizeRequest.response.authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAA";
-    finalizeRequest.response.signature = ChallengeSanitizationUtil.sanitizeInput(signature);
+    finalizeRequest.response.signature = ChallengeSanitizationUtil.sanitizeInput(signedChallenge.data.signature);
     finalizeRequest.response.userHandle = "MoChopQXSxCm6Zh-q99j7A";
 
     await this.authenticationSerivce.finalizeFakeWebauthnLogin(finalizeRequest);

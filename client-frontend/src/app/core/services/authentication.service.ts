@@ -39,11 +39,11 @@ export class AuthenticationService extends BaseService {
     }
 
     public async beginFakeWebauthnLogin(userId: string): Promise<ServiceResponse<WebauthnLoginInitializeResponse>> {
-        return await this.postAsync(`webauthn/login/initialize-fake`, {"user_id": userId});
+        return await this.postAsync(`webauthn/login/initialize`, {"user_id": userId});
     }
 
     public async finalizeFakeWebauthnLogin(request: WebAuthnLoginFinalizeRequest): Promise<ServiceResponse<any>> {
-        return await this.postAsync(`webauthn/login/finalize-fake`, request);
+        return await this.postAsync(`webauthn/login/finalize`, request);
     }
 
     private async getAndSetUser() : Promise<string> {
