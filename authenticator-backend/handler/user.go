@@ -355,6 +355,49 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 	return nil
 }
 
+func (h *UserHandler) LogoutAsGuest(c echo.Context) error {
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return errors.New("missing or malformed jwt")
+	}
+
+	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err))
+	}
+
+	if sessionToken.Subject() == surrogateId {
+		return dto.NewHTTPError(http.StatusForbidden)
+	}
+
+	uId := uuid.FromStringOrNil(surrogateId)
+
+	token, err := h.sessionManager.GenerateJWT(uId, uId, uuid.Nil)
+	if err != nil {
+		return fmt.Errorf("failed to generate jwt: %w", err)
+	}
+
+	cookie, err := h.sessionManager.GenerateCookie(token)
+	if err != nil {
+		return fmt.Errorf("failed to create session token: %w", err)
+	}
+
+	c.SetCookie(cookie)
+
+	log := models.LoginAuditLog{
+		UserId:          uuid.FromStringOrNil(surrogateId),
+		ClientIpAddress: c.Request().RemoteAddr,
+		ClientUserAgent: c.Request().UserAgent(),
+		LoginMethod:     dto.LoginMethodToValue(dto.LogoutAsGuest),
+	}
+	err = h.persister.GetLoginAuditLogPersister().Create(log)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusInternalServerError, "An error occurred generating login audit record", err.Error())
+	}
+
+	return c.JSON(http.StatusOK, struct{}{})
+}
+
 func (h *UserHandler) RemoveAccessToRelation(c echo.Context) error {
 	relationId := c.Param("id")
 
