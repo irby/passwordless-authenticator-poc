@@ -35,6 +35,8 @@ export class EccService {
     public static signChallengeEcc(jwk: EccJwk, challenge: string): string {
         const ec = ECDSA.fromJWK(jwk);
 
+        console.log("challenge", challenge)
+
         const authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAA";
 
         const clientData = {
@@ -43,19 +45,37 @@ export class EccService {
             origin: "http://localhost:4200"
         };
 
+        console.log(JSON.stringify(clientData));
+
         const buffer = Buffer.from(JSON.stringify(clientData));
+
+        console.log('client data JSON buffer', buffer);
+
         var byteArray = Buffer.from(authenticatorData, 'base64');
         console.log(byteArray);
 
-        const clientDataHash = crypto.createHmac('sha256', buffer).digest('hex');
+        const clientDataHash = crypto.createHash('sha256').update(buffer).digest('hex');
+        // const clientDataHash = crypto.createHmac('sha256', buffer).digest('hex');
+
+        console.log('client data hash', clientDataHash);
+
         const hashBytes = Buffer.from(clientDataHash, 'hex');
-        const sigData = Array.prototype.concat(byteArray, hashBytes);
+        Buffer.concat([byteArray, hashBytes])
+        const sigData = Buffer.concat([byteArray, hashBytes]);
 
-        console.log(sigData);
+        // const sigBuffer = Buffer.from(sigData);
 
-        const sigBuffer = Buffer.from(sigData);
+        console.log('buff', sigData);
 
-        return ec.sign(sigBuffer);
+        for (var i = 0; i < sigData.length; i++) {
+            console.log(sigData[i]);
+        }
+
+        const signature = ec.sign(sigData);
+
+        console.log('signature', signature);
+
+        return signature;
     }
 
     private static sanitizeInput(challenge: string): string {

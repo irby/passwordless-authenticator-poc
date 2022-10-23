@@ -10,6 +10,7 @@ import (
 	"github.com/teamhanko/hanko/backend/persistence"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type UserHandlerAdmin struct {
@@ -127,10 +128,114 @@ func (h *UserHandlerAdmin) List(c echo.Context) error {
 
 	users, err := h.persister.GetUserPersister().List(request.Page, request.PerPage)
 	if err != nil {
-		return fmt.Errorf("failed to get lsist of users: %w", err)
+		return fmt.Errorf("failed to get list of users: %w", err)
 	}
 
 	return c.JSON(http.StatusOK, users)
+}
+
+type LoginAuditRecordRequest struct {
+	UserId string `param:"userId" validate:"required,uuid4"`
+}
+
+type LoginAuditRecordResponseDto struct {
+	LoginsToAccount []LoginAuditRecordResponseAccountLoginDto
+	LoginsAsGuest   []LoginAuditRecordResponseAccountLoginDto
+}
+
+type LoginAuditRecordResponseAccountLoginDto struct {
+	ID                  uuid.UUID  `json:"id"`
+	UserId              uuid.UUID  `json:"userId"`
+	SurrogateUserId     *uuid.UUID `json:"surrogate_user_id"`
+	SurrogateUserEmail  string     `json:"surrogate_user_email"`
+	UserGuestRelationId *uuid.UUID `json:"user_guest_relation_id"`
+	ClientIpAddress     string     `json:"client_ip_address"`
+	ClientUserAgent     string     `json:"client_ip_address"`
+	CreatedAt           time.Time  `json:"created_at"`
+}
+
+func (h *UserHandlerAdmin) GetLoginAuditRecordsForUser(c echo.Context) error {
+	var loginAuditRecordRequest LoginAuditRecordRequest
+	if err := c.Bind(&loginAuditRecordRequest); err != nil {
+		return dto.ToHttpError(err)
+	}
+
+	//if err := c.Validate(loginAuditRecordRequest); err != nil {
+	//	return dto.ToHttpError(err)
+	//}
+
+	err, isSuccess := h.validateAdminPermission(c)
+	if !isSuccess {
+		return err
+	}
+
+	response := LoginAuditRecordResponseDto{
+		LoginsToAccount: []LoginAuditRecordResponseAccountLoginDto{},
+		LoginsAsGuest:   []LoginAuditRecordResponseAccountLoginDto{},
+	}
+
+	user, err := h.persister.GetUserPersister().Get(uuid.FromStringOrNil(loginAuditRecordRequest.UserId))
+	if err != nil {
+		return fmt.Errorf("failed to get user ID %s: %w", loginAuditRecordRequest.UserId, err)
+	}
+
+	records, err := h.persister.GetLoginAuditLogPersister().GetByPrimaryUserId(uuid.FromStringOrNil(loginAuditRecordRequest.UserId))
+	if err != nil {
+		return fmt.Errorf("failed to get list of audit records for user ID %s: %w", loginAuditRecordRequest.UserId, err)
+	}
+
+	surrogateUserEmails := map[uuid.UUID]string{}
+
+	for _, record := range records {
+		if record.SurrogateUserId == nil {
+			response.LoginsToAccount = append(response.LoginsToAccount,
+				LoginAuditRecordResponseAccountLoginDto{
+					ID:              record.ID,
+					UserId:          record.UserId,
+					ClientUserAgent: record.ClientUserAgent,
+					ClientIpAddress: record.ClientIpAddress,
+					CreatedAt:       record.CreatedAt,
+				})
+		} else {
+			email, exists := surrogateUserEmails[*record.SurrogateUserId]
+			if !exists {
+				guest, _ := h.persister.GetUserPersister().Get(*record.SurrogateUserId)
+				email = guest.Email
+			}
+			response.LoginsToAccount = append(response.LoginsToAccount,
+				LoginAuditRecordResponseAccountLoginDto{
+					ID:                  record.ID,
+					UserId:              record.UserId,
+					SurrogateUserId:     record.SurrogateUserId,
+					SurrogateUserEmail:  email,
+					UserGuestRelationId: record.UserGuestRelationId,
+					ClientUserAgent:     record.ClientUserAgent,
+					ClientIpAddress:     record.ClientIpAddress,
+					CreatedAt:           record.CreatedAt,
+				})
+		}
+	}
+
+	records, err = h.persister.GetLoginAuditLogPersister().GetByGuestUserId(uuid.FromStringOrNil(loginAuditRecordRequest.UserId))
+	if err != nil {
+		return fmt.Errorf("failed to get list of audit records for user ID %s: %w", loginAuditRecordRequest.UserId, err)
+	}
+
+	for _, record := range records {
+		response.LoginsAsGuest = append(response.LoginsAsGuest,
+			LoginAuditRecordResponseAccountLoginDto{
+				ID:                  record.ID,
+				UserId:              record.UserId,
+				SurrogateUserId:     record.SurrogateUserId,
+				SurrogateUserEmail:  user.Email,
+				UserGuestRelationId: record.UserGuestRelationId,
+				ClientUserAgent:     record.ClientUserAgent,
+				ClientIpAddress:     record.ClientIpAddress,
+				CreatedAt:           record.CreatedAt,
+			})
+	}
+
+	return c.JSON(http.StatusOK, response)
 }
 
 func (h *UserHandlerAdmin) validateAdminPermission(c echo.Context) (error, bool) {

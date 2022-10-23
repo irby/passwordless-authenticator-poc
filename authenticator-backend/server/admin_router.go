@@ -44,6 +44,7 @@ func NewPrivateRouter(cfg *config.Config, persister persistence.Persister) *echo
 	user.DELETE("/:id", userHandler.Delete, hankoMiddleware.Session(sessionManager))
 	user.PATCH("/:id", userHandler.Patch, hankoMiddleware.Session(sessionManager))
 	user.GET("", userHandler.List, hankoMiddleware.Session(sessionManager))
+	user.POST("/login-audit", userHandler.GetLoginAuditRecordsForUser, hankoMiddleware.Session(sessionManager))
 
 	return e
 }
