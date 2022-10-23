@@ -1,5 +1,10 @@
 // import { EccUtil } from "./ecc-util"
 
+describe('ECC Util', () => {
+    it('populate pad this', () => {
+
+    });
+})
 // describe('ECC Util', () => {
 //     it('generates keys', () => {
 //         EccUtil.generateKeys();
