@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/lestrrat-go/jwx/v2/jwt"
+	jwt2 "github.com/teamhanko/hanko/backend/crypto/jwt"
 	"github.com/teamhanko/hanko/backend/dto"
 	"github.com/teamhanko/hanko/backend/persistence"
 	"net/http"
@@ -22,6 +24,11 @@ func (h *UserHandlerAdmin) Delete(c echo.Context) error {
 	userId, err := uuid.FromString(c.Param("id"))
 	if err != nil {
 		return dto.NewHTTPError(http.StatusBadRequest, "failed to parse userId as uuid").SetInternal(err)
+	}
+
+	err, isSuccess := h.validateAdminPermission(c)
+	if !isSuccess {
+		return err
 	}
 
 	p := h.persister.GetUserPersister()
@@ -56,6 +63,11 @@ func (h *UserHandlerAdmin) Patch(c echo.Context) error {
 
 	if err := c.Validate(patchRequest); err != nil {
 		return dto.ToHttpError(err)
+	}
+
+	err, isSuccess := h.validateAdminPermission(c)
+	if !isSuccess {
+		return err
 	}
 
 	patchRequest.Email = strings.ToLower(patchRequest.Email)
@@ -108,10 +120,39 @@ func (h *UserHandlerAdmin) List(c echo.Context) error {
 		return dto.ToHttpError(err)
 	}
 
+	err, isSuccess := h.validateAdminPermission(c)
+	if !isSuccess {
+		return err
+	}
+
 	users, err := h.persister.GetUserPersister().List(request.Page, request.PerPage)
 	if err != nil {
 		return fmt.Errorf("failed to get lsist of users: %w", err)
 	}
 
 	return c.JSON(http.StatusOK, users)
+}
+
+func (h *UserHandlerAdmin) validateAdminPermission(c echo.Context) (error, bool) {
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return dto.NewHTTPError(http.StatusUnauthorized), false
+	}
+
+	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err)), false
+	}
+
+	if sessionToken.Subject() != surrogateId {
+		return dto.NewHTTPError(http.StatusForbidden), false
+	}
+
+	currentUser, err := h.persister.GetUserPersister().Get(uuid.FromStringOrNil(sessionToken.Subject()))
+
+	if !currentUser.IsAdmin || !currentUser.IsActive {
+		return dto.NewHTTPError(http.StatusForbidden), false
+	}
+
+	return nil, true
 }

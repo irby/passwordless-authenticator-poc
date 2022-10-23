@@ -14,6 +14,6 @@ func StartPublic(cfg *config.Config, wg *sync.WaitGroup, persister persistence.P
 
 func StartPrivate(cfg *config.Config, wg *sync.WaitGroup, persister persistence.Persister) {
 	defer wg.Done()
-	router := NewPrivateRouter(persister)
+	router := NewPrivateRouter(cfg, persister)
 	router.Logger.Fatal(router.Start(cfg.Server.Private.Address))
 }

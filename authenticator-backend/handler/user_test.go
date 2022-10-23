@@ -423,7 +423,7 @@ func TestUserHandler_GetUserIdByEmail_CaseInsensitive(t *testing.T) {
 }
 
 func TestUserHandler_Me(t *testing.T) {
-	userId, _ := uuid.NewV4()
+	userId := users[0].ID
 
 	e := echo.New()
 	e.Validator = dto.NewCustomValidator()
@@ -433,6 +433,7 @@ func TestUserHandler_Me(t *testing.T) {
 
 	token := jwt.New()
 	err := token.Set(jwt.SubjectKey, userId.String())
+	token.Set("surr", userId.String())
 	require.NoError(t, err)
 	c.Set("session", token)
 

@@ -23,6 +23,7 @@ import { AuthenticationService } from './core/services/authentication.service';
 import { GrantService } from './core/services/grant.service';
 import { GrantsGuestModalComponent } from './home/grants-guest-modal/grants-guest-modal.component';
 import { GrantsParentModalComponent } from './home/grants-parent-modal/grants-parent-modal.component';
+import { ChallengeService } from './core/services/challenge.service';
 
 @NgModule({
   declarations: [				
@@ -50,7 +51,7 @@ import { GrantsParentModalComponent } from './home/grants-parent-modal/grants-pa
     MatTableModule,
     HttpClientModule
   ],
-  providers: [SocketService, AuthenticationService, UserService, GrantService],
+  providers: [SocketService, AuthenticationService, UserService, GrantService, ChallengeService],
   bootstrap: [AppComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
