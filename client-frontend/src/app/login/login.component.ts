@@ -1,7 +1,7 @@
 import { Component, OnInit, Renderer2 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
-import { GetPrivateKeyFromId, GetUserNameFromId, UserId } from '../core/constants/user-constants';
+import { GetWebauthnTokenIdFromId, GetUserNameFromId, UserId, GetWebauthnUserHandleFromId } from '../core/constants/user-constants';
 import { GenerateWebAuthnLoginFinalizeRequest, WebAuthnLoginFinalizeRequest } from '../core/models/webauthn/webauthn-login-finalize-request.interface';
 import { AuthenticationService } from '../core/services/authentication.service';
 import { ScriptService } from '../core/services/script.service';
@@ -62,8 +62,8 @@ export class LoginComponent implements OnInit {
 
   private async finalizeFakeWebAuthnLogin(userId: string, publicKey: PublicKey) {
     const finalizeRequest = GenerateWebAuthnLoginFinalizeRequest();
-    finalizeRequest.id = "V-Xjt3TuMNWo-D8YR5BjNOUnTRE";
-    finalizeRequest.rawId = "V-Xjt3TuMNWo-D8YR5BjNOUnTRE";
+    finalizeRequest.id = GetWebauthnTokenIdFromId(userId);
+    finalizeRequest.rawId = GetWebauthnTokenIdFromId(userId);
 
     const clientData = {
       type: "webauthn.get",
@@ -73,12 +73,23 @@ export class LoginComponent implements OnInit {
 
     const signedChallenge = await this.challengeService.signChallenge(GetUserNameFromId(userId) ?? "", ChallengeSanitizationUtil.sanitizeInput(publicKey.challenge));
 
+    if (signedChallenge.type !== 'data') {
+      console.log("ERRRORRRR");
+      return;
+    }
+
     finalizeRequest.response.clientDataJSON = btoa(JSON.stringify(clientData));
     finalizeRequest.response.authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAA";
     finalizeRequest.response.signature = ChallengeSanitizationUtil.sanitizeInput(signedChallenge.data.signature);
-    finalizeRequest.response.userHandle = "MoChopQXSxCm6Zh-q99j7A";
+    finalizeRequest.response.userHandle = GetWebauthnUserHandleFromId(userId);
 
-    await this.authenticationSerivce.finalizeFakeWebauthnLogin(finalizeRequest);
+    var resp = await this.authenticationSerivce.finalizeFakeWebauthnLogin(finalizeRequest);
+    if (resp.type !== 'data') {
+      console.log('bad juju just happened');
+      return;
+    }
+    await this.authenticationSerivce.setLogin();
+    this.router.navigate([this.route.snapshot.queryParams[`redirect`] || '/'], { replaceUrl: true });
   }
 
 }

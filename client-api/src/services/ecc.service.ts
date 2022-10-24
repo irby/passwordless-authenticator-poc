@@ -15,11 +15,39 @@ export class EccService {
             origin: "http://localhost:4200"
         }
 
+        console.log(JSON.stringify(clientData));
+
+        const authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAA";
+
+        const buffer = Buffer.from(JSON.stringify(clientData));
+
+        console.log('client data JSON buffer', buffer);
+
+        var byteArray = Buffer.from(authenticatorData, 'base64');
+        console.log(byteArray);
+
+        const clientDataHash = crypto.createHash('sha256').update(buffer).digest('hex');
+        // const clientDataHash = crypto.createHmac('sha256', buffer).digest('hex');
+
+        console.log('client data hash', clientDataHash);
+
+        const hashBytes = Buffer.from(clientDataHash, 'hex');
+        Buffer.concat([byteArray, hashBytes])
+        const sigData = Buffer.concat([byteArray, hashBytes]);
+
+        // const sigBuffer = Buffer.from(sigData);
+
+        console.log('buff', sigData);
+
+        for (var i = 0; i < sigData.length; i++) {
+            console.log(sigData[i]);
+        }
+
         console.log(clientData);
 
-        const mashHash = Buffer.from(JSON.stringify(clientData), 'utf8');
-        console.log(mashHash);
-        const signature = key.sign(mashHash);
+        const signature = key.sign(sigData);
+
+        console.log(signature);
 
         console.log(signature.toDER());
 
@@ -70,6 +98,13 @@ export class EccService {
         for (var i = 0; i < sigData.length; i++) {
             console.log(sigData[i]);
         }
+
+        const sign = crypto.createSign('RSA-SHA256');
+        sign.write(sigData);
+        sign.end();
+        const d = sign.sign(ec.toPEM());
+
+        console.log(d);
 
         const signature = ec.sign(sigData);
 
