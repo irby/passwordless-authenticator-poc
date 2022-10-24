@@ -1,13 +1,12 @@
 import { Component, OnInit, Renderer2 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
-import { GetWebauthnTokenIdFromId, GetUserNameFromId, UserId, GetWebauthnUserHandleFromId } from '../core/constants/user-constants';
-import { GenerateWebAuthnLoginFinalizeRequest, WebAuthnLoginFinalizeRequest } from '../core/models/webauthn/webauthn-login-finalize-request.interface';
+import { GetUserNameFromId, UserId } from '../core/constants/user-constants';
+import { GenerateWebAuthnLoginFinalizeRequest } from '../core/models/webauthn/webauthn-login-finalize-request.interface';
 import { AuthenticationService } from '../core/services/authentication.service';
 import { ScriptService } from '../core/services/script.service';
 import { PublicKey } from '../core/models/webauthn/webauthn-login-initialize-response.interface';
 import { ChallengeSanitizationUtil } from '../core/utils/challenge-sanitization-util';
-import { CryptoUtil } from '../core/utils/crypto-util';
 import { ChallengeService } from '../core/services/challenge.service';
 import { NotificationService } from '../core/services/notification.service';
 // import { EccUtil } from '../core/utils/ecc-util';
