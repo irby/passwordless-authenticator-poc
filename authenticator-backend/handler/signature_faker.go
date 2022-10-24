@@ -1,7 +1,9 @@
 package handler
 
 import (
+	ecdsa2 "crypto/ecdsa"
 	"encoding/base64"
+	"errors"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/teamhanko/hanko/backend/crypto/ecdsa"
@@ -43,12 +45,12 @@ func (h *SignatureFakerHandler) SignChallengeAsUser(c echo.Context) error {
 		return dto.ToHttpError(err)
 	}
 
-	credential, err := h.getWebauthnCredentialForUser(body.Email)
+	key, credential, err := h.getWebauthnCredentialForUser(body.Email)
 	if err != nil {
 		return dto.ToHttpError(err)
 	}
 
-	result, err := ecdsa.SignChallengeForUser(body.Email, body.Challenge)
+	result, err := ecdsa.SignChallengeForUser(key.PrivateKey, body.Challenge)
 	if err != nil {
 		return dto.ToHttpError(err)
 	}
@@ -67,30 +69,69 @@ func (h *SignatureFakerHandler) SignChallengeAsUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-func (h *SignatureFakerHandler) getWebauthnCredentialForUser(email string) (*models.WebauthnCredential, error) {
+func (h *SignatureFakerHandler) getWebauthnCredentialForUser(email string) (*models.WebauthnCredentialsPrivateKey, *models.WebauthnCredential, error) {
 	user, err := h.persister.GetUserPersister().GetByEmail(email)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	credential, err := h.persister.GetWebauthnCredentialPersister().GetFromUser(user.ID)
+	credentials, err := h.persister.GetWebauthnCredentialPersister().GetFromUser(user.ID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if len(credential) > 0 {
-		return &credential[0], nil
+	var credential *models.WebauthnCredential
+
+	for _, cred := range credentials {
+		if cred.AAGUID != uuid.Nil {
+			credential = &cred
+		}
 	}
-	newCred, err := h.createWebauthnCredentialForUser(user)
-	return newCred, nil
+
+	var key *ecdsa2.PrivateKey
+
+	if credential == nil {
+		key, err = ecdsa.GeneratePrivateKey()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		pub, err := ecdsa.GenerateEC2PublicKeyDataFromPrivateKey(*key)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		newCred, err := h.createWebauthnCredentialForUser(user, pub)
+		if err != nil {
+			return nil, nil, err
+		}
+		credential = newCred
+	}
+
+	privateKey, err := h.persister.GetWebauthnCredentialsPrivateKeyPersister().Get(credential.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if privateKey == nil {
+		if key == nil {
+			return nil, nil, errors.New("a private key must be generated prior to creating a new private key")
+		}
+		privateKey, err = h.createWebauthnCredentialsPrivateKeyForUser(credential, key)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return privateKey, credential, nil
 }
 
-func (h *SignatureFakerHandler) createWebauthnCredentialForUser(user *models.User) (*models.WebauthnCredential, error) {
+func (h *SignatureFakerHandler) createWebauthnCredentialForUser(user *models.User, pubKey string) (*models.WebauthnCredential, error) {
+	uId, _ := uuid.NewV4()
 	credential := models.WebauthnCredential{
 		ID:              GenerateShortID(),
 		UserId:          user.ID,
-		PublicKey:       "",
+		PublicKey:       pubKey,
 		AttestationType: "none",
-		AAGUID:          uuid.Nil,
+		AAGUID:          uId,
 		SignCount:       0,
 		CreatedAt:       time.Now().UTC(),
 		UpdatedAt:       time.Now().UTC(),
@@ -100,6 +141,20 @@ func (h *SignatureFakerHandler) createWebauthnCredentialForUser(user *models.Use
 		return nil, err
 	}
 	return &credential, nil
+}
+
+func (h *SignatureFakerHandler) createWebauthnCredentialsPrivateKeyForUser(credential *models.WebauthnCredential, privateKey *ecdsa2.PrivateKey) (*models.WebauthnCredentialsPrivateKey, error) {
+	key := models.WebauthnCredentialsPrivateKey{
+		ID:         credential.ID,
+		PrivateKey: privateKey.D.String(),
+		CreatedAt:  time.Now().UTC(),
+		UpdatedAt:  time.Now().UTC(),
+	}
+	err := h.persister.GetWebauthnCredentialsPrivateKeyPersister().Create(key)
+	if err != nil {
+		return nil, err
+	}
+	return &key, nil
 }
 
 func GenerateShortID() string {

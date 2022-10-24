@@ -8,28 +8,30 @@ import (
 
 func NewPersister(user []models.User, passcodes []models.Passcode, jwks []models.Jwk, credentials []models.WebauthnCredential, sessionData []models.WebauthnSessionData, passwords []models.PasswordCredential, accessGrants []models.AccountAccessGrant, userGuestRelations []models.UserGuestRelation, loginAudits []models.LoginAuditLog) persistence.Persister {
 	return &persister{
-		userPersister:                NewUserPersister(user),
-		passcodePersister:            NewPasscodePersister(passcodes),
-		jwkPersister:                 NewJwkPersister(jwks),
-		webauthnCredentialPersister:  NewWebauthnCredentialPersister(credentials),
-		webauthnSessionDataPersister: NewWebauthnSessionDataPersister(sessionData),
-		passwordCredentialPersister:  NewPasswordCredentialPersister(passwords),
-		accountAccessGrantPersister:  NewAccountAccessGrantPersister(accessGrants),
-		userGuestRelationPersister:   NewUserGuestRelationPersister(userGuestRelations),
-		loginAuditLogPersister:       NewLoginAuditLogPersister(loginAudits),
+		userPersister:                          NewUserPersister(user),
+		passcodePersister:                      NewPasscodePersister(passcodes),
+		jwkPersister:                           NewJwkPersister(jwks),
+		webauthnCredentialPersister:            NewWebauthnCredentialPersister(credentials),
+		webauthnSessionDataPersister:           NewWebauthnSessionDataPersister(sessionData),
+		passwordCredentialPersister:            NewPasswordCredentialPersister(passwords),
+		accountAccessGrantPersister:            NewAccountAccessGrantPersister(accessGrants),
+		userGuestRelationPersister:             NewUserGuestRelationPersister(userGuestRelations),
+		loginAuditLogPersister:                 NewLoginAuditLogPersister(loginAudits),
+		webauthnCredentialsPrivateKeyPersister: NewWebauthnCredentialsPrivateKeyPersister([]models.WebauthnCredentialsPrivateKey{}),
 	}
 }
 
 type persister struct {
-	userPersister                persistence.UserPersister
-	passcodePersister            persistence.PasscodePersister
-	jwkPersister                 persistence.JwkPersister
-	webauthnCredentialPersister  persistence.WebauthnCredentialPersister
-	webauthnSessionDataPersister persistence.WebauthnSessionDataPersister
-	passwordCredentialPersister  persistence.PasswordCredentialPersister
-	accountAccessGrantPersister  persistence.AccountAccessGrantPersister
-	userGuestRelationPersister   persistence.UserGuestRelationPersister
-	loginAuditLogPersister       persistence.LoginAuditLogPersister
+	userPersister                          persistence.UserPersister
+	passcodePersister                      persistence.PasscodePersister
+	jwkPersister                           persistence.JwkPersister
+	webauthnCredentialPersister            persistence.WebauthnCredentialPersister
+	webauthnCredentialsPrivateKeyPersister persistence.WebauthnCredentialsPrivateKeyPersister
+	webauthnSessionDataPersister           persistence.WebauthnSessionDataPersister
+	passwordCredentialPersister            persistence.PasswordCredentialPersister
+	accountAccessGrantPersister            persistence.AccountAccessGrantPersister
+	userGuestRelationPersister             persistence.UserGuestRelationPersister
+	loginAuditLogPersister                 persistence.LoginAuditLogPersister
 }
 
 func (p *persister) GetPasswordCredentialPersister() persistence.PasswordCredentialPersister {
@@ -66,6 +68,10 @@ func (p *persister) GetPasscodePersisterWithConnection(tx *pop.Connection) persi
 
 func (p *persister) GetWebauthnCredentialPersister() persistence.WebauthnCredentialPersister {
 	return p.webauthnCredentialPersister
+}
+
+func (p *persister) GetWebauthnCredentialsPrivateKeyPersister() persistence.WebauthnCredentialsPrivateKeyPersister {
+	return p.webauthnCredentialsPrivateKeyPersister
 }
 
 func (p *persister) GetWebauthnCredentialPersisterWithConnection(tx *pop.Connection) persistence.WebauthnCredentialPersister {

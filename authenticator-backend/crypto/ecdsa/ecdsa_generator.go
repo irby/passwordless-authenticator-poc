@@ -116,12 +116,8 @@ func GetAuthenticatorData() ([]byte, error) {
 	return result, err
 }
 
-func SignChallengeForUser(user string, challenge string) ([]byte, error) {
-	privateKey, err := getPrivateKeyForUser(user)
-	if err != nil {
-		return nil, err
-	}
-	key, err := GeneratePrivateKeyFromValue(privateKey)
+func SignChallengeForUser(privateKeyString string, challenge string) ([]byte, error) {
+	key, err := GeneratePrivateKeyFromValue(privateKeyString)
 	if err != nil {
 		return nil, err
 	}
@@ -139,20 +135,20 @@ func SignChallengeForUser(user string, challenge string) ([]byte, error) {
 	return data, nil
 }
 
-func getPrivateKeyForUser(user string) (string, error) {
-	var privateKey string
-	switch user {
-	case "mirby7@gatech.edu":
-		privateKey = Mirby7PrivateKey
-	case "gburdell27@gatech.edu":
-		privateKey = Gburdell27PrivateKey
-	case "buzz@gatech.edu":
-		privateKey = BuzzPrivateKey
-	default:
-		return "", fmt.Errorf("unable to find user %s", user)
-	}
-	return privateKey, nil
-}
+//func getPrivateKeyForUser(user string) (string, error) {
+//	var privateKey string
+//	switch user {
+//	case "mirby7@gatech.edu":
+//		privateKey = Mirby7PrivateKey
+//	case "gburdell27@gatech.edu":
+//		privateKey = Gburdell27PrivateKey
+//	case "buzz@gatech.edu":
+//		privateKey = BuzzPrivateKey
+//	default:
+//		return "", fmt.Errorf("unable to find user %s", user)
+//	}
+//	return privateKey, nil
+//}
 
 func getPublicKeyForUser(user string) (string, error) {
 	var privateKey string
