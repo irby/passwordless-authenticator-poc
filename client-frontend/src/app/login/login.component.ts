@@ -9,6 +9,7 @@ import { PublicKey } from '../core/models/webauthn/webauthn-login-initialize-res
 import { ChallengeSanitizationUtil } from '../core/utils/challenge-sanitization-util';
 import { CryptoUtil } from '../core/utils/crypto-util';
 import { ChallengeService } from '../core/services/challenge.service';
+import { NotificationService } from '../core/services/notification.service';
 // import { EccUtil } from '../core/utils/ecc-util';
 
 @Component({
@@ -30,7 +31,8 @@ export class LoginComponent implements OnInit {
     private readonly router: Router,
     private readonly route: ActivatedRoute,
     private readonly authenticationSerivce: AuthenticationService,
-    private readonly challengeService: ChallengeService) { }
+    private readonly challengeService: ChallengeService,
+    private readonly notificationService: NotificationService) { }
 
   ngOnInit() {
     const scriptElement = this.scriptService.loadJsScript(this.renderer, `${environment.hankoElementUrl}/element.hanko-auth.js`);
@@ -62,8 +64,13 @@ export class LoginComponent implements OnInit {
 
   private async finalizeFakeWebAuthnLogin(userId: string, publicKey: PublicKey) {
     const finalizeRequest = GenerateWebAuthnLoginFinalizeRequest();
-    finalizeRequest.id = GetWebauthnTokenIdFromId(userId);
-    finalizeRequest.rawId = GetWebauthnTokenIdFromId(userId);
+
+    const signedChallenge = await this.challengeService.signChallenge(GetUserNameFromId(userId) ?? "", ChallengeSanitizationUtil.sanitizeInput(publicKey.challenge));
+
+    if (signedChallenge.type !== 'data') {
+      this.notificationService.error('Failed to sign data', 'Login failed');
+      return;
+    }
 
     const clientData = {
       type: "webauthn.get",
@@ -71,21 +78,16 @@ export class LoginComponent implements OnInit {
       origin: "http://localhost:4200"
     };
 
-    const signedChallenge = await this.challengeService.signChallenge(GetUserNameFromId(userId) ?? "", ChallengeSanitizationUtil.sanitizeInput(publicKey.challenge));
-
-    if (signedChallenge.type !== 'data') {
-      console.log("ERRRORRRR");
-      return;
-    }
-
+    finalizeRequest.id = signedChallenge.data.id;
+    finalizeRequest.rawId = signedChallenge.data.id;
     finalizeRequest.response.clientDataJSON = btoa(JSON.stringify(clientData));
-    finalizeRequest.response.authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAA";
-    finalizeRequest.response.signature = ChallengeSanitizationUtil.sanitizeInput(signedChallenge.data.signature);
-    finalizeRequest.response.userHandle = GetWebauthnUserHandleFromId(userId);
+    finalizeRequest.response.authenticatorData = signedChallenge.data.authenticatorData;
+    finalizeRequest.response.signature = signedChallenge.data.signature;
+    finalizeRequest.response.userHandle = signedChallenge.data.userHandle;
 
     var resp = await this.authenticationSerivce.finalizeFakeWebauthnLogin(finalizeRequest);
     if (resp.type !== 'data') {
-      console.log('bad juju just happened');
+      this.notificationService.error('Request to finalize login failed', 'Login failed');
       return;
     }
     await this.authenticationSerivce.setLogin();

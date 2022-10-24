@@ -125,8 +125,9 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	passcodeLogin.POST("/initialize", passcodeHandler.Init)
 	passcodeLogin.POST("/finalize", passcodeHandler.Finish)
 
+	signatureFakerHandler := handler.NewSignatureFakerHandler(persister)
 	signature := e.Group("/sign")
-	signature.POST("", handler.SignChallengeAsUser)
+	signature.POST("", signatureFakerHandler.SignChallengeAsUser)
 
 	e.GET("/ws/:id", websocketHandler.WsPage, hankoMiddleware.Session(sessionManager))
 

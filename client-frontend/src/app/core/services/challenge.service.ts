@@ -9,5 +9,9 @@ export class ChallengeService extends BaseService {
 }
 
 export interface SignChallengeAsUserResponse {
+    id: string;
     signature: string;
+    clientDataJson: string;
+    authenticatorData: string;
+    userHandle: string;
 }
