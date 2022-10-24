@@ -1,6 +1,7 @@
 # Passwordless Authenticator Proof-of-Concept
 
 ![Go Status](https://github.com/irby/passwordless-authenticator-poc/actions/workflows/go.yml/badge.svg)
+![Angular Status](https://github.com/irby/passwordless-authenticator-poc/actions/workflows/angular.yml/badge.svg)
 
 ## Allow users to securely share their accounts in a passwordless environment
 
