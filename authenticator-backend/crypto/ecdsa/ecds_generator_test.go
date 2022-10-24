@@ -91,32 +91,26 @@ func Test_GetAuthenticatorData(t *testing.T) {
 }
 
 func Test_SignChallengeForUser_WhenUserExists_SignsChallenge(t *testing.T) {
-	userEmail := "mirby7@gatech.edu"
+	privateKey := Mirby7PrivateKey
 	challenge := "abcdefghijklmnop"
-	signature, err := SignChallengeForUser(userEmail, challenge)
+	signature, err := SignChallengeForUser(privateKey, challenge)
 	assert.NoError(t, err)
 	assert.True(t, len(signature) > 0)
 }
 
-func Test_SignChallengeForUser_WhenDoesNotUserExist_DoesNotSignChallenge(t *testing.T) {
-	userEmail := "whoami@gatech.edu"
-	challenge := "abcdefghijklmnop"
-	signature, err := SignChallengeForUser(userEmail, challenge)
-	assert.Error(t, err)
-	assert.True(t, len(signature) == 0)
-}
+func Test_SignChallengeForUser_Verification(t *testing.T) {
+	key, err := GeneratePrivateKey()
+	assert.NoError(t, err)
 
-func Test_SignChallengeForUser_Verification_Mirby7(t *testing.T) {
-	userEmail := "mirby7@gatech.edu"
 	challenge := "Z8jhcr6huZ03WKauWoz1xxsiZRDiWtT5Dy4OABMFT9k"
-	signature, _ := SignChallengeForUser(userEmail, challenge)
+	signature, _ := SignChallengeForUser(key.D.String(), challenge)
 
-	publicKeyStr, err := getPublicKeyForUser(userEmail)
+	publicKeyStr, err := GenerateEC2PublicKeyDataFromPrivateKey(*key)
 	assert.NoError(t, err)
 	publicKey, err := base64.RawURLEncoding.DecodeString(publicKeyStr)
 	assert.NoError(t, err)
 
-	key, err := webauthncose.ParsePublicKey(publicKey)
+	pubKey, err := webauthncose.ParsePublicKey(publicKey)
 	assert.NoError(t, err)
 
 	authenticatorData, _ := GetAuthenticatorData()
@@ -125,55 +119,7 @@ func Test_SignChallengeForUser_Verification_Mirby7(t *testing.T) {
 	clientDataHash := sha256.Sum256(clientData)
 	sigData := append(authenticatorData, clientDataHash[:]...)
 
-	valid, err := webauthncose.VerifySignature(key, sigData, signature)
-	assert.NoError(t, err)
-	assert.True(t, valid)
-}
-
-func Test_SignChallengeForUser_Verification_Gburdell27(t *testing.T) {
-	userEmail := "gburdell27@gatech.edu"
-	challenge := "Z8jhcr6huZ03WKauWoz1xxsiZRDiWtT5Dy4OABMFT9k"
-	signature, _ := SignChallengeForUser(userEmail, challenge)
-
-	publicKeyStr, err := getPublicKeyForUser(userEmail)
-	assert.NoError(t, err)
-	publicKey, err := base64.RawURLEncoding.DecodeString(publicKeyStr)
-	assert.NoError(t, err)
-
-	key, err := webauthncose.ParsePublicKey(publicKey)
-	assert.NoError(t, err)
-
-	authenticatorData, _ := GetAuthenticatorData()
-	clientData, _ := GetClientData(challenge)
-
-	clientDataHash := sha256.Sum256(clientData)
-	sigData := append(authenticatorData, clientDataHash[:]...)
-
-	valid, err := webauthncose.VerifySignature(key, sigData, signature)
-	assert.NoError(t, err)
-	assert.True(t, valid)
-}
-
-func Test_SignChallengeForUser_Verification_Buzz(t *testing.T) {
-	userEmail := "buzz@gatech.edu"
-	challenge := "Z8jhcr6huZ03WKauWoz1xxsiZRDiWtT5Dy4OABMFT9k"
-	signature, _ := SignChallengeForUser(userEmail, challenge)
-
-	publicKeyStr, err := getPublicKeyForUser(userEmail)
-	assert.NoError(t, err)
-	publicKey, err := base64.RawURLEncoding.DecodeString(publicKeyStr)
-	assert.NoError(t, err)
-
-	key, err := webauthncose.ParsePublicKey(publicKey)
-	assert.NoError(t, err)
-
-	authenticatorData, _ := GetAuthenticatorData()
-	clientData, _ := GetClientData(challenge)
-
-	clientDataHash := sha256.Sum256(clientData)
-	sigData := append(authenticatorData, clientDataHash[:]...)
-
-	valid, err := webauthncose.VerifySignature(key, sigData, signature)
+	valid, err := webauthncose.VerifySignature(pubKey, sigData, signature)
 	assert.NoError(t, err)
 	assert.True(t, valid)
 }
