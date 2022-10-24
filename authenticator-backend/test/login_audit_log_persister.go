@@ -32,6 +32,9 @@ func (p *loginAuditLogPersister) GetByPrimaryUserId(uuid uuid.UUID) ([]models.Lo
 func (p *loginAuditLogPersister) GetByGuestUserId(uuid uuid.UUID) ([]models.LoginAuditLog, error) {
 	var results []models.LoginAuditLog
 	for _, data := range p.logs {
+		if data.SurrogateUserId == nil {
+			continue
+		}
 		if *data.SurrogateUserId == uuid {
 			results = append(results, data)
 		}

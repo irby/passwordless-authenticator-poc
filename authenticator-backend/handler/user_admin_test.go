@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/lestrrat-go/jwx/v2/jwt"
@@ -387,7 +388,7 @@ func TestUserHandlerAdmin_List_InvalidPaginationParam(t *testing.T) {
 
 	q := make(url.Values)
 	q.Set("per_page", "invalidPerPageValue")
-	req := httptest.NewRequest(http.MethodGet, "/users?"+q.Encode(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/logins?"+q.Encode(), nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -401,6 +402,151 @@ func TestUserHandlerAdmin_List_InvalidPaginationParam(t *testing.T) {
 		httpError := dto.ToHttpError(err)
 		assert.Equal(t, http.StatusBadRequest, httpError.Code)
 	}
+}
+
+func TestGetLoginAuditRecordsByUserId_List(t *testing.T) {
+	userId, _ := uuid.NewV4()
+	guestUserId, _ := uuid.NewV4()
+	audits := []models.LoginAuditLog{
+		func() models.LoginAuditLog {
+			id, _ := uuid.NewV4()
+			return models.LoginAuditLog{
+				ID:        id,
+				UserId:    userId,
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+		}(),
+		func() models.LoginAuditLog {
+			id, _ := uuid.NewV4()
+
+			return models.LoginAuditLog{
+				ID:              id,
+				UserId:          userId,
+				SurrogateUserId: &guestUserId,
+				CreatedAt:       time.Now(),
+				UpdatedAt:       time.Now(),
+			}
+		}(),
+		func() models.LoginAuditLog {
+			id, _ := uuid.NewV4()
+			return models.LoginAuditLog{
+				ID:              id,
+				UserId:          guestUserId,
+				SurrogateUserId: &guestUserId,
+				CreatedAt:       time.Now(),
+				UpdatedAt:       time.Now(),
+			}
+		}(),
+		func() models.LoginAuditLog {
+			id, _ := uuid.NewV4()
+			guestUserId, _ := uuid.NewV4()
+			return models.LoginAuditLog{
+				ID:              id,
+				UserId:          guestUserId,
+				SurrogateUserId: &userId,
+				CreatedAt:       time.Now(),
+				UpdatedAt:       time.Now(),
+			}
+		}(),
+	}
+
+	e := echo.New()
+
+	body := fmt.Sprintf(`{"userId": "%s"}`, userId.String())
+	req := httptest.NewRequest(http.MethodPost, "/logins", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	for _, audit := range audits {
+		persister.GetLoginAuditLogPersister().Create(audit)
+	}
+
+	mainUser := models.User{
+		ID:    userId,
+		Email: "test@example.com",
+	}
+	guestUser := models.User{
+		ID:    guestUserId,
+		Email: "world@example.com",
+	}
+	persister.GetUserPersister().Create(mainUser)
+	persister.GetUserPersister().Create(guestUser)
+
+	handler := NewUserHandlerAdmin(persister)
+
+	if assert.NoError(t, handler.GetLoginAuditRecordsForUser(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		var got LoginAuditRecordResponseDto
+		err := json.Unmarshal(rec.Body.Bytes(), &got)
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(got.LoginsToAccount))
+		assert.Equal(t, 1, len(got.LoginsAsGuest))
+	}
+}
+
+func Test_validateAdminPermission_WhenUserIsAdminAndActive_ReturnsNoError(t *testing.T) {
+	e := echo.New()
+
+	q := make(url.Values)
+	q.Set("per_page", "invalidPerPageValue")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	handler := NewUserHandlerAdmin(persister)
+	err, isSuccess := handler.validateAdminPermission(c)
+	assert.NoError(t, err)
+	assert.True(t, isSuccess)
+}
+
+func Test_validateAdminPermission_WhenUserIsNotAdminAndActive_ReturnsError(t *testing.T) {
+	e := echo.New()
+
+	q := make(url.Values)
+	q.Set("per_page", "invalidPerPageValue")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	adminUser.IsAdmin = false
+	persister.GetUserPersister().Update(adminUser)
+
+	handler := NewUserHandlerAdmin(persister)
+	err, isSuccess := handler.validateAdminPermission(c)
+	assert.Error(t, err)
+	assert.False(t, isSuccess)
+}
+
+func Test_validateAdminPermission_WhenUserIsAdminAndNotActive_ReturnsError(t *testing.T) {
+	e := echo.New()
+
+	q := make(url.Values)
+	q.Set("per_page", "invalidPerPageValue")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	adminUser.IsActive = false
+	persister.GetUserPersister().Update(adminUser)
+
+	handler := NewUserHandlerAdmin(persister)
+	err, isSuccess := handler.validateAdminPermission(c)
+	assert.Error(t, err)
+	assert.False(t, isSuccess)
 }
 
 func createAdmin() (models.User, persistence.Persister) {

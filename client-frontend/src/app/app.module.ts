@@ -24,6 +24,8 @@ import { GrantService } from './core/services/grant.service';
 import { GrantsGuestModalComponent } from './home/grants-guest-modal/grants-guest-modal.component';
 import { GrantsParentModalComponent } from './home/grants-parent-modal/grants-parent-modal.component';
 import { ChallengeService } from './core/services/challenge.service';
+import { NotificationService } from './core/services/notification.service';
+import { ToastrModule } from 'ngx-toastr';
 
 @NgModule({
   declarations: [				
@@ -49,7 +51,8 @@ import { ChallengeService } from './core/services/challenge.service';
     ReactiveFormsModule,
     MatProgressBarModule,
     MatTableModule,
-    HttpClientModule
+    HttpClientModule,
+    ToastrModule.forRoot(),
   ],
   providers: [SocketService, AuthenticationService, UserService, GrantService, ChallengeService],
   bootstrap: [AppComponent],
