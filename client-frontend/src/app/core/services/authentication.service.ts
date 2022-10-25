@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import axios from 'axios';
-import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { ServiceResponse } from '../models/service-response.interface';
 import { WebAuthnLoginFinalizeRequest } from '../models/webauthn/webauthn-login-finalize-request.interface';
@@ -31,10 +30,9 @@ export class AuthenticationService extends BaseService {
 
     public async logout(): Promise<void> {
         localStorage.removeItem(this.userCacheKey);
-        await axios.post(
-            `${environment.hankoApiUrl}/users/logout`,
-            { },
-            { withCredentials: true }
+        await this.postAsync(
+            `users/logout`,
+            { }
         );
     }
 
@@ -47,9 +45,11 @@ export class AuthenticationService extends BaseService {
     }
 
     private async getAndSetUser() : Promise<string> {
-        const userId = await axios.get(`${environment.hankoApiUrl}/me`, { withCredentials: true });
-        const userData = await axios.get(`${environment.hankoApiUrl}/users/${userId.data.id}`, { withCredentials: true });
-        const email = userData.data.email;
+        const userId = await this.getAsync<any>(`me`);
+        if (userId.type !== 'data') {
+            return "";
+        }
+        const email = userId.data.email;
         localStorage.setItem(this.userCacheKey, email);
         return email;
     }

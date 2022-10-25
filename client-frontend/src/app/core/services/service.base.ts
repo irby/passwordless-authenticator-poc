@@ -5,10 +5,10 @@ import { Router } from '@angular/router';
 import { ErrorResponse } from '../models/error-response.interface';
 import { Observable, of } from 'rxjs';
 import { HttpClient, HttpHeaders, HttpStatusCode } from '@angular/common/http';
-import { environment } from 'src/environments/environment';
 import { ServiceError } from '../models/service-error.interface';
 import { ServiceData } from '../models/service-data.interface';
 import { ServiceResponse } from '../models/service-response.interface';
+import { environment } from '../../../environments/environment';
 
 @Injectable()
 export abstract class BaseService {
