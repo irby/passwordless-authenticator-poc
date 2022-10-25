@@ -11,7 +11,9 @@ import { AccountSharingInitializationDialog } from './home/account-sharing-initi
 import { MatCommonModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import {MatTableModule} from '@angular/material/table';
+import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
@@ -26,6 +28,7 @@ import { GrantsParentModalComponent } from './home/grants-parent-modal/grants-pa
 import { ChallengeService } from './core/services/challenge.service';
 import { NotificationService } from './core/services/notification.service';
 import { ToastrModule } from 'ngx-toastr';
+import { ConfirmBiometricModalComponent } from './core/modals/confirm-biometric-modal/confirm-biometric-modal.component';
 
 @NgModule({
   declarations: [				
@@ -36,7 +39,8 @@ import { ToastrModule } from 'ngx-toastr';
       HomeComponent,
       ShareComponent,
       GrantsGuestModalComponent,
-      GrantsParentModalComponent
+      GrantsParentModalComponent,
+      ConfirmBiometricModalComponent
    ],
   imports: [
     BrowserModule,
@@ -48,8 +52,10 @@ import { ToastrModule } from 'ngx-toastr';
     MatInputModule,
     MatSlideToggleModule,
     FormsModule,
+    MatIconModule,
     ReactiveFormsModule,
     MatProgressBarModule,
+    MatProgressSpinnerModule,
     MatTableModule,
     HttpClientModule,
     ToastrModule.forRoot(),
