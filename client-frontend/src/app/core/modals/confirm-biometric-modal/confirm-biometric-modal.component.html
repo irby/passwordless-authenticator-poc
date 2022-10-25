@@ -1,3 +1,32 @@
-<p>
-  confirm-biometric-modal works!
-</p>
+<h2 mat-dialog-title>Confirm biometric for {{userEmail}}?</h2>
+<mat-dialog-content class="w-100">
+  <div>
+    <mat-icon *ngIf="!isLoading" class="fingerprint-icon">fingerprint</mat-icon>
+    <mat-progress-spinner *ngIf="isLoading" mode="indeterminate"></mat-progress-spinner>
+  </div>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <div class="w-100 flex-center">
+
+      <button mat-raised-button color="cancel-white" type="reset" (click)="close()" [disabled]="isLoading"
+          class="waves-effect waves-light font-weight-bold" style="margin-right: 20px;">
+          Cancel
+      </button>
+
+      <button mat-raised-button color="primary" type="submit" (click)="submitBiometric(true)" [disabled]="isLoading"
+          class="waves-effect waves-light font-weight-bold" style="margin-right: 20px;">
+          Submit Good Biometric
+      </button>
+
+      <button mat-raised-button color="warn" type="submit" (click)="submitBiometric(false)" [disabled]="isLoading"
+          class="waves-effect waves-light font-weight-bold" style="margin-right: 20px;">
+          Submit Bad Biometric
+      </button>
+  </div>
+  <!-- <div *ngIf="errorText" class="w-100 mt-3 flex-center">
+      <mat-error>{{errorText}}</mat-error>
+  </div>
+  <div class="w-100 mt-3">
+      <mat-progress-bar *ngIf="isLoading" mode="indeterminate"></mat-progress-bar>
+  </div> -->
+</mat-dialog-actions>

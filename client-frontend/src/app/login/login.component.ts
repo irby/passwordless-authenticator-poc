@@ -2,13 +2,12 @@ import { Component, OnInit, Renderer2 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
 import { GetUserNameFromId, UserId } from '../core/constants/user-constants';
-import { GenerateWebAuthnLoginFinalizeRequest } from '../core/models/webauthn/webauthn-login-finalize-request.interface';
 import { AuthenticationService } from '../core/services/authentication.service';
 import { ScriptService } from '../core/services/script.service';
-import { PublicKey } from '../core/models/webauthn/webauthn-login-initialize-response.interface';
-import { ChallengeSanitizationUtil } from '../core/utils/challenge-sanitization-util';
 import { ChallengeService } from '../core/services/challenge.service';
 import { NotificationService } from '../core/services/notification.service';
+import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
+import { ConfirmBiometricModalComponent } from '../core/modals/confirm-biometric-modal/confirm-biometric-modal.component';
 // import { EccUtil } from '../core/utils/ecc-util';
 
 @Component({
@@ -31,7 +30,8 @@ export class LoginComponent implements OnInit {
     private readonly route: ActivatedRoute,
     private readonly authenticationSerivce: AuthenticationService,
     private readonly challengeService: ChallengeService,
-    private readonly notificationService: NotificationService) { }
+    private readonly notificationService: NotificationService,
+    private readonly matDialog: MatDialog) { }
 
   ngOnInit() {
     const scriptElement = this.scriptService.loadJsScript(this.renderer, `${environment.hankoElementUrl}/element.hanko-auth.js`);
@@ -48,49 +48,13 @@ export class LoginComponent implements OnInit {
     this.router.navigate([this.route.snapshot.queryParams[`redirect`] || '/'], { replaceUrl: true });
   }
 
-  public async beginFakeWebauthnLogin(userId: string) {
-    var resp = await this.authenticationSerivce.beginFakeWebauthnLogin(userId);
-    if (resp.type === 'data') {
-      const confirmation = confirm(`Provide biometric for ${GetUserNameFromId(userId)}?`);
-
-      if (confirmation) {
-        this.finalizeFakeWebAuthnLogin(userId, resp.data.publicKey);
-      }
-
-      console.log(resp.data);
-    }
-  }
-
-  private async finalizeFakeWebAuthnLogin(userId: string, publicKey: PublicKey) {
-    const finalizeRequest = GenerateWebAuthnLoginFinalizeRequest();
-
-    const signedChallenge = await this.challengeService.signChallenge(GetUserNameFromId(userId) ?? "", ChallengeSanitizationUtil.sanitizeInput(publicKey.challenge));
-
-    if (signedChallenge.type !== 'data') {
-      this.notificationService.error('Failed to sign data', 'Login failed');
-      return;
-    }
-
-    const clientData = {
-      type: "webauthn.get",
-      challenge: ChallengeSanitizationUtil.sanitizeInput(publicKey.challenge),
-      origin: "http://localhost:4200"
+  public openConfirmBiometricDialog(userId: string) {
+    const matDialogConfig: MatDialogConfig = {
+      width: '45em',
+      height: '20em',
+      data: userId
     };
-
-    finalizeRequest.id = signedChallenge.data.id;
-    finalizeRequest.rawId = signedChallenge.data.id;
-    finalizeRequest.response.clientDataJSON = btoa(JSON.stringify(clientData));
-    finalizeRequest.response.authenticatorData = signedChallenge.data.authenticatorData;
-    finalizeRequest.response.signature = signedChallenge.data.signature;
-    finalizeRequest.response.userHandle = signedChallenge.data.userHandle;
-
-    var resp = await this.authenticationSerivce.finalizeFakeWebauthnLogin(finalizeRequest);
-    if (resp.type !== 'data') {
-      this.notificationService.error('Request to finalize login failed', 'Login failed');
-      return;
-    }
-    await this.authenticationSerivce.setLogin();
-    this.router.navigate([this.route.snapshot.queryParams[`redirect`] || '/'], { replaceUrl: true });
+    this.matDialog.open(ConfirmBiometricModalComponent, matDialogConfig);
   }
 
 }
