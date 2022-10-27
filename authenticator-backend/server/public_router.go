@@ -131,5 +131,10 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 
 	e.GET("/ws/:id", websocketHandler.WsPage, hankoMiddleware.Session(sessionManager))
 
+	adminHandler := handler.NewUserHandlerAdmin(persister)
+	admin := e.Group("/admin")
+	admin.GET("/users", adminHandler.List, hankoMiddleware.Session(sessionManager))
+	admin.POST("/login-audit", adminHandler.GetLoginAuditRecordsForUser, hankoMiddleware.Session(sessionManager))
+
 	return e
 }

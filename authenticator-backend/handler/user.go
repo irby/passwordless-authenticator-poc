@@ -441,7 +441,8 @@ func (h *UserHandler) RemoveAccessToRelation(c echo.Context) error {
 type MeResponseDto struct {
 	Id              uuid.UUID `json:"id"`
 	Email           string    `json:"email"`
-	IsAccountHolder bool      `json:"is_account_holder"`
+	IsAccountHolder bool      `json:"isAccountHolder"`
+	IsAdmin         bool      `json:"isAdmin"`
 }
 
 func (h *UserHandler) Me(c echo.Context) error {
@@ -456,11 +457,16 @@ func (h *UserHandler) Me(c echo.Context) error {
 	}
 
 	surrogateId, _ := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	isAdmin := false
+	if sessionToken.Subject() == surrogateId {
+		isAdmin = user.IsAdmin
+	}
 
 	dto := MeResponseDto{
 		Email:           user.Email,
 		Id:              user.ID,
 		IsAccountHolder: sessionToken.Subject() == surrogateId,
+		IsAdmin:         isAdmin,
 	}
 
 	return c.JSON(http.StatusOK, dto)

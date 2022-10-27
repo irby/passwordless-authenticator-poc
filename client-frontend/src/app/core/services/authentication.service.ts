@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
-import axios from 'axios';
-import { environment } from 'src/environments/environment';
+import { Observable, Subject } from 'rxjs';
 import { ServiceResponse } from '../models/service-response.interface';
 import { WebAuthnLoginFinalizeRequest } from '../models/webauthn/webauthn-login-finalize-request.interface';
 import { WebauthnLoginInitializeResponse } from '../models/webauthn/webauthn-login-initialize-response.interface';
@@ -10,22 +9,16 @@ import { BaseService } from './service.base';
 export class AuthenticationService extends BaseService {
 
     private readonly userCacheKey: string = 'user';
+    private userSubject = new Subject<User>();
 
     public async setLogin(): Promise<void> {
-        const email = await this.getAndSetUser();
-        localStorage.setItem(this.userCacheKey, email);
+        const user = await this.getAndSetUser();
+        localStorage.setItem(this.userCacheKey, user.email);
+        this.userSubject.next(user);
     }
 
-    public async getUser(): Promise<string> {
-        const user = localStorage.getItem(this.userCacheKey);
-        if (user) {
-            return user;
-        }
-        try {
-            return await this.getAndSetUser();
-        } catch (e) {
-            return "";
-        }
+    public getUserAsObservable(): Observable<User> {
+        return this.userSubject.asObservable();
     }
 
     public async logout(): Promise<void> {
@@ -44,13 +37,32 @@ export class AuthenticationService extends BaseService {
         return await this.postAsync(`webauthn/login/finalize`, request);
     }
 
-    private async getAndSetUser() : Promise<string> {
-        const userId = await this.getAsync<any>(`me`);
+    private async getAndSetUser() : Promise<User> {
+        const userId = await this.getAsync<GetMeResponse>(`me`);
         if (userId.type !== 'data') {
-            return "";
+            throw new Error("Unable to fetch user");
         }
         const email = userId.data.email;
         localStorage.setItem(this.userCacheKey, email);
-        return email;
+        return {
+            id: userId.data.id,
+            email: userId.data.email,
+            isAccountHolder: userId.data.isAccountHolder,
+            isAdmin: userId.data.isAdmin
+        };
     }
+}
+
+export interface GetMeResponse {
+    email: string;
+    id: string;
+    isAccountHolder: boolean;
+    isAdmin: boolean;
+}
+
+export interface User {
+    id: string;
+    email: string;
+    isAccountHolder: boolean;
+    isAdmin: boolean;
 }

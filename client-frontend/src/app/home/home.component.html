@@ -5,14 +5,17 @@
 <span class="sp-1">
   <button mat-raised-button (click)="openShareDialog()">share account</button>
 </span>
-<span class="sp-1">
-  <button mat-raised-button (click)="openGrantsDialog(GrantsContext.Guest)" *ngIf="hasGuestGrants">login as guest</button>
+<span class="sp-1" *ngIf="hasGuestGrants">
+  <button mat-raised-button (click)="openGrantsDialog(GrantsContext.Guest)">login as guest</button>
 </span>
-<span class="sp-1">
-  <button mat-raised-button (click)="openGrantsDialog(GrantsContext.Parent)" *ngIf="hasParentGrants">manage account shares</button>
+<span class="sp-1" *ngIf="hasParentGrants">
+  <button mat-raised-button (click)="openGrantsDialog(GrantsContext.Parent)">manage account shares</button>
+</span>
+<span class="sp-1" *ngIf="user?.isAdmin">
+  <button mat-raised-button (click)="openUserListDialog()">view users</button>
 </span>
 </div>
 
 <p>
-  Welcome, {{user}}!
+  Welcome, {{user?.email}}!
 </p>

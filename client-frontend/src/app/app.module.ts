@@ -20,15 +20,17 @@ import {MatProgressBarModule} from '@angular/material/progress-bar';
 import { ShareComponent } from './share/share.component';
 import { SocketService } from './core/services/socket.service';
 import { UserService } from './core/services/user.service';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClientModule } from '@angular/common/http';
 import { AuthenticationService } from './core/services/authentication.service';
 import { GrantService } from './core/services/grant.service';
 import { GrantsGuestModalComponent } from './home/grants-guest-modal/grants-guest-modal.component';
 import { GrantsParentModalComponent } from './home/grants-parent-modal/grants-parent-modal.component';
 import { ChallengeService } from './core/services/challenge.service';
-import { NotificationService } from './core/services/notification.service';
 import { ToastrModule } from 'ngx-toastr';
 import { ConfirmBiometricModalComponent } from './core/modals/confirm-biometric-modal/confirm-biometric-modal.component';
+import { AdminService } from './core/services/admin.service';
+import { AdminUserListModalComponent } from './home/admin-user-list-modal/admin-user-list-modal.component';
+import { AdminUserLoginAuditComponent } from './home/admin-user-list-modal/admin-user-login-audit/admin-user-login-audit.component';
 
 @NgModule({
   declarations: [				
@@ -40,7 +42,9 @@ import { ConfirmBiometricModalComponent } from './core/modals/confirm-biometric-
       ShareComponent,
       GrantsGuestModalComponent,
       GrantsParentModalComponent,
-      ConfirmBiometricModalComponent
+      ConfirmBiometricModalComponent,
+      AdminUserListModalComponent,
+      AdminUserLoginAuditComponent
    ],
   imports: [
     BrowserModule,
@@ -60,7 +64,7 @@ import { ConfirmBiometricModalComponent } from './core/modals/confirm-biometric-
     HttpClientModule,
     ToastrModule.forRoot(),
   ],
-  providers: [SocketService, AuthenticationService, UserService, GrantService, ChallengeService],
+  providers: [SocketService, AuthenticationService, UserService, GrantService, ChallengeService, AdminService],
   bootstrap: [AppComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })

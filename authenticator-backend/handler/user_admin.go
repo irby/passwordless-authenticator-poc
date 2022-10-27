@@ -146,11 +146,12 @@ type LoginAuditRecordResponseDto struct {
 type LoginAuditRecordResponseAccountLoginDto struct {
 	ID                  uuid.UUID  `json:"id"`
 	UserId              uuid.UUID  `json:"userId"`
+	UserEmail           string     `json:"userEmail"`
 	SurrogateUserId     *uuid.UUID `json:"surrogate_user_id"`
 	SurrogateUserEmail  string     `json:"surrogate_user_email"`
 	UserGuestRelationId *uuid.UUID `json:"user_guest_relation_id"`
 	ClientIpAddress     string     `json:"client_ip_address"`
-	ClientUserAgent     string     `json:"client_ip_address"`
+	ClientUserAgent     string     `json:"client_user_agent"`
 	CreatedAt           time.Time  `json:"created_at"`
 }
 
@@ -192,6 +193,7 @@ func (h *UserHandlerAdmin) GetLoginAuditRecordsForUser(c echo.Context) error {
 				LoginAuditRecordResponseAccountLoginDto{
 					ID:              record.ID,
 					UserId:          record.UserId,
+					UserEmail:       user.Email,
 					ClientUserAgent: record.ClientUserAgent,
 					ClientIpAddress: record.ClientIpAddress,
 					CreatedAt:       record.CreatedAt,
@@ -206,6 +208,7 @@ func (h *UserHandlerAdmin) GetLoginAuditRecordsForUser(c echo.Context) error {
 				LoginAuditRecordResponseAccountLoginDto{
 					ID:                  record.ID,
 					UserId:              record.UserId,
+					UserEmail:           user.Email,
 					SurrogateUserId:     record.SurrogateUserId,
 					SurrogateUserEmail:  email,
 					UserGuestRelationId: record.UserGuestRelationId,
@@ -222,10 +225,16 @@ func (h *UserHandlerAdmin) GetLoginAuditRecordsForUser(c echo.Context) error {
 	}
 
 	for _, record := range records {
+		email, exists := surrogateUserEmails[record.UserId]
+		if !exists {
+			guest, _ := h.persister.GetUserPersister().Get(record.UserId)
+			email = guest.Email
+		}
 		response.LoginsAsGuest = append(response.LoginsAsGuest,
 			LoginAuditRecordResponseAccountLoginDto{
 				ID:                  record.ID,
 				UserId:              record.UserId,
+				UserEmail:           email,
 				SurrogateUserId:     record.SurrogateUserId,
 				SurrogateUserEmail:  user.Email,
 				UserGuestRelationId: record.UserGuestRelationId,
