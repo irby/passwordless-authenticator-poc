@@ -31,6 +31,7 @@ import { ConfirmBiometricModalComponent } from './core/modals/confirm-biometric-
 import { AdminService } from './core/services/admin.service';
 import { AdminUserListModalComponent } from './home/admin-user-list-modal/admin-user-list-modal.component';
 import { AdminUserLoginAuditComponent } from './home/admin-user-list-modal/admin-user-login-audit/admin-user-login-audit.component';
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 @NgModule({
   declarations: [				
@@ -62,6 +63,7 @@ import { AdminUserLoginAuditComponent } from './home/admin-user-list-modal/admin
     MatProgressSpinnerModule,
     MatTableModule,
     HttpClientModule,
+    MatTooltipModule,
     ToastrModule.forRoot(),
   ],
   providers: [SocketService, AuthenticationService, UserService, GrantService, ChallengeService, AdminService],

@@ -2,9 +2,9 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 import { GetUserNameFromId } from '../../constants/user-constants';
-import { GenerateWebAuthnLoginFinalizeRequest } from '../../models/webauthn/webauthn-login-finalize-request.interface';
+import { GenerateWebAuthnLoginFinalizeRequest, WebAuthnLoginFinalizeRequest } from '../../models/webauthn/webauthn-login-finalize-request.interface';
 import { AuthenticationService } from '../../services/authentication.service';
-import { ChallengeService } from '../../services/challenge.service';
+import { ChallengeService, SignChallengeAsUserResponse } from '../../services/challenge.service';
 import { NotificationService } from '../../services/notification.service';
 import { ChallengeSanitizationUtil } from '../../utils/challenge-sanitization-util';
 
@@ -36,7 +36,7 @@ export class ConfirmBiometricModalComponent implements OnInit {
 
   public async submitBiometric(isGood: boolean) {
     this.isLoading = true;
-    const challengeResp = await this.authenticationService.beginFakeWebauthnLogin(this.userId);
+    const challengeResp = await this.authenticationService.beginWebauthnLogin(this.userId);
     
     if (challengeResp.type !== 'data') {
       this.notificationService.error('An error occurred fetching challenge', 'Error');
@@ -57,8 +57,24 @@ export class ConfirmBiometricModalComponent implements OnInit {
       return;
     }
 
-    const data = signResp.data;
+    const finalizeRequest = this.generateRequestModel(signResp.data, isGood);
 
+    // Simulate the "waiting"
+    await new Promise(f => setTimeout(f, 300));
+
+    const finalizeResp = await this.authenticationService.finalizeWebauthnLogin(finalizeRequest);
+    this.isLoading = false;
+    if (finalizeResp.type !== 'data') {
+      this.notificationService.error('Authentication failed', 'Error');
+      return;
+    }
+
+    await this.authenticationService.setLogin();
+    this.router.navigate([this.route.snapshot.queryParams[`redirect`] || '/'], { replaceUrl: true });
+    this.dialogRef.close();
+  }
+
+  private generateRequestModel(data: SignChallengeAsUserResponse, isGood: boolean): WebAuthnLoginFinalizeRequest {
     const finalizeRequest = GenerateWebAuthnLoginFinalizeRequest();
     finalizeRequest.id = data.id;
     finalizeRequest.rawId = data.id;
@@ -77,19 +93,7 @@ export class ConfirmBiometricModalComponent implements OnInit {
       finalizeRequest.response.signature = newSig;
     }
 
-    // Simulate the "waiting"
-    await new Promise(f => setTimeout(f, 300));
-
-    const finalizeResp = await this.authenticationService.finalizeFakeWebauthnLogin(finalizeRequest);
-    this.isLoading = false;
-    if (finalizeResp.type !== 'data') {
-      this.notificationService.error('Authentication failed', 'Error');
-      return;
-    }
-
-    await this.authenticationService.setLogin();
-    this.router.navigate([this.route.snapshot.queryParams[`redirect`] || '/'], { replaceUrl: true });
-    this.dialogRef.close();
+    return finalizeRequest;
   }
 
 }

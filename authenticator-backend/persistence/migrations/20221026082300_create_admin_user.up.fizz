@@ -1,0 +1,1 @@
+sql("INSERT INTO users (id, email, verified, is_active, is_admin, created_at, updated_at) VALUES ('4280a1a2-9417-4b10-a6e9-087eabdf63ed', 'admin@gatech.edu', true, true, true, CURRENT_DATE, CURRENT_DATE)")

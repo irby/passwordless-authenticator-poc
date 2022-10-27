@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
+import { TooltipPosition } from '@angular/material/tooltip';
 import { AdminService, UserDto } from 'src/app/core/services/admin.service';
 import { NotificationService } from 'src/app/core/services/notification.service';
 import { AdminUserLoginAuditComponent } from './admin-user-login-audit/admin-user-login-audit.component';
@@ -34,5 +35,13 @@ export class AdminUserListModalComponent implements OnInit {
       data: userId
     };
     this.matDialog.open(AdminUserLoginAuditComponent, matDialogConfig);
+  }
+
+  public async deactivateUserAccount(userId: string) {
+
+  }
+
+  public async deactivateGrants(userId: string) {
+    
   }
 }
