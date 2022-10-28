@@ -10,6 +10,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/teamhanko/hanko/backend/config"
 	"github.com/teamhanko/hanko/backend/crypto"
+	jwt2 "github.com/teamhanko/hanko/backend/crypto/jwt"
 	"github.com/teamhanko/hanko/backend/dto"
 	"github.com/teamhanko/hanko/backend/mail"
 	"github.com/teamhanko/hanko/backend/persistence"
@@ -79,6 +80,15 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	uId, err := uuid.FromString(sessionToken.Subject())
 	if err != nil {
 		return fmt.Errorf("failed to parse userId from JWT subject:%w", err)
+	}
+
+	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err))
+	}
+
+	if sessionToken.Subject() != surrogateId {
+		return dto.NewHTTPError(http.StatusForbidden)
 	}
 
 	user, err := h.persister.GetUserPersister().Get(uId)
@@ -177,6 +187,21 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) error {
 	grantId := c.Param("id")
 	token := c.QueryParam("token")
+
+	// Parse UID from token
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return errors.New("failed to cast session object")
+	}
+
+	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err))
+	}
+
+	if sessionToken.Subject() != surrogateId {
+		return dto.NewHTTPError(http.StatusForbidden)
+	}
 
 	if grantId == "" || token == "" {
 		return dto.NewHTTPError(http.StatusBadRequest, "id and token are both required")

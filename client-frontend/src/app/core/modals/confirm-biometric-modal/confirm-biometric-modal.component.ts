@@ -19,7 +19,7 @@ export class ConfirmBiometricModalComponent implements OnInit {
   public isLoading: boolean = false;
 
   constructor(private readonly dialogRef: MatDialogRef<ConfirmBiometricModalComponent>,
-    @Inject(MAT_DIALOG_DATA) private readonly userId: string,
+    @Inject(MAT_DIALOG_DATA) private readonly data: ConfirmBiometricData,
     private readonly authenticationService: AuthenticationService,
     private readonly challengeService: ChallengeService,
     private readonly notificationService: NotificationService,
@@ -27,7 +27,7 @@ export class ConfirmBiometricModalComponent implements OnInit {
     private readonly route: ActivatedRoute) { }
 
   ngOnInit() {
-    this.userEmail = GetUserNameFromId(this.userId) ?? "";
+    this.userEmail = GetUserNameFromId(this.data.userId) ?? "user";
   }
 
   public close() {
@@ -36,7 +36,7 @@ export class ConfirmBiometricModalComponent implements OnInit {
 
   public async submitBiometric(isGood: boolean) {
     this.isLoading = true;
-    const challengeResp = await this.authenticationService.beginWebauthnLogin(this.userId);
+    const challengeResp = await this.authenticationService.beginWebauthnLogin(this.data.userId);
     
     if (challengeResp.type !== 'data') {
       this.notificationService.error('An error occurred fetching challenge', 'Error');
@@ -44,34 +44,29 @@ export class ConfirmBiometricModalComponent implements OnInit {
       return;
     }
 
-    await this.signChallenge(this.userEmail, challengeResp.data.publicKey.challenge, isGood)
+    const finalizeRequest = await this.signChallenge(this.data.userId, challengeResp.data.publicKey.challenge, isGood);
+
+    if (!finalizeRequest)
+      return;
+
+    await this.submitSignature(finalizeRequest);
+
+    await this.handlePostConfirm();
+
+    this.dialogRef.close();
   }
 
-  private async signChallenge(userEmail: string, challenge: string, isGood: boolean) {
+  private async signChallenge(userId: string, challenge: string, isGood: boolean): Promise<WebAuthnLoginFinalizeRequest | null> {
     const sanitizedChallenge = ChallengeSanitizationUtil.sanitizeInput(challenge);
-    const signResp = await this.challengeService.signChallenge(userEmail, sanitizedChallenge);
+    const signResp = await this.challengeService.signChallenge(userId, sanitizedChallenge);
 
     if (signResp.type !== 'data') {
-      this.notificationService.error('An error occurred fetching challenge', 'Error');
+      this.notificationService.error('An error occurred signing challenge', 'Error');
       this.isLoading = false;
-      return;
+      return null;
     }
 
-    const finalizeRequest = this.generateRequestModel(signResp.data, isGood);
-
-    // Simulate the "waiting"
-    await new Promise(f => setTimeout(f, 300));
-
-    const finalizeResp = await this.authenticationService.finalizeWebauthnLogin(finalizeRequest);
-    this.isLoading = false;
-    if (finalizeResp.type !== 'data') {
-      this.notificationService.error('Authentication failed', 'Error');
-      return;
-    }
-
-    await this.authenticationService.setLogin();
-    this.router.navigate([this.route.snapshot.queryParams[`redirect`] || '/'], { replaceUrl: true });
-    this.dialogRef.close();
+    return this.generateRequestModel(signResp.data, isGood);
   }
 
   private generateRequestModel(data: SignChallengeAsUserResponse, isGood: boolean): WebAuthnLoginFinalizeRequest {
@@ -96,4 +91,38 @@ export class ConfirmBiometricModalComponent implements OnInit {
     return finalizeRequest;
   }
 
+  private async handlePostConfirm(): Promise<void> {
+    if (this.data.context !== ConfirmBiometricContext.Login) {
+      return;
+    }
+
+    await this.authenticationService.setLogin();
+    this.router.navigate([this.route.snapshot.queryParams[`redirect`] || '/'], { replaceUrl: true });
+  }
+
+  private async submitSignature(finalizeRequest: WebAuthnLoginFinalizeRequest): Promise<void> {
+    // Simulate the "waiting"
+    await new Promise(f => setTimeout(f, 300));
+
+    const finalizeResp = await this.authenticationService.finalizeWebauthnLogin(finalizeRequest);
+    this.isLoading = false;
+    if (finalizeResp.type !== 'data') {
+      this.notificationService.error('Authentication failed', 'Error');
+      return;
+    }
+  }
+}
+
+export enum ConfirmBiometricContext {
+  Login = 10,
+  AdminDeactivateAccount = 20,
+  AdminDeactivateGrants = 21,
+  UserConfirmGrant = 30,
+  UserRemoveGrant = 31,
+  UserAssumeGrant = 32
+}
+
+export interface ConfirmBiometricData {
+  userId: string;
+  context: ConfirmBiometricContext;
 }

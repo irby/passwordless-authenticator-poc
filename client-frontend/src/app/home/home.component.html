@@ -2,7 +2,7 @@
 <span class="sp-1">
   <button mat-raised-button (click)="logout()" color="warn">logout</button>
 </span>
-<span class="sp-1">
+<span class="sp-1" *ngIf="user?.isAccountHolder">
   <button mat-raised-button (click)="openShareDialog()">share account</button>
 </span>
 <span class="sp-1" *ngIf="hasGuestGrants">
@@ -13,6 +13,9 @@
 </span>
 <span class="sp-1" *ngIf="user?.isAdmin">
   <button mat-raised-button (click)="openUserListDialog()">view users</button>
+</span>
+<span class="sp-1" *ngIf="!user?.isAccountHolder">
+  <button mat-raised-button (click)="logoutAsGuest()">logout as guest</button>
 </span>
 </div>
 

@@ -29,6 +29,14 @@ export class AuthenticationService extends BaseService {
         );
     }
 
+    public async logoutAsGuest(): Promise<void> {
+        localStorage.removeItem(this.userCacheKey);
+        await this.postAsync(
+            `users/logout-guest`,
+            { }
+        );
+    }
+
     public async beginWebauthnLogin(userId: string): Promise<ServiceResponse<WebauthnLoginInitializeResponse>> {
         return await this.postAsync(`webauthn/login/initialize`, {"user_id": userId});
     }

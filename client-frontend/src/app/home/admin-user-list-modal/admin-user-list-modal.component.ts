@@ -37,6 +37,14 @@ export class AdminUserListModalComponent implements OnInit {
     this.matDialog.open(AdminUserLoginAuditComponent, matDialogConfig);
   }
 
+  public openActiveAccountGrants(userId: string) {
+    const matDialogConfig: MatDialogConfig = {
+      width: '60em',
+      data: userId
+    };
+    this.matDialog.open(AdminUserLoginAuditComponent, matDialogConfig);
+  }
+
   public async deactivateUserAccount(userId: string) {
 
   }

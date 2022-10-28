@@ -24,7 +24,7 @@ func NewSignatureFakerHandler(persister persistence.Persister) *SignatureFakerHa
 }
 
 type SignChallengeRequest struct {
-	Email     string `json:"email" validate:"required"`
+	UserId    string `json:"userId" validate:"required"`
 	Challenge string `json:"challenge" validate:"required"`
 }
 
@@ -45,7 +45,7 @@ func (h *SignatureFakerHandler) SignChallengeAsUser(c echo.Context) error {
 		return dto.ToHttpError(err)
 	}
 
-	key, credential, err := h.getWebauthnCredentialForUser(body.Email)
+	key, credential, err := h.getWebauthnCredentialForUser(body.UserId)
 	if err != nil {
 		return dto.ToHttpError(err)
 	}
@@ -69,11 +69,12 @@ func (h *SignatureFakerHandler) SignChallengeAsUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-func (h *SignatureFakerHandler) getWebauthnCredentialForUser(email string) (*models.WebauthnCredentialsPrivateKey, *models.WebauthnCredential, error) {
-	user, err := h.persister.GetUserPersister().GetByEmail(email)
+func (h *SignatureFakerHandler) getWebauthnCredentialForUser(userId string) (*models.WebauthnCredentialsPrivateKey, *models.WebauthnCredential, error) {
+	user, err := h.persister.GetUserPersister().Get(uuid.FromStringOrNil(userId))
 	if err != nil {
 		return nil, nil, err
 	}
+
 	credentials, err := h.persister.GetWebauthnCredentialPersister().GetFromUser(user.ID)
 	if err != nil {
 		return nil, nil, err

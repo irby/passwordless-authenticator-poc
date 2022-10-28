@@ -140,11 +140,12 @@ export class ShareComponent implements OnInit, OnDestroy {
       return;
     }
 
-    console.log('grantdata', grantData);
-
     switch (grantData.statusCode) {
       case HttpStatusCode.RequestTimeout:
         this.errorText = "Request timed out. Please submit a new request";
+        break;
+      case HttpStatusCode.Forbidden:
+        this.errorText = "Accessing grant not allowed. Are you logged in as another user? If so, log back into your account and try again.";
         break;
       case HttpStatusCode.NotFound:
         this.errorText = "Invalid id or token.";

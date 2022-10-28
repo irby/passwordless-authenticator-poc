@@ -67,6 +67,7 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	user.POST("", userHandler.Create)
 	user.GET("/:id", userHandler.Get, hankoMiddleware.Session(sessionManager))
 	user.POST("/logout", userHandler.Logout, hankoMiddleware.Session(sessionManager))
+	user.POST("/logout-guest", userHandler.LogoutAsGuest, hankoMiddleware.Session(sessionManager))
 	user.GET("/shares/overview", userHandler.GetUserGuestRelationsOverview, hankoMiddleware.Session(sessionManager))
 	user.GET("/shares/guest", userHandler.GetUserGuestRelationsAsGuest, hankoMiddleware.Session(sessionManager))
 	user.GET("/shares/parent", userHandler.GetUserGuestRelationsAsAccountHolder, hankoMiddleware.Session(sessionManager))

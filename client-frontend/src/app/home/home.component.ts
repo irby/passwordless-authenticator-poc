@@ -33,16 +33,26 @@ export class HomeComponent implements OnInit {
       this.user = data;
     });
     await this.authenticationService.setLogin();
-    const relationsOverviewResponse = await this.userService.getAccountSharingOverview();
-    if (relationsOverviewResponse.type === 'data') {
-      this.hasGuestGrants = relationsOverviewResponse.data.hasGuestGrants;
-      this.hasParentGrants = relationsOverviewResponse.data.hasParentGrants;
-    }
+    await this.getAccountOverview();
   }
 
   public async logout() {
     await this.authenticationService.logout();
     this.router.navigate(['']);
+  }
+
+  public async logoutAsGuest() {
+    await this.authenticationService.logoutAsGuest();
+    await this.authenticationService.setLogin();
+    await this.getAccountOverview();
+  }
+
+  private async getAccountOverview(){
+    const relationsOverviewResponse = await this.userService.getAccountSharingOverview();
+    if (relationsOverviewResponse.type === 'data') {
+      this.hasGuestGrants = relationsOverviewResponse.data.hasGuestGrants;
+      this.hasParentGrants = relationsOverviewResponse.data.hasParentGrants;
+    }
   }
 
   public async openShareDialog() {
