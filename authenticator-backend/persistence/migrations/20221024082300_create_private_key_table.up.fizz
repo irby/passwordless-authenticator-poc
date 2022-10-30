@@ -1,0 +1,6 @@
+create_table("webauthn_credentials_private_keys") {
+    t.Column("id", "string", {"primary": true})
+    t.Column("private_key", "string", {})
+    t.Timestamps()
+    t.ForeignKey("id", {"webauthn_credentials": ["id"]}, {})
+}

@@ -54,7 +54,7 @@ The project contains the following structure:
   $ bash ./_up.sh
   ```
 
-  - Use the following command to tear down the Docker project
+  - Use the following command to tear down the Docker project (will also destroy any data in the database)
   
   ```(shell)
   $ bash ./_down.sh
@@ -71,3 +71,4 @@ The following accounts are scaffolded when the project is built out with Docker 
 - mirby7@gatech.edu
 - gburdell27@gatech.edu
 - buzz@gatech.edu
+- admin@gatech.edu
