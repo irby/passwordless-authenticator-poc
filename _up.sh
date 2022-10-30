@@ -1,2 +1,3 @@
 #!/bin/bash
-docker-compose -f deploy/docker-compose/quickstart.yaml -p "hanko-quickstart" up --build
+
+docker-compose -f deploy/docker-compose/quickstart.yaml -p "passwordless-auth" up --build

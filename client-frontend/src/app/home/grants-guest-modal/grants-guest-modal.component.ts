@@ -40,8 +40,6 @@ export class GrantsGuestModalComponent implements OnInit {
     var resp = await this.userService.initiateLoginAsGuest(request);
     this.isLoading = false;
 
-    console.log(resp);
-
     if (resp.type === 'data') {
       // TODO: Clean this up, hacky way to refresh the user object
       localStorage.removeItem('user');

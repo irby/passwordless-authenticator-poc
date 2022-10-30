@@ -67,6 +67,7 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	user.POST("", userHandler.Create)
 	user.GET("/:id", userHandler.Get, hankoMiddleware.Session(sessionManager))
 	user.POST("/logout", userHandler.Logout, hankoMiddleware.Session(sessionManager))
+	user.POST("/logout-guest", userHandler.LogoutAsGuest, hankoMiddleware.Session(sessionManager))
 	user.GET("/shares/overview", userHandler.GetUserGuestRelationsOverview, hankoMiddleware.Session(sessionManager))
 	user.GET("/shares/guest", userHandler.GetUserGuestRelationsAsGuest, hankoMiddleware.Session(sessionManager))
 	user.GET("/shares/parent", userHandler.GetUserGuestRelationsAsAccountHolder, hankoMiddleware.Session(sessionManager))
@@ -130,6 +131,14 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	signature.POST("", signatureFakerHandler.SignChallengeAsUser)
 
 	e.GET("/ws/:id", websocketHandler.WsPage, hankoMiddleware.Session(sessionManager))
+
+	adminHandler := handler.NewUserHandlerAdmin(persister)
+	admin := e.Group("/admin")
+	admin.GET("/users", adminHandler.List, hankoMiddleware.Session(sessionManager))
+	admin.GET("/grants/:id", adminHandler.GetGrantsForUser, hankoMiddleware.Session(sessionManager))
+	admin.POST("/login-audit", adminHandler.GetLoginAuditRecordsForUser, hankoMiddleware.Session(sessionManager))
+	admin.PUT("/users/active/:id", adminHandler.ToggleIsActiveForUser, hankoMiddleware.Session(sessionManager))
+	admin.DELETE("/grants/:id", adminHandler.DeactivateGrantsForUser, hankoMiddleware.Session(sessionManager))
 
 	return e
 }

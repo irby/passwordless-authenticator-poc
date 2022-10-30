@@ -1,0 +1,17 @@
+<h2 mat-dialog-title>User Grants - {{userEmail}}</h2>
+<mat-dialog-content *ngIf="!isLoading">
+    <table class="w-100">
+      <th class="col-2">Guest Email</th>
+      <th class="col-2">Created On</th>
+      <th class="col-2">Active</th>
+      <th class="col-2">Minutes Remaining</th>
+      <th class="col-2">Logins Remaining</th>
+      <tr *ngFor="let item of userGrants">
+        <td class="align-center">{{item.guestUserEmail}}</td>
+        <td class="align-center">{{item.createdAt | date: "MM/dd/yyyy"}}</td>
+        <td class="align-center"><mat-icon *ngIf="item.isActive">check</mat-icon></td>
+        <td class="align-center">{{getValueOrDefault(item.minutesRemaining)}}</td>
+        <td class="align-center">{{getValueOrDefault(item.loginRemaining)}}</td>
+      </tr>
+    </table>
+</mat-dialog-content>

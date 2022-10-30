@@ -405,23 +405,20 @@ func TestUserHandlerAdmin_List_InvalidPaginationParam(t *testing.T) {
 }
 
 func TestGetLoginAuditRecordsByUserId_List(t *testing.T) {
-	userId, _ := uuid.NewV4()
-	guestUserId, _ := uuid.NewV4()
+	userId := uuid.FromStringOrNil("8846cc7e-c748-4a5d-bf8b-673284b01974")
+	guestUserId := uuid.FromStringOrNil("40ac1f81-4d2d-4bf0-bc24-a0f6c067f171")
 	audits := []models.LoginAuditLog{
 		func() models.LoginAuditLog {
-			id, _ := uuid.NewV4()
 			return models.LoginAuditLog{
-				ID:        id,
+				ID:        uuid.FromStringOrNil("8b17f0e3-b498-4a82-8e35-909184c93288"),
 				UserId:    userId,
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
 			}
 		}(),
 		func() models.LoginAuditLog {
-			id, _ := uuid.NewV4()
-
 			return models.LoginAuditLog{
-				ID:              id,
+				ID:              uuid.FromStringOrNil("ce761126-2a2e-4534-9793-0b022c4daa68"),
 				UserId:          userId,
 				SurrogateUserId: &guestUserId,
 				CreatedAt:       time.Now(),
@@ -429,9 +426,8 @@ func TestGetLoginAuditRecordsByUserId_List(t *testing.T) {
 			}
 		}(),
 		func() models.LoginAuditLog {
-			id, _ := uuid.NewV4()
 			return models.LoginAuditLog{
-				ID:              id,
+				ID:              uuid.FromStringOrNil("621b7c7a-d738-4a88-96aa-08b72ad32ef8"),
 				UserId:          guestUserId,
 				SurrogateUserId: &guestUserId,
 				CreatedAt:       time.Now(),
@@ -439,10 +435,8 @@ func TestGetLoginAuditRecordsByUserId_List(t *testing.T) {
 			}
 		}(),
 		func() models.LoginAuditLog {
-			id, _ := uuid.NewV4()
-			guestUserId, _ := uuid.NewV4()
 			return models.LoginAuditLog{
-				ID:              id,
+				ID:              uuid.FromStringOrNil("a4135123-80d6-4bfd-93d2-1dd9df95e579"),
 				UserId:          guestUserId,
 				SurrogateUserId: &userId,
 				CreatedAt:       time.Now(),
@@ -553,6 +547,7 @@ func createAdmin() (models.User, persistence.Persister) {
 	userId := uuid.FromStringOrNil("6bc3a580-d922-42f3-9032-a4faf8faef5e")
 	user := models.User{
 		ID:       userId,
+		Email:    "admin@example.com",
 		IsAdmin:  true,
 		IsActive: true,
 	}

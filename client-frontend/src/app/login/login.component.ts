@@ -7,7 +7,7 @@ import { ScriptService } from '../core/services/script.service';
 import { ChallengeService } from '../core/services/challenge.service';
 import { NotificationService } from '../core/services/notification.service';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
-import { ConfirmBiometricModalComponent } from '../core/modals/confirm-biometric-modal/confirm-biometric-modal.component';
+import { ConfirmBiometricModalComponent, ConfirmBiometricData, ConfirmBiometricContext } from '../core/modals/confirm-biometric-modal/confirm-biometric-modal.component';
 // import { EccUtil } from '../core/utils/ecc-util';
 
 @Component({
@@ -49,10 +49,14 @@ export class LoginComponent implements OnInit {
   }
 
   public openConfirmBiometricDialog(userId: string) {
+    const biometricData: ConfirmBiometricData = {
+      context: ConfirmBiometricContext.Login,
+      userId: userId
+    };
     const matDialogConfig: MatDialogConfig = {
       width: '45em',
       height: '20em',
-      data: userId
+      data: biometricData
     };
     this.matDialog.open(ConfirmBiometricModalComponent, matDialogConfig);
   }

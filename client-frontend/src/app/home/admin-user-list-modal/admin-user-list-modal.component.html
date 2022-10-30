@@ -1,0 +1,29 @@
+<h2 mat-dialog-title>User List</h2>
+<mat-dialog-content *ngIf="!isLoading">
+  <table class="w-100">
+    <th class="col-2">Email</th>
+    <th class="col-2">Date Created</th>
+    <th class="col-2">Active</th>
+    <th class="col-2">Admin</th>
+    <th class="col-2">Actions</th>
+    <tr *ngFor="let item of userList">
+      <td class="align-center">{{item.email}}</td>
+      <td class="align-center">{{item.created_at | date: 'MM/dd/yy HH:mm'}}</td>
+      <td class="align-center">
+        <span *ngIf="item.is_active"><mat-icon>check</mat-icon></span>
+      </td>
+      <td class="align-center">
+        <span *ngIf="item.is_admin"><mat-icon>check</mat-icon></span>
+      </td>
+      <td class="align-center">
+        <button mat-raised-button #tooltip="matTooltip" (click)="openLoginAuditRecords(item)" matTooltip="View all logins for account" [matTooltipPosition]="'below'"  color="primary">Audit Logins</button>
+        <button mat-raised-button #tooltip="matTooltip" (click)="openActiveAccountGrants(item)" matTooltip="View all grants on account, including inactive" [matTooltipPosition]="'below'" style="margin-left: 1em;"  color="primary">View Grants</button>
+        <button mat-raised-button style="margin-left: 1em;" (click)="toggleUserIsActive(item)" [color]="item.is_active ? 'warn' : 'basic'">{{item.is_active ? 'Deactivate' : 'Activate'}} Account</button>
+        <button mat-raised-button #tooltip="matTooltip" (click)="deactivateGrants(item)"matTooltip="Deactive all grants on account" [matTooltipPosition]="'below'" style="margin-left: 1em;" color="warn">Deactivate Grants</button>
+      </td>
+    </tr>
+  </table>
+</mat-dialog-content>
+<mat-dialog-actions >
+  <button mat-raised-button mat-dialog-close color="warn">Close</button>
+</mat-dialog-actions>

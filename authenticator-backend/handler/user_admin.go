@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
@@ -48,6 +49,79 @@ func (h *UserHandlerAdmin) Delete(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusNoContent, nil)
+}
+
+func (h *UserHandlerAdmin) ToggleIsActiveForUser(c echo.Context) error {
+	userId, err := uuid.FromString(c.Param("id"))
+	if err != nil {
+		return dto.NewHTTPError(http.StatusBadRequest, "failed to parse userId as uuid").SetInternal(err)
+	}
+
+	err, isSuccess := h.validateAdminPermission(c)
+	if !isSuccess {
+		return err
+	}
+
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return dto.NewHTTPError(http.StatusForbidden)
+	}
+
+	if sessionToken.Subject() == userId.String() {
+		return dto.NewHTTPError(http.StatusConflict)
+	}
+
+	p := h.persister.GetUserPersister()
+	user, err := p.Get(userId)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	if user == nil {
+		return dto.NewHTTPError(http.StatusNotFound, "user not found")
+	}
+
+	user.IsActive = !user.IsActive
+	user.UpdatedAt = time.Now().UTC()
+	err = h.persister.GetUserPersister().Update(*user)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusInternalServerError, "toggling user isactive failed")
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *UserHandlerAdmin) DeactivateGrantsForUser(c echo.Context) error {
+	userId, err := uuid.FromString(c.Param("id"))
+	if err != nil {
+		return dto.NewHTTPError(http.StatusBadRequest, "failed to parse userId as uuid").SetInternal(err)
+	}
+
+	err, isSuccess := h.validateAdminPermission(c)
+	if !isSuccess {
+		return err
+	}
+
+	userGuestRelationsPersister := h.persister.GetUserGuestRelationPersister()
+	grants, err := userGuestRelationsPersister.GetByParentUserId(&userId)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusInternalServerError, "failed to get grants for user")
+	}
+
+	// TODO: Convert to a transaction
+	for _, grant := range grants {
+		if !grant.IsActive {
+			continue
+		}
+		grant.IsActive = false
+		grant.UpdatedAt = time.Now().UTC()
+		err = userGuestRelationsPersister.Update(grant)
+		if err != nil {
+			return dto.NewHTTPError(http.StatusInternalServerError, "failed to update grant")
+		}
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{})
 }
 
 type UserPatchRequest struct {
@@ -146,11 +220,12 @@ type LoginAuditRecordResponseDto struct {
 type LoginAuditRecordResponseAccountLoginDto struct {
 	ID                  uuid.UUID  `json:"id"`
 	UserId              uuid.UUID  `json:"userId"`
+	UserEmail           string     `json:"userEmail"`
 	SurrogateUserId     *uuid.UUID `json:"surrogate_user_id"`
 	SurrogateUserEmail  string     `json:"surrogate_user_email"`
 	UserGuestRelationId *uuid.UUID `json:"user_guest_relation_id"`
 	ClientIpAddress     string     `json:"client_ip_address"`
-	ClientUserAgent     string     `json:"client_ip_address"`
+	ClientUserAgent     string     `json:"client_user_agent"`
 	CreatedAt           time.Time  `json:"created_at"`
 }
 
@@ -192,6 +267,7 @@ func (h *UserHandlerAdmin) GetLoginAuditRecordsForUser(c echo.Context) error {
 				LoginAuditRecordResponseAccountLoginDto{
 					ID:              record.ID,
 					UserId:          record.UserId,
+					UserEmail:       user.Email,
 					ClientUserAgent: record.ClientUserAgent,
 					ClientIpAddress: record.ClientIpAddress,
 					CreatedAt:       record.CreatedAt,
@@ -206,6 +282,7 @@ func (h *UserHandlerAdmin) GetLoginAuditRecordsForUser(c echo.Context) error {
 				LoginAuditRecordResponseAccountLoginDto{
 					ID:                  record.ID,
 					UserId:              record.UserId,
+					UserEmail:           user.Email,
 					SurrogateUserId:     record.SurrogateUserId,
 					SurrogateUserEmail:  email,
 					UserGuestRelationId: record.UserGuestRelationId,
@@ -222,10 +299,16 @@ func (h *UserHandlerAdmin) GetLoginAuditRecordsForUser(c echo.Context) error {
 	}
 
 	for _, record := range records {
+		email, exists := surrogateUserEmails[record.UserId]
+		if !exists {
+			guest, _ := h.persister.GetUserPersister().Get(record.UserId)
+			email = guest.Email
+		}
 		response.LoginsAsGuest = append(response.LoginsAsGuest,
 			LoginAuditRecordResponseAccountLoginDto{
 				ID:                  record.ID,
 				UserId:              record.UserId,
+				UserEmail:           email,
 				SurrogateUserId:     record.SurrogateUserId,
 				SurrogateUserEmail:  user.Email,
 				UserGuestRelationId: record.UserGuestRelationId,
@@ -233,6 +316,100 @@ func (h *UserHandlerAdmin) GetLoginAuditRecordsForUser(c echo.Context) error {
 				ClientIpAddress:     record.ClientIpAddress,
 				CreatedAt:           record.CreatedAt,
 			})
+	}
+
+	return c.JSON(http.StatusOK, response)
+}
+
+type GetGrantsForUserRequest struct {
+	UserId string `param:"userId" validate:"required,uuid4"`
+}
+
+type GetGrantsForUserResponse struct {
+	UserId    uuid.UUID                  `json:"userId"`
+	UserEmail string                     `json:"userEmail"`
+	Grants    []UserGuestRelationshipDto `json:"grants"`
+}
+
+type UserGuestRelationshipDto struct {
+	GuestUserEmail   string        `json:"guestUserEmail"`
+	GustUserId       uuid.UUID     `json:"guestUserId"`
+	CreatedAt        time.Time     `json:"createdAt"`
+	IsActive         bool          `json:"isActive"`
+	LoginsRemaining  sql.NullInt32 `json:"loginRemaining"`
+	MinutesRemaining sql.NullInt32 `json:"minutesRemaining"`
+}
+
+func (h *UserHandlerAdmin) GetGrantsForUser(c echo.Context) error {
+	var grantFetchRequest GetGrantsForUserRequest
+	grantFetchRequest.UserId = c.Param("id")
+
+	//if err := c.Validate(loginAuditRecordRequest); err != nil {
+	//	return dto.ToHttpError(err)
+	//}
+
+	err, isSuccess := h.validateAdminPermission(c)
+	if !isSuccess {
+		return err
+	}
+
+	user, err := h.persister.GetUserPersister().Get(uuid.FromStringOrNil(grantFetchRequest.UserId))
+	if err != nil {
+		return fmt.Errorf("failed to get user ID %s: %w", grantFetchRequest.UserId, err)
+	}
+
+	response := GetGrantsForUserResponse{
+		UserId:    uuid.FromStringOrNil(grantFetchRequest.UserId),
+		UserEmail: user.Email,
+		Grants:    []UserGuestRelationshipDto{},
+	}
+
+	grants, err := h.persister.GetUserGuestRelationPersister().GetByParentUserId(&user.ID)
+	if err != nil {
+		return fmt.Errorf("an error occurred fetching user guest relationships for user ID %s: %w", user.ID, err)
+	}
+
+	surrogateUserEmails := map[uuid.UUID]string{}
+
+	for _, grant := range grants {
+		if !grant.IsActive {
+			continue
+		}
+		email, exists := surrogateUserEmails[grant.GuestUserID]
+		if !exists {
+			guest, _ := h.persister.GetUserPersister().Get(grant.GuestUserID)
+			email = guest.Email
+		}
+		var minutesRemaining sql.NullInt32
+		if grant.ExpireByTime {
+			expireTime := grant.CreatedAt.Add(time.Duration(grant.MinutesAllowed.Int32) * time.Minute)
+			if time.Now().UTC().After(expireTime) {
+				continue
+			}
+			minutesRemaining.Int32 = int32(expireTime.Sub(time.Now().UTC()).Minutes())
+			minutesRemaining.Valid = true
+		}
+		var loginsRemaining sql.NullInt32
+		if grant.ExpireByLogins {
+			logins, err := h.persister.GetLoginAuditLogPersister().GetByGuestUserIdAndGrantId(grant.GuestUserID, grant.ID)
+			if err != nil {
+				return fmt.Errorf("unable to fetch login audits for guest user ID %s and grant ID %s: %w", grant.GuestUserID, grant.ID, err)
+			}
+			if int32(len(logins)) >= grant.LoginsAllowed.Int32 {
+				continue
+			}
+			loginsRemaining.Int32 = grant.LoginsAllowed.Int32 - int32(len(logins))
+			loginsRemaining.Valid = true
+		}
+		record := UserGuestRelationshipDto{
+			GuestUserEmail:   email,
+			GustUserId:       grant.GuestUserID,
+			CreatedAt:        grant.CreatedAt,
+			IsActive:         grant.IsActive,
+			MinutesRemaining: minutesRemaining,
+			LoginsRemaining:  loginsRemaining,
+		}
+		response.Grants = append(response.Grants, record)
 	}
 
 	return c.JSON(http.StatusOK, response)

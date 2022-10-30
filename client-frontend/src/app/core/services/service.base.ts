@@ -40,6 +40,8 @@ export abstract class BaseService {
             retError.response = {} as ErrorResponse;
         }
 
+        
+
         if (!!error.response) {
             retError.statusCode = error.response.status;
             retError.message = error.response.statusText;
@@ -61,7 +63,6 @@ export abstract class BaseService {
     }
 
     private createData<T>(data: T): ServiceData<T> {
-        console.log(typeof(data));
         return {
             type: 'data',
             data
@@ -136,6 +137,7 @@ export abstract class BaseService {
             );
             retResp = this.createData(resp.data);
         } catch (e) {
+            console.error('error?', e);
             retResp = this.createError<T>(e as AxiosError<T>);
         }
 
