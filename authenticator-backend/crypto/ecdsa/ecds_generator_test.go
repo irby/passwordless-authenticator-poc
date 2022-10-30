@@ -6,11 +6,10 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
-	"github.com/go-webauthn/webauthn/protocol/webauthncose"
-	"github.com/gofrs/uuid"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/go-webauthn/webauthn/protocol/webauthncose"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_GeneratePrivateKey(t *testing.T) {
@@ -23,10 +22,10 @@ func Test_GeneratePrivateKey_PrivateKeyToString(t *testing.T) {
 	key, err := GeneratePrivateKey()
 	assert.NoError(t, err)
 	assert.True(t, key != nil)
-	str := key.D.String()
-	public := key.PublicKey
-	fmt.Printf("D: %s\nX: %s\nY: %s\n", str, public.X.String(), public.Y.String())
-	fmt.Println(key.Curve)
+	// str := key.D.String()
+	// public := key.PublicKey
+	// fmt.Printf("D: %s\nX: %s\nY: %s\n", str, public.X.String(), public.Y.String())
+	// fmt.Println(key.Curve)
 }
 
 func Test_GenerateEC2PublicKeyDataFromPrivateKey(t *testing.T) {
@@ -36,7 +35,7 @@ func Test_GenerateEC2PublicKeyDataFromPrivateKey(t *testing.T) {
 	str, err := GenerateEC2PublicKeyDataFromPrivateKey(*key)
 	assert.NoError(t, err)
 
-	fmt.Printf("Private key: %s\nPublic key data: %s\nN: %s\n", key.D.String(), str, key.Curve.Params().N)
+	// fmt.Printf("Private key: %s\nPublic key data: %s\nN: %s\n", key.D.String(), str, key.Curve.Params().N)
 
 	result, err := base64.RawURLEncoding.DecodeString(str)
 	assert.NoError(t, err)
@@ -66,9 +65,9 @@ func Test_GeneratePrivateKey_PrivateKeyFromValue(t *testing.T) {
 func Test_SignData(t *testing.T) {
 	key, err := GeneratePrivateKeyFromValue("16607140015661132309087522590752959541886570147214553558567331635599686272321")
 	assert.NoError(t, err)
-	res, err := SignData(key, []byte("hello"))
+	_, err = SignData(key, []byte("hello"))
 	assert.NoError(t, err)
-	fmt.Printf("%s\n", res)
+	// fmt.Printf("%s\n", res)
 }
 
 func Test_GetClientData(t *testing.T) {
@@ -212,12 +211,12 @@ func Test_E2E_3(t *testing.T) {
 	assert.True(t, isValid)
 }
 
-func Test_GenerateUserHandles(t *testing.T) {
-	mirby7UserId := uuid.FromStringOrNil("3280a1a2-9417-4b10-a6e9-987eabdf63ec")
-	gburdell27UserId := uuid.FromStringOrNil("da8c3048-78ee-470e-a9fb-c41a9b84de86")
-	buzzUserId := uuid.FromStringOrNil("5bc3a580-d922-42f3-9031-a4faf8faef5d")
+// func Test_GenerateUserHandles(t *testing.T) {
+// 	mirby7UserId := uuid.FromStringOrNil("3280a1a2-9417-4b10-a6e9-987eabdf63ec")
+// 	gburdell27UserId := uuid.FromStringOrNil("da8c3048-78ee-470e-a9fb-c41a9b84de86")
+// 	buzzUserId := uuid.FromStringOrNil("5bc3a580-d922-42f3-9031-a4faf8faef5d")
 
-	fmt.Printf("mirby7 User Handle: %s\n", base64.URLEncoding.EncodeToString(mirby7UserId.Bytes()))
-	fmt.Printf("gburdell27 User Handle: %s\n", base64.URLEncoding.EncodeToString(gburdell27UserId.Bytes()))
-	fmt.Printf("buzz User Handle: %s\n", base64.URLEncoding.EncodeToString(buzzUserId.Bytes()))
-}
+// 	fmt.Printf("mirby7 User Handle: %s\n", base64.URLEncoding.EncodeToString(mirby7UserId.Bytes()))
+// 	fmt.Printf("gburdell27 User Handle: %s\n", base64.URLEncoding.EncodeToString(gburdell27UserId.Bytes()))
+// 	fmt.Printf("buzz User Handle: %s\n", base64.URLEncoding.EncodeToString(buzzUserId.Bytes()))
+// }
