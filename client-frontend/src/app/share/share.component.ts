@@ -64,12 +64,10 @@ export class ShareComponent implements OnInit, OnDestroy {
     })
 
     this.socket?.getEventListener().subscribe(event => {
-      console.log(event);
       if (event.type === 'message') {
         let message: Message;
         message = JSON.parse(event.data);
         message.parsedContent = JSON.parse(message.content);
-        console.log('parsed message', message);
 
         switch (message.parsedContent.code) {
           case MessageCode.ConnectedSession:
@@ -132,7 +130,6 @@ export class ShareComponent implements OnInit, OnDestroy {
       return;
     }
     const grantData = await this.grantService.getGrantByIdAndToken(this.id, this.token);
-    console.log(this.isLoading);
     this.isLoading = false;
 
     if (grantData.type === 'data') {
@@ -174,7 +171,6 @@ export class ShareComponent implements OnInit, OnDestroy {
   private handleClientInformation(data: string): void {
     let clientInformation: ClientInformation;
     clientInformation = JSON.parse(data);
-    console.log('client information', clientInformation);
     this.clientInformation = clientInformation;
   }
 

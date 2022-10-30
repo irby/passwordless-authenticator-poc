@@ -63,7 +63,6 @@ export class AdminUserListModalComponent implements OnInit {
     user.is_active = !user.is_active;
     const verb = user.is_active ? 'activated' : 'deactivated';
     this.notificationService.success(`User has been successfully ${verb}.`);
-    console.log('here?');
   }
 
   public async deactivateGrants(user: UserDto) {

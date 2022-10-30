@@ -32,8 +32,6 @@ export abstract class BaseService {
             type: 'error'
         } as ServiceError;
 
-        console.log('response', !!error.response);
-
         const errorResponse = error?.response?.data as ErrorResponse;
 
         if (!!errorResponse.errorCode) {
@@ -65,7 +63,6 @@ export abstract class BaseService {
     }
 
     private createData<T>(data: T): ServiceData<T> {
-        console.log(typeof(data));
         return {
             type: 'data',
             data

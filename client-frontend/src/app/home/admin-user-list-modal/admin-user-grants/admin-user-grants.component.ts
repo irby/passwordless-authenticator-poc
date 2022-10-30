@@ -1,9 +1,9 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { NullInt, NullInt32 } from 'src/app/core/models/null-int';
-import { UserModalInfo } from 'src/app/core/models/user-modal-info.interface';
-import { AdminService, UserGuestRelationshipDto } from 'src/app/core/services/admin.service';
-import { NotificationService } from 'src/app/core/services/notification.service';
+import { NullInt, NullInt32 } from '../../../core/models/null-int';
+import { UserModalInfo } from '../../../core/models/user-modal-info.interface';
+import { AdminService, UserGuestRelationshipDto } from '../../../core/services/admin.service';
+import { NotificationService } from '../../../core/services/notification.service';
 
 @Component({
   selector: 'app-admin-user-grants',
@@ -31,7 +31,6 @@ export class AdminUserGrantsComponent implements OnInit {
   }
 
   public getValueOrDefault(value: NullInt32) {
-    console.log('value', value);
     const converted = new NullInt(value.Int32, value.Valid);
     return converted.getValueOrDefault();
   }

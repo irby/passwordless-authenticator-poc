@@ -27,7 +27,6 @@ export class AdminUserLoginAuditComponent implements OnInit {
       this.notificationService.error('failed to retrieve login audits for user');
       return;
     }
-    console.log(auditLogResp.data);
     this.loginAuditRecords = auditLogResp.data;
   }
 
