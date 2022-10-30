@@ -315,7 +315,7 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 		if err != nil {
 			return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(fmt.Errorf("an error occurred while fetching login audit records: %w", err))
 		}
-		if int32(len(models)) > relation.LoginsAllowed.Int32 {
+		if int32(len(models)) >= relation.LoginsAllowed.Int32 {
 			relation.IsActive = false
 			relation.UpdatedAt = time.Now().UTC()
 
