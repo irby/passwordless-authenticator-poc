@@ -16,10 +16,10 @@
         <span *ngIf="item.is_admin"><mat-icon>check</mat-icon></span>
       </td>
       <td class="align-center">
-        <button mat-raised-button #tooltip="matTooltip" matTooltip="View all logins for account" [matTooltipPosition]="'below'" (click)="openLoginAuditRecords(item.id)" color="primary">Audit Logins</button>
-        <button mat-raised-button #tooltip="matTooltip" matTooltip="View all grants on account, including inactive" [matTooltipPosition]="'below'" style="margin-left: 1em;" (click)="openActiveAccountGrants(item.id)" color="primary">View Grants</button>
-        <button mat-raised-button #tooltip="matTooltip" matTooltip="Deactive user account" [matTooltipPosition]="'below'" style="margin-left: 1em;" (click)="deactivateUserAccount(item.id)"color="warn">Deactivate Account</button>
-        <button mat-raised-button #tooltip="matTooltip" matTooltip="Deactive all grants on account" [matTooltipPosition]="'below'" style="margin-left: 1em;" color="warn">Deactivate Grants</button>
+        <button mat-raised-button #tooltip="matTooltip" (click)="openLoginAuditRecords(item)" matTooltip="View all logins for account" [matTooltipPosition]="'below'"  color="primary">Audit Logins</button>
+        <button mat-raised-button #tooltip="matTooltip" (click)="openActiveAccountGrants(item)" matTooltip="View all grants on account, including inactive" [matTooltipPosition]="'below'" style="margin-left: 1em;"  color="primary">View Grants</button>
+        <button mat-raised-button style="margin-left: 1em;" (click)="toggleUserIsActive(item)" [color]="item.is_active ? 'warn' : 'basic'">{{item.is_active ? 'Deactivate' : 'Activate'}} Account</button>
+        <button mat-raised-button #tooltip="matTooltip" (click)="deactivateGrants(item)"matTooltip="Deactive all grants on account" [matTooltipPosition]="'below'" style="margin-left: 1em;" color="warn">Deactivate Grants</button>
       </td>
     </tr>
   </table>

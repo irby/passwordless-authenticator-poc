@@ -32,6 +32,8 @@ export abstract class BaseService {
             type: 'error'
         } as ServiceError;
 
+        console.log('response', !!error.response);
+
         const errorResponse = error?.response?.data as ErrorResponse;
 
         if (!!errorResponse.errorCode) {
@@ -39,6 +41,8 @@ export abstract class BaseService {
         } else {
             retError.response = {} as ErrorResponse;
         }
+
+        
 
         if (!!error.response) {
             retError.statusCode = error.response.status;
@@ -136,6 +140,7 @@ export abstract class BaseService {
             );
             retResp = this.createData(resp.data);
         } catch (e) {
+            console.error('error?', e);
             retResp = this.createError<T>(e as AxiosError<T>);
         }
 

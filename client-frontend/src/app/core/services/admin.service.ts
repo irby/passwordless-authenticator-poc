@@ -1,4 +1,5 @@
 import { Injectable } from "@angular/core";
+import { NullInt, NullInt32 } from "../models/null-int";
 import { ServiceResponse } from "../models/service-response.interface";
 import { BaseService } from "./service.base";
 
@@ -9,6 +10,15 @@ export class AdminService extends BaseService {
     }
     public async getLoginAuditLogForUser(userId: string): Promise<ServiceResponse<LoginAuditLogResponseDto>> {
         return this.postAsync(`admin/login-audit`, {userId: userId});
+    }
+    public async getGrantsForUser(userId: string): Promise<ServiceResponse<GetGrantsForUserResponse>> {
+        return this.getAsync(`admin/grants/${userId}`);
+    }
+    public async toggleUserIsActive(userId: string): Promise<ServiceResponse<void>> {
+        return this.putAsync(`admin/users/active/${userId}`);
+    }
+    public async deactivateGrantsForUser(userId: string): Promise<ServiceResponse<void>> {
+        return this.deleteAsync(`admin/grants/${userId}`);
     }
 }
 
@@ -35,4 +45,19 @@ export interface LoginAuditLogAccountLoginDto {
     client_ip_address: string;
     client_user_agent: string;
     created_at: Date;
+}
+
+export interface GetGrantsForUserResponse {
+    userId: string;
+    userEmail: string;
+    grants: UserGuestRelationshipDto[]
+}
+
+export interface UserGuestRelationshipDto {
+    guestUserEmail: string;
+	guestUserId: string;
+	createdAt: Date;
+	isActive: boolean;
+	loginRemaining: NullInt32;
+	minutesRemaining: NullInt32;
 }

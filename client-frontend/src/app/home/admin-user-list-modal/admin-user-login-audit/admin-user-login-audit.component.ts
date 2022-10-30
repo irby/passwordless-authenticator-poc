@@ -1,5 +1,6 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { UserModalInfo } from 'src/app/core/models/user-modal-info.interface';
 import { AdminService, LoginAuditLogResponseDto } from 'src/app/core/services/admin.service';
 import { NotificationService } from 'src/app/core/services/notification.service';
 
@@ -12,12 +13,14 @@ export class AdminUserLoginAuditComponent implements OnInit {
 
   public loginAuditRecords!: LoginAuditLogResponseDto;
   public isLoading: boolean = false;
+  public userEmail!: string;
 
-  constructor(@Inject(MAT_DIALOG_DATA) private readonly userId: string, private readonly adminService: AdminService, private readonly notificationService: NotificationService) { }
+  constructor(@Inject(MAT_DIALOG_DATA) private readonly user: UserModalInfo, private readonly adminService: AdminService, private readonly notificationService: NotificationService) { }
 
   async ngOnInit() {
+    this.userEmail = this.user.userEmail;
     this.isLoading = true;
-    const auditLogResp = await this.adminService.getLoginAuditLogForUser(this.userId);
+    const auditLogResp = await this.adminService.getLoginAuditLogForUser(this.user.userId);
     this.isLoading = false;
 
     if (auditLogResp.type !== 'data') {

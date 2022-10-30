@@ -32,6 +32,7 @@ import { AdminService } from './core/services/admin.service';
 import { AdminUserListModalComponent } from './home/admin-user-list-modal/admin-user-list-modal.component';
 import { AdminUserLoginAuditComponent } from './home/admin-user-list-modal/admin-user-login-audit/admin-user-login-audit.component';
 import {MatTooltipModule} from '@angular/material/tooltip';
+import { AdminUserGrantsComponent } from './home/admin-user-list-modal/admin-user-grants/admin-user-grants.component';
 
 @NgModule({
   declarations: [				
@@ -45,7 +46,8 @@ import {MatTooltipModule} from '@angular/material/tooltip';
       GrantsParentModalComponent,
       ConfirmBiometricModalComponent,
       AdminUserListModalComponent,
-      AdminUserLoginAuditComponent
+      AdminUserLoginAuditComponent,
+      AdminUserGrantsComponent
    ],
   imports: [
     BrowserModule,
