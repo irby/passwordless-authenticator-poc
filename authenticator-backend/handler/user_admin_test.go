@@ -93,6 +93,201 @@ func TestUserHandlerAdmin_Delete_UnknownUserId(t *testing.T) {
 	}
 }
 
+func TestUserHandlerAdmin_ToggleIsActiveForUser_UserIsNotAdmin_Error(t *testing.T) {
+	userId, _ := uuid.NewV4()
+	e := echo.New()
+
+	q := make(url.Values)
+	q.Set("per_page", "invalidPerPageValue")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	c.SetPath("/users/:id")
+	c.SetParamNames("id")
+	c.SetParamValues(userId.String())
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	adminUser.IsAdmin = false
+	persister.GetUserPersister().Update(adminUser)
+	persister.GetUserPersister().Create(models.User{
+		ID:       userId,
+		Email:    "testy@example.com",
+		IsActive: true,
+	})
+
+	handler := NewUserHandlerAdmin(persister)
+	err := handler.ToggleIsActiveForUser(c)
+	assert.Error(t, err)
+}
+
+func TestUserHandlerAdmin_ToggleIsActiveForUser_UserIsAdmin_UserIsInactiveIfActiveBefore(t *testing.T) {
+	userId, _ := uuid.NewV4()
+	e := echo.New()
+
+	q := make(url.Values)
+	q.Set("per_page", "invalidPerPageValue")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	c.SetPath("/users/:id")
+	c.SetParamNames("id")
+	c.SetParamValues(userId.String())
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	persister.GetUserPersister().Create(models.User{
+		ID:       userId,
+		Email:    "testy@example.com",
+		IsActive: true,
+	})
+
+	handler := NewUserHandlerAdmin(persister)
+	err := handler.ToggleIsActiveForUser(c)
+	assert.NoError(t, err)
+	u, err := persister.GetUserPersister().Get(userId)
+	assert.Equal(t, false, u.IsActive)
+}
+
+func TestUserHandlerAdmin_ToggleIsActiveForUser_UserIsAdmin_UserIsActiveIfInactiveBefore(t *testing.T) {
+	userId, _ := uuid.NewV4()
+	e := echo.New()
+
+	q := make(url.Values)
+	q.Set("per_page", "invalidPerPageValue")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	c.SetPath("/users/:id")
+	c.SetParamNames("id")
+	c.SetParamValues(userId.String())
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	persister.GetUserPersister().Create(models.User{
+		ID:       userId,
+		Email:    "testy@example.com",
+		IsActive: false,
+	})
+
+	handler := NewUserHandlerAdmin(persister)
+	err := handler.ToggleIsActiveForUser(c)
+	assert.NoError(t, err)
+	u, err := persister.GetUserPersister().Get(userId)
+	assert.Equal(t, true, u.IsActive)
+}
+
+func TestUserHandlerAdmin_ToggleIsActiveForUser_UserIsAdmin_UserCannotToggleThemselves(t *testing.T) {
+	e := echo.New()
+
+	q := make(url.Values)
+	q.Set("per_page", "invalidPerPageValue")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	c.SetPath("/users/:id")
+	c.SetParamNames("id")
+	c.SetParamValues(adminUser.ID.String())
+
+	handler := NewUserHandlerAdmin(persister)
+	err := handler.ToggleIsActiveForUser(c)
+	assert.Error(t, err)
+	httpError := dto.ToHttpError(err)
+	assert.Equal(t, http.StatusConflict, httpError.Code)
+}
+
+func TestUserHandlerAdmin_DeactivateGrantsForUser_UserIsNotAdmin_Error(t *testing.T) {
+	userId, _ := uuid.NewV4()
+	e := echo.New()
+
+	q := make(url.Values)
+	q.Set("per_page", "invalidPerPageValue")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	c.SetPath("/users/:id")
+	c.SetParamNames("id")
+	c.SetParamValues(userId.String())
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	adminUser.IsAdmin = false
+	persister.GetUserPersister().Update(adminUser)
+	persister.GetUserPersister().Create(models.User{
+		ID:       userId,
+		Email:    "testy@example.com",
+		IsActive: true,
+	})
+	grantPersister := persister.GetUserGuestRelationPersister()
+	for i := 0; i < 4; i++ {
+		uId, _ := uuid.NewV4()
+		grantPersister.Create(models.UserGuestRelation{
+			ID:           uId,
+			ParentUserID: userId,
+			IsActive:     true,
+		})
+	}
+
+	handler := NewUserHandlerAdmin(persister)
+	err := handler.DeactivateGrantsForUser(c)
+	assert.Error(t, err)
+}
+
+func TestUserHandlerAdmin_DeactivateGrantsForUser_UserIsAdmin_DeactivatesGrants(t *testing.T) {
+	userId, _ := uuid.NewV4()
+	e := echo.New()
+
+	q := make(url.Values)
+	q.Set("per_page", "invalidPerPageValue")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	c.SetPath("/users/:id")
+	c.SetParamNames("id")
+	c.SetParamValues(userId.String())
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	persister.GetUserPersister().Create(models.User{
+		ID:       userId,
+		Email:    "testy@example.com",
+		IsActive: true,
+	})
+	grantPersister := persister.GetUserGuestRelationPersister()
+	for i := 0; i < 4; i++ {
+		uId, _ := uuid.NewV4()
+		grantPersister.Create(models.UserGuestRelation{
+			ID:           uId,
+			ParentUserID: userId,
+			IsActive:     true,
+		})
+	}
+
+	handler := NewUserHandlerAdmin(persister)
+	err := handler.DeactivateGrantsForUser(c)
+	assert.NoError(t, err)
+
+	grants, _ := grantPersister.GetByParentUserId(&userId)
+	for _, grant := range grants {
+		assert.False(t, grant.IsActive)
+	}
+
+}
+
 func TestUserHandlerAdmin_Patch(t *testing.T) {
 	userId, _ := uuid.NewV4()
 	users := []models.User{
@@ -481,6 +676,157 @@ func TestGetLoginAuditRecordsByUserId_List(t *testing.T) {
 		assert.Equal(t, 2, len(got.LoginsToAccount))
 		assert.Equal(t, 1, len(got.LoginsAsGuest))
 	}
+}
+
+func TestUserHandlerAdmin_GetGrantsForUser_WhenUserIsNotAdmin_Errors(t *testing.T) {
+	userId := uuid.FromStringOrNil("8846cc7e-c748-4a5d-bf8b-673284b01974")
+	grants := []models.UserGuestRelation{
+		func() models.UserGuestRelation {
+			guestUserId, _ := uuid.NewV4()
+			return models.UserGuestRelation{
+				ID:           uuid.FromStringOrNil("8b17f0e3-b498-4a82-8e35-909184c93288"),
+				ParentUserID: userId,
+				GuestUserID:  guestUserId,
+				IsActive:     true,
+				CreatedAt:    time.Now(),
+				UpdatedAt:    time.Now(),
+			}
+		}(),
+		func() models.UserGuestRelation {
+			guestUserId, _ := uuid.NewV4()
+			return models.UserGuestRelation{
+				ID:           uuid.FromStringOrNil("9b17f0e3-b498-4a82-8e35-909184c93288"),
+				ParentUserID: userId,
+				GuestUserID:  guestUserId,
+				IsActive:     true,
+				CreatedAt:    time.Now(),
+				UpdatedAt:    time.Now(),
+			}
+		}(),
+		func() models.UserGuestRelation {
+			guestUserId, _ := uuid.NewV4()
+			return models.UserGuestRelation{
+				ID:           uuid.FromStringOrNil("ab17f0e3-b498-4a82-8e35-909184c93288"),
+				ParentUserID: userId,
+				GuestUserID:  guestUserId,
+				IsActive:     false,
+				CreatedAt:    time.Now(),
+				UpdatedAt:    time.Now(),
+			}
+		}(),
+	}
+
+	e := echo.New()
+
+	body := fmt.Sprintf(`{"userId": "%s"}`, userId.String())
+	req := httptest.NewRequest(http.MethodPost, "/logins", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	adminUser.IsAdmin = false
+	persister.GetUserPersister().Update(adminUser)
+
+	for _, grant := range grants {
+		persister.GetUserGuestRelationPersister().Create(grant)
+		persister.GetUserPersister().Create(models.User{
+			ID:       grant.GuestUserID,
+			IsActive: true,
+			Email:    fmt.Sprintf("user-%s@example.com", grant.GuestUserID),
+		})
+	}
+
+	mainUser := models.User{
+		ID:    userId,
+		Email: "test@example.com",
+	}
+	persister.GetUserPersister().Create(mainUser)
+
+	handler := NewUserHandlerAdmin(persister)
+
+	assert.Error(t, handler.GetGrantsForUser(c))
+}
+
+func TestUserHandlerAdmin_GetGrantsForUser_WhenUserIsAdmin(t *testing.T) {
+	userId := uuid.FromStringOrNil("8846cc7e-c748-4a5d-bf8b-673284b01974")
+	grants := []models.UserGuestRelation{
+		func() models.UserGuestRelation {
+			guestUserId, _ := uuid.NewV4()
+			return models.UserGuestRelation{
+				ID:           uuid.FromStringOrNil("8b17f0e3-b498-4a82-8e35-909184c93288"),
+				ParentUserID: userId,
+				GuestUserID:  guestUserId,
+				IsActive:     true,
+				CreatedAt:    time.Now(),
+				UpdatedAt:    time.Now(),
+			}
+		}(),
+		func() models.UserGuestRelation {
+			guestUserId, _ := uuid.NewV4()
+			return models.UserGuestRelation{
+				ID:           uuid.FromStringOrNil("9b17f0e3-b498-4a82-8e35-909184c93288"),
+				ParentUserID: userId,
+				GuestUserID:  guestUserId,
+				IsActive:     true,
+				CreatedAt:    time.Now(),
+				UpdatedAt:    time.Now(),
+			}
+		}(),
+		func() models.UserGuestRelation {
+			guestUserId, _ := uuid.NewV4()
+			return models.UserGuestRelation{
+				ID:           uuid.FromStringOrNil("ab17f0e3-b498-4a82-8e35-909184c93288"),
+				ParentUserID: userId,
+				GuestUserID:  guestUserId,
+				IsActive:     false,
+				CreatedAt:    time.Now(),
+				UpdatedAt:    time.Now(),
+			}
+		}(),
+	}
+
+	e := echo.New()
+
+	body := fmt.Sprintf(`{"userId": "%s"}`, userId.String())
+	req := httptest.NewRequest(http.MethodPost, "/logins", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	adminUser, persister := createAdmin()
+	setSessionToken(t, c, adminUser)
+
+	for _, grant := range grants {
+		persister.GetUserGuestRelationPersister().Create(grant)
+		persister.GetUserPersister().Create(models.User{
+			ID:       grant.GuestUserID,
+			IsActive: true,
+			Email:    fmt.Sprintf("user-%s@example.com", grant.GuestUserID),
+		})
+	}
+
+	mainUser := models.User{
+		ID:    userId,
+		Email: "test@example.com",
+	}
+	persister.GetUserPersister().Create(mainUser)
+
+	c.SetParamNames("id")
+	c.SetParamValues(userId.String())
+
+	handler := NewUserHandlerAdmin(persister)
+
+	err := handler.GetGrantsForUser(c)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	var got GetGrantsForUserResponse
+	err = json.Unmarshal(rec.Body.Bytes(), &got)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(got.Grants))
 }
 
 func Test_validateAdminPermission_WhenUserIsAdminAndActive_ReturnsNoError(t *testing.T) {
