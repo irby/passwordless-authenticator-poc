@@ -76,7 +76,7 @@ func (h *WebauthnHandler) BeginRegistration(c echo.Context) error {
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 	if webauthnUser == nil {
-		return dto.NewHTTPError(http.StatusBadRequest, "user not found").SetInternal(errors.New(fmt.Sprintf("user %s not found ", uId)))
+		return dto.NewHTTPError(http.StatusBadRequest, "user not found").SetInternal(fmt.Errorf("user %s not found ", uId))
 	}
 
 	t := true
@@ -230,7 +230,7 @@ func (h *WebauthnHandler) BeginAuthentication(c echo.Context) error {
 
 	// Remove all transports, because of a bug in android and windows where the internal authenticator gets triggered,
 	// when the transports array contains the type 'internal' although the credential is not available on the device.
-	for i, _ := range options.Response.AllowedCredentials {
+	for i := range options.Response.AllowedCredentials {
 		fmt.Println(className, currentMethod, "removing allowed credentials transport")
 		options.Response.AllowedCredentials[i].Transport = nil
 	}

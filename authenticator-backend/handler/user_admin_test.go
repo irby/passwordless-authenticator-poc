@@ -3,6 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/lestrrat-go/jwx/v2/jwt"
@@ -12,12 +19,6 @@ import (
 	"github.com/teamhanko/hanko/backend/persistence"
 	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/test"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestUserHandlerAdmin_Delete(t *testing.T) {
@@ -718,7 +719,7 @@ func TestUserHandlerAdmin_GetGrantsForUser_WhenUserIsNotAdmin_Errors(t *testing.
 
 	e := echo.New()
 
-	body := fmt.Sprintf(`{"userId": "%s"}`, userId.String())
+	body := fmt.Sprintf(`{"userId": %q}`, userId.String())
 	req := httptest.NewRequest(http.MethodPost, "/logins", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -790,7 +791,7 @@ func TestUserHandlerAdmin_GetGrantsForUser_WhenUserIsAdmin(t *testing.T) {
 
 	e := echo.New()
 
-	body := fmt.Sprintf(`{"userId": "%s"}`, userId.String())
+	body := fmt.Sprintf(`{"userId": %q}`, userId.String())
 	req := httptest.NewRequest(http.MethodPost, "/logins", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
