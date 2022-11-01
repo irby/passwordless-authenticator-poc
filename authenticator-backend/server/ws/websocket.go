@@ -4,19 +4,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/teamhanko/hanko/backend/config"
 	"github.com/teamhanko/hanko/backend/crypto"
+	jwt2 "github.com/teamhanko/hanko/backend/crypto/jwt"
+	"github.com/teamhanko/hanko/backend/dto"
 	"github.com/teamhanko/hanko/backend/handler"
 	"github.com/teamhanko/hanko/backend/mail"
 	"github.com/teamhanko/hanko/backend/persistence"
 	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/session"
-	"net/http"
-	"strings"
 )
 
 type WebsocketHandler struct {
@@ -44,11 +47,11 @@ type MessageCode int64
 
 const (
 	ConnectedSession     MessageCode = 101
-	DisconnectedSession              = 102
-	SessionRequest                   = 103
-	SessionAlreadyExists             = 104
-	TooManySessions                  = 105
-	AllPartiesPresent                = 106
+	DisconnectedSession  MessageCode = 102
+	SessionRequest       MessageCode = 103
+	SessionAlreadyExists MessageCode = 104
+	TooManySessions      MessageCode = 105
+	AllPartiesPresent    MessageCode = 106
 
 	ClientInformation      = 201
 	IsPrimaryAccountHolder = 202
@@ -267,9 +270,9 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 		return fmt.Errorf("unable to find grant %s: %w", grantId, err)
 	}
 
-	sessionToken, ok := c.Get("session").(jwt.Token)
-	if !ok {
-		return errors.New("missing or malformed jwt")
+	sessionToken, err := p.getSessionTokenFromContext(c)
+	if err != nil {
+		return err
 	}
 
 	go manager.start(grant)
@@ -418,4 +421,19 @@ func handleFinalizeGrantConfirm(grant *models.AccountAccessGrant) error {
 	guestSession.client.send <- jsonMessage
 
 	return nil
+}
+
+func (*WebsocketHandler) getSessionTokenFromContext(c echo.Context) (jwt.Token, error) {
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return nil, dto.NewHTTPError(http.StatusUnauthorized, "invalid or expired session token")
+	}
+	surrogateKey, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return nil, dto.NewHTTPError(http.StatusInternalServerError, "could not extract surrogate key from session token")
+	}
+	if sessionToken.Subject() != surrogateKey {
+		return nil, dto.NewHTTPError(http.StatusForbidden, "surrogate ID must match session subject")
+	}
+	return sessionToken, nil
 }

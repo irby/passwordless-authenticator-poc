@@ -76,7 +76,7 @@ func (h *WebauthnHandler) BeginRegistration(c echo.Context) error {
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 	if webauthnUser == nil {
-		return dto.NewHTTPError(http.StatusBadRequest, "user not found").SetInternal(errors.New(fmt.Sprintf("user %s not found ", uId)))
+		return dto.NewHTTPError(http.StatusBadRequest, "user not found").SetInternal(fmt.Errorf("user %s not found ", uId))
 	}
 
 	t := true
@@ -230,72 +230,7 @@ func (h *WebauthnHandler) BeginAuthentication(c echo.Context) error {
 
 	// Remove all transports, because of a bug in android and windows where the internal authenticator gets triggered,
 	// when the transports array contains the type 'internal' although the credential is not available on the device.
-	for i, _ := range options.Response.AllowedCredentials {
-		fmt.Println(className, currentMethod, "removing allowed credentials transport")
-		options.Response.AllowedCredentials[i].Transport = nil
-	}
-
-	return c.JSON(http.StatusOK, options)
-}
-
-// BeginAuthenticationFake returns faked credential assertion options for the WebAuthnAPI.
-func (h *WebauthnHandler) BeginAuthenticationFake(c echo.Context) error {
-	var currentMethod = "BeginAuthentication"
-	fmt.Println(className, currentMethod, "Starting begin authentication")
-	var request BeginAuthenticationBody
-
-	if err := (&echo.DefaultBinder{}).BindBody(c, &request); err != nil {
-		return dto.ToHttpError(err)
-	}
-
-	var options *protocol.CredentialAssertion
-	var sessionData *webauthn.SessionData
-
-	fmt.Println(className, currentMethod, "request.UserID", request.UserID)
-
-	if request.UserID != nil {
-		// non discoverable login initialization
-		userId, err := uuid.FromString(*request.UserID)
-		if err != nil {
-			return dto.NewHTTPError(http.StatusBadRequest, "failed to parse UserID as uuid").SetInternal(err)
-		}
-		webauthnUser, err := h.getWebauthnUser(h.persister.GetConnection(), userId)
-		fmt.Println(className, currentMethod, "webauthnUser", webauthnUser)
-		if err != nil {
-			return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(fmt.Errorf("failed to get user: %w", err))
-		}
-		if webauthnUser == nil {
-			return dto.NewHTTPError(http.StatusBadRequest, "user not found")
-		}
-
-		fmt.Println(className, currentMethod, len(webauthnUser.WebAuthnCredentials()))
-
-		if len(webauthnUser.WebAuthnCredentials()) > 0 {
-			fmt.Println(className, currentMethod, "inside len(webauthnUser...) block")
-			options, sessionData, err = h.webauthn.BeginLogin(webauthnUser, webauthn.WithUserVerification(protocol.VerificationRequired))
-			fmt.Println(className, currentMethod, "options", options)
-			if err != nil {
-				return fmt.Errorf("failed to create webauthn assertion options: %w", err)
-			}
-		}
-	}
-	if options == nil && sessionData == nil {
-		var err error
-		options, sessionData, err = h.webauthn.BeginDiscoverableLogin(webauthn.WithUserVerification(protocol.VerificationRequired))
-		fmt.Println(className, currentMethod, "discoverable login options", options)
-		if err != nil {
-			return fmt.Errorf("failed to create webauthn assertion options for discoverable login: %w", err)
-		}
-	}
-
-	err := h.persister.GetWebauthnSessionDataPersister().Create(*intern.WebauthnSessionDataToModel(sessionData, models.WebauthnOperationAuthentication))
-	if err != nil {
-		return fmt.Errorf("failed to store webauthn assertion session data: %w", err)
-	}
-
-	// Remove all transports, because of a bug in android and windows where the internal authenticator gets triggered,
-	// when the transports array contains the type 'internal' although the credential is not available on the device.
-	for i, _ := range options.Response.AllowedCredentials {
+	for i := range options.Response.AllowedCredentials {
 		fmt.Println(className, currentMethod, "removing allowed credentials transport")
 		options.Response.AllowedCredentials[i].Transport = nil
 	}
@@ -305,113 +240,6 @@ func (h *WebauthnHandler) BeginAuthenticationFake(c echo.Context) error {
 
 // FinishAuthentication validates the WebAuthnAPI response and on success it returns a new session JWT.
 func (h *WebauthnHandler) FinishAuthentication(c echo.Context) error {
-	var currentMethod = "FinishAuthentication"
-	fmt.Println(className, currentMethod, "Starting finish authentication")
-	request, err := protocol.ParseCredentialRequestResponse(c.Request())
-	if err != nil {
-		return dto.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	return h.persister.Transaction(func(tx *pop.Connection) error {
-		sessionDataPersister := h.persister.GetWebauthnSessionDataPersisterWithConnection(tx)
-		sessionData, err := sessionDataPersister.GetByChallenge(request.Response.CollectedClientData.Challenge)
-		fmt.Println(className, currentMethod, "session data", sessionData)
-		if err != nil {
-			return fmt.Errorf("failed to get webauthn assertion session data: %w", err)
-		}
-
-		if sessionData != nil && sessionData.Operation != models.WebauthnOperationAuthentication {
-			sessionData = nil
-		}
-
-		if sessionData == nil {
-			return dto.NewHTTPError(http.StatusUnauthorized, "Stored challenge and received challenge do not match").SetInternal(errors.New("sessionData not found"))
-		}
-
-		model := intern.WebauthnSessionDataFromModel(sessionData)
-
-		var credential *webauthn.Credential
-		var webauthnUser *intern.WebauthnUser
-		if sessionData.UserId.IsNil() {
-			fmt.Println(className, currentMethod, "sessionData.UserId.IsNil() -- discoverable login")
-			// Discoverable Login
-			userId, err := uuid.FromBytes(request.Response.UserHandle)
-			if err != nil {
-				return dto.NewHTTPError(http.StatusBadRequest, "failed to parse userHandle as uuid").SetInternal(err)
-			}
-			webauthnUser, err = h.getWebauthnUser(tx, userId)
-			fmt.Println(className, currentMethod, "getWebauthnUser response", webauthnUser)
-			if err != nil {
-				return fmt.Errorf("failed to get user: %w", err)
-			}
-
-			if webauthnUser == nil {
-				return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(errors.New("user not found"))
-			}
-
-			credential, err = h.webauthn.ValidateDiscoverableLogin(func(rawID, userHandle []byte) (user webauthn.User, err error) {
-				return webauthnUser, nil
-			}, *model, request)
-			fmt.Println(className, currentMethod, "validate discoverable login credential", credential)
-			if err != nil {
-				return dto.NewHTTPError(http.StatusUnauthorized, "failed to validate assertion").SetInternal(err)
-			}
-		} else {
-			fmt.Println(className, currentMethod, "non discoverable login path")
-			// non discoverable Login
-			webauthnUser, err = h.getWebauthnUser(tx, sessionData.UserId)
-			fmt.Println(className, currentMethod, "getWebauthnUser response", sessionData.UserId, webauthnUser)
-			if err != nil {
-				return fmt.Errorf("failed to get user: %w", err)
-			}
-			if webauthnUser == nil {
-				return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(errors.New("user not found"))
-			}
-			credential, err = h.webauthn.ValidateLogin(webauthnUser, *model, request)
-			fmt.Println(className, currentMethod, "ValidateLogin response", credential)
-			if err != nil {
-				return dto.NewHTTPError(http.StatusUnauthorized, "failed to validate assertion").SetInternal(err)
-			}
-		}
-
-		err = sessionDataPersister.Delete(*sessionData)
-		if err != nil {
-			return fmt.Errorf("failed to delete assertion session data: %w", err)
-		}
-
-		token, err := h.sessionManager.GenerateJWT(webauthnUser.UserId, webauthnUser.UserId, uuid.Nil)
-		if err != nil {
-			return fmt.Errorf("failed to generate jwt: %w", err)
-		}
-
-		cookie, err := h.sessionManager.GenerateCookie(token)
-		if err != nil {
-			return fmt.Errorf("failed to create session cookie: %w", err)
-		}
-
-		log := models.LoginAuditLog{
-			UserId:          webauthnUser.UserId,
-			ClientIpAddress: c.Request().RemoteAddr,
-			ClientUserAgent: c.Request().UserAgent(),
-			LoginMethod:     dto.LoginMethodToValue(dto.Webauthn),
-		}
-		err = h.persister.GetLoginAuditLogPersister().Create(log)
-		if err != nil {
-			return dto.NewHTTPError(http.StatusInternalServerError, "An error occurred generating login audit record", err.Error())
-		}
-
-		c.SetCookie(cookie)
-
-		if h.cfg.Session.EnableAuthTokenHeader {
-			c.Response().Header().Set("X-Auth-Token", token)
-		}
-
-		return c.JSON(http.StatusOK, map[string]string{"credential_id": base64.RawURLEncoding.EncodeToString(credential.ID), "user_id": webauthnUser.UserId.String()})
-	})
-}
-
-// FinishAuthenticationFake validates the WebAuthnAPI response and on success it returns a new session JWT.
-func (h *WebauthnHandler) FinishAuthenticationFake(c echo.Context) error {
 	var currentMethod = "FinishAuthentication"
 	fmt.Println(className, currentMethod, "Starting finish authentication")
 	request, err := protocol.ParseCredentialRequestResponse(c.Request())

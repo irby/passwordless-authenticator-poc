@@ -48,7 +48,6 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 				}
 			}
 
-
 			return NewHTTPError(http.StatusBadRequest, strings.Join(vErrs, " and "))
 		}
 	}

@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GrantService } from '../core/services/grant.service';
 import { SocketService } from '../core/services/socket.service';
+import { RouteSanitizationUtil } from '../core/utils/route-sanitization-util';
 
 @Component({
   selector: 'app-share',
@@ -50,10 +51,12 @@ export class ShareComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.isLoading = true;
 
-    this.routeSub = this.activatedRoute.params.subscribe(params => {
+    this.routeSub = this.activatedRoute.params.subscribe(params => { 
       if (!params)
         return;
-      this.id = params['id'];
+      const sanitizedRoute = RouteSanitizationUtil.sanitizeRoute(params['id'] as string);
+      this.id = sanitizedRoute.grantId;
+      this.token ??= sanitizedRoute.token;
       this.fetchGrantByIdAndToken();
     })
     this.querySub = this.activatedRoute.queryParams.subscribe(params => {
