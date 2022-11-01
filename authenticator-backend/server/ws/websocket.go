@@ -10,6 +10,8 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/teamhanko/hanko/backend/config"
 	"github.com/teamhanko/hanko/backend/crypto"
+	jwt2 "github.com/teamhanko/hanko/backend/crypto/jwt"
+	"github.com/teamhanko/hanko/backend/dto"
 	"github.com/teamhanko/hanko/backend/handler"
 	"github.com/teamhanko/hanko/backend/mail"
 	"github.com/teamhanko/hanko/backend/persistence"
@@ -267,9 +269,9 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 		return fmt.Errorf("unable to find grant %s: %w", grantId, err)
 	}
 
-	sessionToken, ok := c.Get("session").(jwt.Token)
-	if !ok {
-		return errors.New("missing or malformed jwt")
+	sessionToken, err := p.getSessionTokenFromContext(c)
+	if err != nil {
+		return err
 	}
 
 	go manager.start(grant)
@@ -418,4 +420,19 @@ func handleFinalizeGrantConfirm(grant *models.AccountAccessGrant) error {
 	guestSession.client.send <- jsonMessage
 
 	return nil
+}
+
+func (p *WebsocketHandler) getSessionTokenFromContext(c echo.Context) (jwt.Token, error) {
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return nil, dto.NewHTTPError(http.StatusUnauthorized, "invalid or expired session token")
+	}
+	surrogateKey, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return nil, dto.NewHTTPError(http.StatusInternalServerError, "could not extract surrogate key from session token")
+	}
+	if sessionToken.Subject() != surrogateKey {
+		return nil, dto.NewHTTPError(http.StatusForbidden, "surrogate ID must match session subject")
+	}
+	return sessionToken, nil
 }

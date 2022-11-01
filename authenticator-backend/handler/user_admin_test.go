@@ -15,6 +15,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	jwt2 "github.com/teamhanko/hanko/backend/crypto/jwt"
 	"github.com/teamhanko/hanko/backend/dto"
 	"github.com/teamhanko/hanko/backend/persistence"
 	"github.com/teamhanko/hanko/backend/persistence/models"
@@ -150,7 +151,7 @@ func TestUserHandlerAdmin_ToggleIsActiveForUser_UserIsAdmin_UserIsInactiveIfActi
 	handler := NewUserHandlerAdmin(persister)
 	err := handler.ToggleIsActiveForUser(c)
 	assert.NoError(t, err)
-	u, err := persister.GetUserPersister().Get(userId)
+	u, _ := persister.GetUserPersister().Get(userId)
 	assert.Equal(t, false, u.IsActive)
 }
 
@@ -180,7 +181,7 @@ func TestUserHandlerAdmin_ToggleIsActiveForUser_UserIsAdmin_UserIsActiveIfInacti
 	handler := NewUserHandlerAdmin(persister)
 	err := handler.ToggleIsActiveForUser(c)
 	assert.NoError(t, err)
-	u, err := persister.GetUserPersister().Get(userId)
+	u, _ := persister.GetUserPersister().Get(userId)
 	assert.Equal(t, true, u.IsActive)
 }
 
@@ -906,7 +907,7 @@ func setSessionToken(t *testing.T, c echo.Context, adminUser models.User) {
 	token := jwt.New()
 	err := token.Set(jwt.SubjectKey, adminUser.ID.String())
 	require.NoError(t, err)
-	err = token.Set("surr", adminUser.ID.String())
+	err = token.Set(jwt2.SurrogateKey, adminUser.ID.String())
 	require.NoError(t, err)
 	c.Set("session", token)
 }
