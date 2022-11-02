@@ -184,27 +184,9 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	})
 }
 
-func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) error {
-	grantId := c.Param("id")
-	token := c.QueryParam("token")
-
-	// Parse UID from token
-	sessionToken, ok := c.Get("session").(jwt.Token)
-	if !ok {
-		return errors.New("failed to cast session object")
-	}
-
-	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
-	if err != nil {
-		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err))
-	}
-
-	if sessionToken.Subject() != surrogateId {
+func (h *AccountSharingHandler) GetAccountShareGrantWithToken(grantId string, token string, subjectId string, surrogateId string) error {
+	if subjectId != surrogateId {
 		return dto.NewHTTPError(http.StatusForbidden)
-	}
-
-	if grantId == "" || token == "" {
-		return dto.NewHTTPError(http.StatusBadRequest, "id and token are both required")
 	}
 
 	startTime := time.Now().UTC()
@@ -218,7 +200,7 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) er
 	transactionError := h.persister.Transaction(func(tx *pop.Connection) error {
 		grantPersister := h.persister.GetAccountAccessGrantPersister()
 		grant, err := grantPersister.Get(grantUid)
-		if err != nil {
+		if err != nil || grant == nil {
 			businessError = dto.NewHTTPError(http.StatusNotFound, "grant not found")
 			return nil
 		}
@@ -242,7 +224,7 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) er
 			return nil
 		}
 
-		return c.JSON(http.StatusOK, nil)
+		return nil
 	})
 
 	if businessError != nil {
