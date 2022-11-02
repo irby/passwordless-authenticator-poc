@@ -13,42 +13,25 @@ import (
 	"time"
 )
 
-func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfSubjectIdDoesNotEqualSurrogateId(t *testing.T) {
-	handler := generateHandler(t)
-
-	subjectId := generateUuid(t)
-	surrogateId := generateUuid(t)
-
-	err := handler.GetAccountShareGrantWithToken("", "", subjectId.String(), surrogateId.String())
-	assert.Error(t, err)
-	assert.Equal(t, http.StatusForbidden, dto.ToHttpError(err).Code)
-}
-
 func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfGrantUidCannotBeParsed(t *testing.T) {
 	handler := generateHandler(t)
 
-	subjectId := generateUuid(t)
-
-	err := handler.GetAccountShareGrantWithToken("hellothisisnotaguid", "booooooooooooooo", subjectId.String(), subjectId.String())
+	err := handler.GetAccountShareGrantWithToken("hellothisisnotaguid", "booooooooooooooo")
 	assert.Error(t, err)
 	assert.Equal(t, http.StatusBadRequest, dto.ToHttpError(err).Code)
 }
 
 func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfGrantCantBeFound(t *testing.T) {
 	handler := generateHandler(t)
-
-	subjectId := generateUuid(t)
 	grantId := generateUuid(t)
 
-	err := handler.GetAccountShareGrantWithToken(grantId.String(), "booooooooooooooo", subjectId.String(), subjectId.String())
+	err := handler.GetAccountShareGrantWithToken(grantId.String(), "booooooooooooooo")
 	assert.Error(t, err)
 	assert.Equal(t, http.StatusNotFound, dto.ToHttpError(err).Code)
 }
 
 func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfGrantIsNotActive(t *testing.T) {
 	handler := generateHandler(t)
-
-	subjectId := generateUuid(t)
 	grantId := generateUuid(t)
 
 	handler.persister.GetAccountAccessGrantPersister().
@@ -57,7 +40,7 @@ func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfGrantIsNotActi
 			IsActive: false,
 		})
 
-	err := handler.GetAccountShareGrantWithToken(grantId.String(), "booooooooooooooo", subjectId.String(), subjectId.String())
+	err := handler.GetAccountShareGrantWithToken(grantId.String(), "booooooooooooooo")
 	assert.Error(t, err)
 	assert.Equal(t, http.StatusNotFound, dto.ToHttpError(err).Code)
 }
@@ -65,7 +48,6 @@ func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfGrantIsNotActi
 func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfGrantIsExpired(t *testing.T) {
 	handler := generateHandler(t)
 
-	subjectId := generateUuid(t)
 	grantId := generateUuid(t)
 
 	handler.persister.GetAccountAccessGrantPersister().
@@ -76,7 +58,7 @@ func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfGrantIsExpired
 			Ttl:       10,
 		})
 
-	err := handler.GetAccountShareGrantWithToken(grantId.String(), "booooooooooooooo", subjectId.String(), subjectId.String())
+	err := handler.GetAccountShareGrantWithToken(grantId.String(), "booooooooooooooo")
 	assert.Error(t, err)
 	assert.Equal(t, http.StatusRequestTimeout, dto.ToHttpError(err).Code)
 }
@@ -84,7 +66,6 @@ func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfGrantIsExpired
 func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfTokenIsInvalid(t *testing.T) {
 	handler := generateHandler(t)
 
-	subjectId := generateUuid(t)
 	grantId := generateUuid(t)
 
 	token := "thisisatesttoken"
@@ -98,7 +79,7 @@ func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfTokenIsInvalid
 			Token:     generateHash(t, token),
 		})
 
-	err := handler.GetAccountShareGrantWithToken(grantId.String(), "booooooooooooooo", subjectId.String(), subjectId.String())
+	err := handler.GetAccountShareGrantWithToken(grantId.String(), "booooooooooooooo")
 	assert.Error(t, err)
 	assert.Equal(t, http.StatusNotFound, dto.ToHttpError(err).Code)
 }
@@ -106,7 +87,6 @@ func Test_AccountSharingHandler_GetAccountShareWithToken_Errors_IfTokenIsInvalid
 func Test_AccountSharingHandler_GetAccountShareWithToken_DoesNotError_IfGrantIsActiveAndTokenIsCorrect(t *testing.T) {
 	handler := generateHandler(t)
 
-	subjectId := generateUuid(t)
 	grantId := generateUuid(t)
 
 	token := "thisisatesttoken"
@@ -120,7 +100,7 @@ func Test_AccountSharingHandler_GetAccountShareWithToken_DoesNotError_IfGrantIsA
 			Token:     generateHash(t, token),
 		})
 
-	err := handler.GetAccountShareGrantWithToken(grantId.String(), token, subjectId.String(), subjectId.String())
+	err := handler.GetAccountShareGrantWithToken(grantId.String(), token)
 	assert.NoError(t, err)
 }
 

@@ -25,7 +25,7 @@ func TestWebSocketHandler_getSessionTokenFromContext_NoError_WhenSurrogateIsEqua
 	assert.NotNil(t, token)
 }
 
-func TestWebSocketHandler_getSessionTokenFromContext_Errors_WhenSurrogateIsNotEqualToSubject(t *testing.T) {
+func TestWebSocketHandler_validateSessionToken_Errors_WhenSurrogateIsNotEqualToSubject(t *testing.T) {
 	handler := generateWebsocketHandler(t)
 	c := generateContext()
 	uId1 := generateUuid()
@@ -34,8 +34,11 @@ func TestWebSocketHandler_getSessionTokenFromContext_Errors_WhenSurrogateIsNotEq
 
 	token, err := handler.getSessionTokenFromContext(c)
 
+	assert.NoError(t, err)
+
+	err = handler.validateSessionToken(token)
+
 	assert.Error(t, err)
-	assert.Nil(t, token)
 
 	httpError := dto.ToHttpError(err)
 	assert.Equal(t, http.StatusForbidden, httpError.Code)
@@ -48,8 +51,11 @@ func TestWebSocketHandler_getSessionTokenFromContext_Errors_WhenSessionTokenIsIn
 
 	token, err := handler.getSessionTokenFromContext(c)
 
+	assert.NoError(t, err)
+
+	err = handler.validateSessionToken(token)
+
 	assert.Error(t, err)
-	assert.Nil(t, token)
 
 	httpError := dto.ToHttpError(err)
 	assert.Equal(t, http.StatusInternalServerError, httpError.Code)

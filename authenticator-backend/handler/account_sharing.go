@@ -185,11 +185,7 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	})
 }
 
-func (h *AccountSharingHandler) GetAccountShareGrantWithToken(grantId string, token string, subjectId string, surrogateId string) error {
-	if subjectId != surrogateId {
-		return dto.NewHTTPError(http.StatusForbidden)
-	}
-
+func (h *AccountSharingHandler) GetAccountShareGrantWithToken(grantId string, token string) error {
 	startTime := time.Now().UTC()
 
 	grantUid, err := uuid.FromString(grantId)
@@ -222,7 +218,6 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(grantId string, to
 		// Return same HTTP code for (grant ID not found) and (token invalid) to prevent disclosing which condition failed
 		if err != nil {
 			businessError = dto.NewHTTPError(http.StatusNotFound, "grant not found")
-			return nil
 		}
 
 		return nil

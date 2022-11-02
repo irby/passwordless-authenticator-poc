@@ -3,6 +3,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GrantService } from '../core/services/grant.service';
+import { NotificationService } from '../core/services/notification.service';
 import { SocketService } from '../core/services/socket.service';
 import { RouteSanitizationUtil } from '../core/utils/route-sanitization-util';
 
@@ -37,6 +38,7 @@ export class ShareComponent implements OnInit, OnDestroy {
     private readonly socket: SocketService, 
     private readonly grantService: GrantService, 
     private readonly activatedRoute: ActivatedRoute,
+    private readonly notificationService: NotificationService,
     private readonly router: Router) { 
     this.messages = [];
     this.chatBox = "";
@@ -100,6 +102,11 @@ export class ShareComponent implements OnInit, OnDestroy {
           case MessageCode.AccessGrantFailure:
             this.handleAccessGrantValue(false);
             break;
+          case MessageCode.BadSessionToken:
+            this.handleBadSessionToken();
+            break;
+          case MessageCode.InvalidGrantIdOrToken:
+            this.handleInvalidGrantIdOrToken(message.parsedContent);
         }
 
         let data = event.data;
@@ -109,7 +116,7 @@ export class ShareComponent implements OnInit, OnDestroy {
         this.messages.push(data)
       }
       if (event.type === 'close') {
-        this.errorText = 'Disconnected -- either too many connections or already connected in another window'
+        this.errorText = 'Disconnected -- either an error occurred, too many connections, or already connected in another window'
       }
     })
   }
@@ -132,27 +139,8 @@ export class ShareComponent implements OnInit, OnDestroy {
     if (!this.id || !this.token) {
       return;
     }
-    const grantData = await this.grantService.getGrantByIdAndToken(this.id, this.token);
+    await this.socket?.createAndAssignSocket(this.id, this.token);
     this.isLoading = false;
-
-    if (grantData.type === 'data') {
-      this.socket?.createAndAssignSocket(this.id);
-      return;
-    }
-
-    switch (grantData.statusCode) {
-      case HttpStatusCode.RequestTimeout:
-        this.errorText = "Request timed out. Please submit a new request";
-        break;
-      case HttpStatusCode.Forbidden:
-        this.errorText = "Accessing grant not allowed. Are you logged in as another user? If so, log back into your account and try again.";
-        break;
-      case HttpStatusCode.NotFound:
-        this.errorText = "Invalid id or token.";
-        break;
-      default:
-        this.errorText = "Unknown error occurred.";
-    }
   }
 
   private handleConnectedSession(): void {
@@ -192,6 +180,23 @@ export class ShareComponent implements OnInit, OnDestroy {
   private handleAccessGrantValue(isSuccess : boolean): void {
     this.accessGrantSuccessful = isSuccess;
   }
+
+  private handleInvalidGrantIdOrToken(message: SocketMessage): void {
+    switch (message.message) {
+      case `${HttpStatusCode.NotFound}`:
+        this.notificationService.dismissibleError('Invalid ID or token', 'Grant not found');
+        break;
+      case `${HttpStatusCode.RequestTimeout}`:
+        this.notificationService.dismissibleError('Grant has expired. Please submit invite again.', 'Request expired');
+        break;
+      default:
+        this.notificationService.dismissibleError('An unexpected error occurred. Please try your request again');
+    }
+  }
+
+  private handleBadSessionToken(): void {
+    this.notificationService.dismissibleError("Are you logged in as another user? If so, please log back into your account and try again.", "Access not allowed");
+  }
 }
 
 export interface Message {
@@ -229,6 +234,9 @@ export enum MessageCode {
 	CancelSubRegistrationConfirm     = 503,
 
   AccessGrantSuccess = 601,
-  AccessGrantFailure = 602
+  AccessGrantFailure = 602,
+  
+  BadSessionToken = 701,
+  InvalidGrantIdOrToken = 702,
 }
 

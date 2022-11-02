@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	jwt2 "github.com/teamhanko/hanko/backend/crypto/jwt"
 	"net/http"
 	"strings"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/teamhanko/hanko/backend/config"
 	"github.com/teamhanko/hanko/backend/crypto"
-	jwt2 "github.com/teamhanko/hanko/backend/crypto/jwt"
 	"github.com/teamhanko/hanko/backend/dto"
 	"github.com/teamhanko/hanko/backend/handler"
 	"github.com/teamhanko/hanko/backend/mail"
@@ -69,6 +69,9 @@ const (
 
 	AccessGrantSuccess = 601
 	AccessGrantFailure = 602
+
+	BadSessionToken       = 701
+	InvalidGrantIdOrToken = 702
 )
 
 type SocketMessage struct {
@@ -264,11 +267,8 @@ func (c *Client) write() {
 
 func (p *WebsocketHandler) WsPage(c echo.Context) error {
 	grantId := c.Param("id")
+	token := c.QueryParam("token")
 	grant, err := p.persister.GetAccountAccessGrantPersister().Get(uuid.FromStringOrNil(grantId))
-
-	if err != nil {
-		return fmt.Errorf("unable to find grant %s: %w", grantId, err)
-	}
 
 	sessionToken, err := p.getSessionTokenFromContext(c)
 	if err != nil {
@@ -293,7 +293,7 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 		return fmt.Errorf("")
 	}
 
-	clientKey := createClientKey(sessionToken.Subject(), grant.ID)
+	clientKey := createClientKeyFromString(sessionToken.Subject(), grantId)
 
 	for existingConn := range manager.clients {
 		if existingConn.id == clientKey {
@@ -301,6 +301,25 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 			conn.Close()
 			conn.WriteMessage(websocket.CloseMessage, []byte{})
 		}
+	}
+
+	if p.validateSessionToken(sessionToken) != nil {
+		jsonMessage, _ := json.Marshal(&SocketMessage{Code: BadSessionToken})
+		jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
+		conn.WriteMessage(websocket.TextMessage, jsonMessage)
+		conn.Close()
+		conn.WriteMessage(websocket.CloseMessage, []byte{})
+	}
+
+	err = p.accountSharingHandler.GetAccountShareGrantWithToken(grantId, token)
+
+	if err != nil {
+		httpErr := dto.ToHttpError(err)
+		jsonMessage, _ := json.Marshal(&SocketMessage{Code: InvalidGrantIdOrToken, Message: fmt.Sprintf("%d", httpErr.Code)})
+		jsonMessage, _ = json.Marshal(&Message{Content: string(jsonMessage)})
+		conn.WriteMessage(websocket.TextMessage, jsonMessage)
+		conn.Close()
+		conn.WriteMessage(websocket.CloseMessage, []byte{})
 	}
 
 	if len(manager.clients) >= 2 {
@@ -428,12 +447,16 @@ func (*WebsocketHandler) getSessionTokenFromContext(c echo.Context) (jwt.Token, 
 	if !ok {
 		return nil, dto.NewHTTPError(http.StatusUnauthorized, "invalid or expired session token")
 	}
-	surrogateKey, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
-	if err != nil {
-		return nil, dto.NewHTTPError(http.StatusInternalServerError, "could not extract surrogate key from session token")
-	}
-	if sessionToken.Subject() != surrogateKey {
-		return nil, dto.NewHTTPError(http.StatusForbidden, "surrogate ID must match session subject")
-	}
 	return sessionToken, nil
+}
+
+func (*WebsocketHandler) validateSessionToken(token jwt.Token) error {
+	surrogateKey, err := jwt2.GetSurrogateKeyFromToken(token)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusInternalServerError, "could not extract surrogate key from session token")
+	}
+	if token.Subject() != surrogateKey {
+		return dto.NewHTTPError(http.StatusForbidden, "surrogate ID must match session subject")
+	}
+	return nil
 }
