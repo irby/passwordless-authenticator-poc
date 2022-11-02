@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -17,8 +20,6 @@ import (
 	"github.com/teamhanko/hanko/backend/persistence"
 	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/session"
-	"net/http"
-	"strings"
 )
 
 type WebsocketHandler struct {
@@ -46,11 +47,11 @@ type MessageCode int64
 
 const (
 	ConnectedSession     MessageCode = 101
-	DisconnectedSession              = 102
-	SessionRequest                   = 103
-	SessionAlreadyExists             = 104
-	TooManySessions                  = 105
-	AllPartiesPresent                = 106
+	DisconnectedSession  MessageCode = 102
+	SessionRequest       MessageCode = 103
+	SessionAlreadyExists MessageCode = 104
+	TooManySessions      MessageCode = 105
+	AllPartiesPresent    MessageCode = 106
 
 	ClientInformation      = 201
 	IsPrimaryAccountHolder = 202
@@ -422,7 +423,7 @@ func handleFinalizeGrantConfirm(grant *models.AccountAccessGrant) error {
 	return nil
 }
 
-func (p *WebsocketHandler) getSessionTokenFromContext(c echo.Context) (jwt.Token, error) {
+func (*WebsocketHandler) getSessionTokenFromContext(c echo.Context) (jwt.Token, error) {
 	sessionToken, ok := c.Get("session").(jwt.Token)
 	if !ok {
 		return nil, dto.NewHTTPError(http.StatusUnauthorized, "invalid or expired session token")
