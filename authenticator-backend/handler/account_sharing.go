@@ -4,6 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
@@ -18,9 +22,6 @@ import (
 	"github.com/teamhanko/hanko/backend/session"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/gomail.v2"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 type AccountSharingHandler struct {
@@ -238,13 +239,16 @@ func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primar
 	startTime := time.Now().UTC()
 	grant, err := h.persister.GetAccountAccessGrantPersister().Get(grantId)
 
-	if err != nil {
-		fmt.Println("Unable to find grant: ", err)
-		return err
+	if err != nil || grant == nil {
+		return fmt.Errorf("unable to find grant: %w", err)
 	}
 
 	if primaryUserId != grant.UserId {
 		return errors.New("primary user ID does not match grant's user ID")
+	}
+
+	if !grant.IsActive {
+		return errors.New("grant is no longer active")
 	}
 
 	if guestUserId == primaryUserId {
