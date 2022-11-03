@@ -142,7 +142,7 @@ func (g *manager) Verify(token string) (jwt.Token, error) {
 
 	if surrogateId != parsedToken.Subject() {
 		grantId, err := hankoJwt.GetGrantKeyFromToken(parsedToken)
-		if err != nil {
+		if err != nil || grantId == "" {
 			return nil, fmt.Errorf("unable to pull grant key from jwt: %w", err)
 		}
 
@@ -152,6 +152,14 @@ func (g *manager) Verify(token string) (jwt.Token, error) {
 		}
 		if !grant.IsActive {
 			return nil, fmt.Errorf("grant %s is not active", grant.ID)
+		}
+
+		guestUser, err := g.persister.GetUserPersister().Get(uuid.FromStringOrNil(surrogateId))
+		if err != nil || guestUser == nil {
+			return nil, fmt.Errorf("could not find guest user id %s", surrogateId)
+		}
+		if !guestUser.IsActive {
+			return nil, fmt.Errorf("guest user id %s is no longer active", surrogateId)
 		}
 	}
 

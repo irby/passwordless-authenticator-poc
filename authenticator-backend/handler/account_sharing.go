@@ -4,6 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
@@ -18,9 +22,6 @@ import (
 	"github.com/teamhanko/hanko/backend/session"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/gomail.v2"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 type AccountSharingHandler struct {
@@ -184,29 +185,7 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	})
 }
 
-func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) error {
-	grantId := c.Param("id")
-	token := c.QueryParam("token")
-
-	// Parse UID from token
-	sessionToken, ok := c.Get("session").(jwt.Token)
-	if !ok {
-		return errors.New("failed to cast session object")
-	}
-
-	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
-	if err != nil {
-		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err))
-	}
-
-	if sessionToken.Subject() != surrogateId {
-		return dto.NewHTTPError(http.StatusForbidden)
-	}
-
-	if grantId == "" || token == "" {
-		return dto.NewHTTPError(http.StatusBadRequest, "id and token are both required")
-	}
-
+func (h *AccountSharingHandler) GetAccountShareGrantWithToken(grantId string, token string) error {
 	startTime := time.Now().UTC()
 
 	grantUid, err := uuid.FromString(grantId)
@@ -218,7 +197,7 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) er
 	transactionError := h.persister.Transaction(func(tx *pop.Connection) error {
 		grantPersister := h.persister.GetAccountAccessGrantPersister()
 		grant, err := grantPersister.Get(grantUid)
-		if err != nil {
+		if err != nil || grant == nil {
 			businessError = dto.NewHTTPError(http.StatusNotFound, "grant not found")
 			return nil
 		}
@@ -239,10 +218,9 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(c echo.Context) er
 		// Return same HTTP code for (grant ID not found) and (token invalid) to prevent disclosing which condition failed
 		if err != nil {
 			businessError = dto.NewHTTPError(http.StatusNotFound, "grant not found")
-			return nil
 		}
 
-		return c.JSON(http.StatusOK, nil)
+		return nil
 	})
 
 	if businessError != nil {
@@ -256,13 +234,16 @@ func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primar
 	startTime := time.Now().UTC()
 	grant, err := h.persister.GetAccountAccessGrantPersister().Get(grantId)
 
-	if err != nil {
-		fmt.Println("Unable to find grant: ", err)
-		return err
+	if err != nil || grant == nil {
+		return fmt.Errorf("unable to find grant: %w", err)
 	}
 
 	if primaryUserId != grant.UserId {
 		return errors.New("primary user ID does not match grant's user ID")
+	}
+
+	if !grant.IsActive {
+		return errors.New("grant is no longer active")
 	}
 
 	if guestUserId == primaryUserId {
