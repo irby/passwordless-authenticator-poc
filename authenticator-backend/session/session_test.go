@@ -316,11 +316,11 @@ var privateKey = `{
 
 type jwkManager struct{}
 
-func (m *jwkManager) GenerateKey() (jwk.Key, error) {
+func (*jwkManager) GenerateKey() (jwk.Key, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (m *jwkManager) GetPublicKeys() (jwk.Set, error) {
+func (*jwkManager) GetPublicKeys() (jwk.Set, error) {
 	key, err := getJwk()
 	if err != nil {
 		return nil, err
@@ -337,7 +337,7 @@ func (m *jwkManager) GetPublicKeys() (jwk.Set, error) {
 	return set, nil
 }
 
-func (m *jwkManager) GetSigningKey() (jwk.Key, error) {
+func (*jwkManager) GetSigningKey() (jwk.Key, error) {
 	return getJwk()
 }
 

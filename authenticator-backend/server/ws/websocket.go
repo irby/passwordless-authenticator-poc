@@ -268,7 +268,7 @@ func (c *Client) write() {
 func (p *WebsocketHandler) WsPage(c echo.Context) error {
 	grantId := c.Param("id")
 	token := c.QueryParam("token")
-	grant, err := p.persister.GetAccountAccessGrantPersister().Get(uuid.FromStringOrNil(grantId))
+	grant, _ := p.persister.GetAccountAccessGrantPersister().Get(uuid.FromStringOrNil(grantId))
 
 	sessionToken, err := p.getSessionTokenFromContext(c)
 	if err != nil {
@@ -360,10 +360,6 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 	go client.write()
 
 	return nil
-}
-
-func createClientKey(subject string, grantId uuid.UUID) string {
-	return createClientKeyFromString(subject, grantId.String())
 }
 
 func createClientKeyFromString(subject string, grantId string) string {
