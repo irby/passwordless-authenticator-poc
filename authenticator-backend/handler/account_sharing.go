@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/teamhanko/hanko/backend/dto/intern"
 	"net/http"
 	"strconv"
 	"time"
@@ -33,6 +36,7 @@ type AccountSharingHandler struct {
 	emailConfig     config.Email
 	serviceConfig   config.Service
 	cfg             *config.Config
+	webauthn        *webauthn.WebAuthn
 }
 
 const TimeToLiveMinutes = 15 // TODO: make into a config value
@@ -42,6 +46,21 @@ func NewAccountSharingHandler(cfg *config.Config, persister persistence.Persiste
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new renderer: %w", err)
 	}
+	f := false
+	wa, err := webauthn.New(&webauthn.Config{
+		RPDisplayName:         cfg.Webauthn.RelyingParty.DisplayName,
+		RPID:                  cfg.Webauthn.RelyingParty.Id,
+		RPOrigin:              cfg.Webauthn.RelyingParty.Origin,
+		AttestationPreference: protocol.PreferNoAttestation,
+		AuthenticatorSelection: protocol.AuthenticatorSelection{
+			RequireResidentKey: &f,
+			ResidentKey:        protocol.ResidentKeyRequirementDiscouraged,
+			UserVerification:   protocol.VerificationRequired,
+		},
+		Timeout: cfg.Webauthn.Timeout,
+		Debug:   false,
+	})
+
 	return &AccountSharingHandler{
 		mailer:          mailer,
 		renderer:        renderer,
@@ -51,6 +70,7 @@ func NewAccountSharingHandler(cfg *config.Config, persister persistence.Persiste
 		serviceConfig:   cfg.Service,
 		sessionManager:  sessionManager,
 		cfg:             cfg,
+		webauthn:        wa,
 	}, nil
 }
 
@@ -148,9 +168,6 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 		return fmt.Errorf("failed to render email template: %w", err)
 	}
 
-	fmt.Println("Sender email body", str1)
-	fmt.Println("=====================================================")
-
 	messageToUser := gomail.NewMessage(gomail.SetEncoding(gomail.Base64))
 	messageToUser.SetAddressHeader("To", user.Email, "")
 	messageToUser.SetAddressHeader("From", "no-reply@hanko.io", "Hanko")
@@ -161,8 +178,6 @@ func (h *AccountSharingHandler) BeginShare(c echo.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to render email template: %w", err)
 	}
-
-	fmt.Println("Receiver email body", str2)
 
 	messageToReceiver := gomail.NewMessage(gomail.SetEncoding(gomail.Base64))
 	messageToReceiver.SetAddressHeader("To", request.Email, "")
@@ -228,6 +243,124 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(grantId string, to
 	}
 
 	return transactionError
+}
+
+type BeginCreateAccountWithGrantRequest struct {
+	GuestUserId string `param:"guestUserId" validate:"required,uuid4"`
+	GrantId     string `param:"grantId" validate:"required,uuid4"`
+}
+
+func (h *AccountSharingHandler) BeginCreateAccountWithGrant(c echo.Context) error {
+	var request BeginCreateAccountWithGrantRequest
+	if err := c.Bind(&request); err != nil {
+		return dto.ToHttpError(err)
+	}
+	if err := c.Validate(request); err != nil {
+		return dto.ToHttpError(err)
+	}
+	sessionToken, err := h.validateTokenForPrimaryAccountHolder(c)
+	if err != nil {
+		return err
+	}
+
+	guestUser, err := h.persister.GetUserPersister().Get(uuid.FromStringOrNil(request.GuestUserId))
+	if err != nil || guestUser == nil {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(fmt.Errorf("unable to find user id %s", request.GuestUserId))
+	}
+
+	grant, err := h.persister.GetAccountAccessGrantPersister().Get(uuid.FromStringOrNil(request.GrantId))
+	if err != nil || grant == nil {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(fmt.Errorf("unable to find a grant with ID %s", request.GrantId))
+	}
+
+	var options *protocol.CredentialAssertion
+	var sessionData *webauthn.SessionData
+
+	webauthnUser, err := h.getWebauthnUser(h.persister.GetConnection(), uuid.FromStringOrNil(sessionToken.Subject()))
+
+	if webauthnUser == nil {
+		return dto.NewHTTPError(http.StatusBadRequest, "user not found")
+	}
+
+	if len(webauthnUser.WebAuthnCredentials()) > 0 {
+		options, sessionData, err = h.webauthn.BeginLogin(webauthnUser, webauthn.WithUserVerification(protocol.VerificationRequired))
+		if err != nil {
+			return fmt.Errorf("failed to create webauthn assertion options: %w", err)
+		}
+	}
+
+	if options == nil && sessionData == nil {
+		var err error
+		options, sessionData, err = h.webauthn.BeginDiscoverableLogin(webauthn.WithUserVerification(protocol.VerificationRequired))
+		if err != nil {
+			return fmt.Errorf("failed to create webauthn assertion options for discoverable login: %w", err)
+		}
+	}
+
+	err = h.persister.GetWebauthnSessionDataPersister().Create(*intern.WebauthnSessionDataToModel(sessionData, models.WebauthnOperationAuthentication))
+	if err != nil {
+		return fmt.Errorf("failed to store webauthn assertion session data: %w", err)
+	}
+
+	// Remove all transports, because of a bug in android and windows where the internal authenticator gets triggered,
+	// when the transports array contains the type 'internal' although the credential is not available on the device.
+	for i := range options.Response.AllowedCredentials {
+		options.Response.AllowedCredentials[i].Transport = nil
+	}
+
+	return c.JSON(http.StatusOK, options)
+}
+
+func (h *AccountSharingHandler) FinishCreateAccountWithGrant(c echo.Context) error {
+	return nil
+	//var request BeginCreateAccountWithGrantRequest
+	//if err := c.Bind(&request); err != nil {
+	//	return dto.ToHttpError(err)
+	//}
+	//if err := c.Validate(request); err != nil {
+	//	return dto.ToHttpError(err)
+	//}
+	//sessionToken, err := h.validateTokenForPrimaryAccountHolder(c)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//var options *protocol.CredentialAssertion
+	//var sessionData *webauthn.SessionData
+	//
+	//webauthnUser, err := h.getWebauthnUser(h.persister.GetConnection(), uuid.FromStringOrNil(sessionToken.Subject()))
+	//
+	//if webauthnUser == nil {
+	//	return dto.NewHTTPError(http.StatusBadRequest, "user not found")
+	//}
+	//
+	//if len(webauthnUser.WebAuthnCredentials()) > 0 {
+	//	options, sessionData, err = h.webauthn.BeginLogin(webauthnUser, webauthn.WithUserVerification(protocol.VerificationRequired))
+	//	if err != nil {
+	//		return fmt.Errorf("failed to create webauthn assertion options: %w", err)
+	//	}
+	//}
+	//
+	//if options == nil && sessionData == nil {
+	//	var err error
+	//	options, sessionData, err = h.webauthn.BeginDiscoverableLogin(webauthn.WithUserVerification(protocol.VerificationRequired))
+	//	if err != nil {
+	//		return fmt.Errorf("failed to create webauthn assertion options for discoverable login: %w", err)
+	//	}
+	//}
+	//
+	//err = h.persister.GetWebauthnSessionDataPersister().Create(*intern.WebauthnSessionDataToModel(sessionData, models.WebauthnOperationAuthentication))
+	//if err != nil {
+	//	return fmt.Errorf("failed to store webauthn assertion session data: %w", err)
+	//}
+	//
+	//// Remove all transports, because of a bug in android and windows where the internal authenticator gets triggered,
+	//// when the transports array contains the type 'internal' although the credential is not available on the device.
+	//for i := range options.Response.AllowedCredentials {
+	//	options.Response.AllowedCredentials[i].Transport = nil
+	//}
+	//
+	//return c.JSON(http.StatusOK, options)
 }
 
 func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primaryUserId uuid.UUID, guestUserId uuid.UUID) error {
@@ -296,4 +429,37 @@ func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primar
 	h.persister.GetUserGuestRelationPersister().Create(userGuestRelation)
 
 	return nil
+}
+
+func (*AccountSharingHandler) validateTokenForPrimaryAccountHolder(c echo.Context) (jwt.Token, error) {
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok {
+		return nil, dto.NewHTTPError(http.StatusUnauthorized)
+	}
+	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil {
+		return nil, dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("unable to get surrogate ID from token: %w", err))
+	}
+	if sessionToken.Subject() != surrogateId {
+		return nil, dto.NewHTTPError(http.StatusForbidden).SetInternal(fmt.Errorf("call cannot be made by a guest user"))
+	}
+	return sessionToken, nil
+}
+
+func (h AccountSharingHandler) getWebauthnUser(connection *pop.Connection, userId uuid.UUID) (*intern.WebauthnUser, error) {
+	user, err := h.persister.GetUserPersisterWithConnection(connection).Get(userId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	if user == nil {
+		return nil, nil
+	}
+
+	credentials, err := h.persister.GetWebauthnCredentialPersisterWithConnection(connection).GetFromUser(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get webauthn credentials: %w", err)
+	}
+
+	return intern.NewWebauthnUser(*user, credentials), nil
 }

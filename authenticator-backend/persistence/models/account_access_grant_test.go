@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -72,4 +73,10 @@ func Test_IsLoginsAllowedPopulated_WhenExpireByLoginsTrueAndValidIsFalse_Returns
 	}
 	result := IsLoginsAllowedPopulated(&grant)
 	assert.False(t, result())
+}
+
+func generateUuid(t *testing.T) uuid.UUID {
+	uId, err := uuid.NewV4()
+	assert.NoError(t, err)
+	return uId
 }
