@@ -422,57 +422,319 @@ func Test_AccountSharingHandler_BeginCreateAccountWithGrant_Errors_WhenGrantIdCa
 	assert.Equal(t, http.StatusNotFound, dto.ToHttpError(err).Code)
 }
 
-//func Test_AccountSharingHandler_FinishCreateAccountWithGrant_WhenRequestIsValid_CreatesAccount(t *testing.T) {
-//	handler := generateHandler(t)
-//
-//	primaryUser := models.User{
-//		ID:       generateUuid(t),
-//		Email:    "hello@example.com",
-//		IsActive: true,
-//	}
-//	guestUser := models.User{
-//		ID:       generateUuid(t),
-//		Email:    "world@example.com",
-//		IsActive: true,
-//	}
-//	grant := models.AccountAccessGrant{
-//		ID:        generateUuid(t),
-//		UserId:    primaryUser.ID,
-//		IsActive:  true,
-//		CreatedAt: time.Now().UTC(),
-//		Ttl:       TimeToLiveMinutes,
-//	}
-//
-//	handler.persister.GetUserPersister().Create(primaryUser)
-//	handler.persister.GetUserPersister().Create(guestUser)
-//	handler.persister.GetAccountAccessGrantPersister().Create(grant)
-//
-//	body := fmt.Sprintf(`{
-//"guestUserId": "%s",
-//"grantId": "%s"
-//	}`, guestUser.ID.String(), grant.ID.String())
-//
-//	e := echo.New()
-//	e.Validator = dto.NewCustomValidator()
-//	req := httptest.NewRequest(http.MethodPost, "/begin-create-account-with-grant", strings.NewReader(body))
-//	req.Header.Set("Content-Type", "application/json")
-//	rec := httptest.NewRecorder()
-//	c := e.NewContext(req, rec)
-//	c.Set("session", generateJwt(t, primaryUser.ID, primaryUser.ID, 60))
-//
-//	if assert.NoError(t, handler.BeginCreateAccountWithGrant(c)) {
-//		assert.Equal(t, http.StatusOK, rec.Result().StatusCode)
-//		assertionOptions := protocol.CredentialAssertion{}
-//		err := json.Unmarshal(rec.Body.Bytes(), &assertionOptions)
-//		assert.NoError(t, err)
-//		assert.NotEmpty(t, assertionOptions.Response.Challenge)
-//		assert.Equal(t, assertionOptions.Response.UserVerification, protocol.VerificationRequired)
-//		assert.Equal(t, defaultConfig.Webauthn.RelyingParty.Id, assertionOptions.Response.RelyingPartyID)
-//	}
-//}
+func Test_AccountSharingHandler_FinishCreateAccountWithGrant_WhenRequestIsValid_CreatesAccount(t *testing.T) {
+	handler := generateHandler(t)
+
+	primaryUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "hello@example.com",
+		IsActive: true,
+	}
+	guestUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "world@example.com",
+		IsActive: true,
+	}
+	grant := models.AccountAccessGrant{
+		ID:        generateUuid(t),
+		UserId:    primaryUser.ID,
+		IsActive:  true,
+		CreatedAt: time.Now().UTC(),
+		Ttl:       TimeToLiveMinutes,
+	}
+
+	handler.persister.GetUserPersister().Create(primaryUser)
+	handler.persister.GetUserPersister().Create(guestUser)
+	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+
+	formattedBody := fmt.Sprintf(signedRequestBody, guestUser.ID, grant.ID, "")
+
+	e := echo.New()
+	e.Validator = dto.NewCustomValidator()
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/finalize-create-account-with-grant?guestUserId=%s&grantId=%s", guestUser.ID, grant.ID), strings.NewReader(formattedBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("session", generateJwt(t, primaryUser.ID, primaryUser.ID, 60))
+
+	if assert.NoError(t, handler.FinishCreateAccountWithGrant(c)) {
+		assert.Equal(t, http.StatusOK, rec.Result().StatusCode)
+		relation, err := handler.persister.GetUserGuestRelationPersister().GetByGuestUserId(&guestUser.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(relation))
+		assert.Equal(t, primaryUser.ID, relation[0].ParentUserID)
+		assert.Equal(t, guestUser.ID, relation[0].GuestUserID)
+		// TODO: Test attestation
+	}
+}
+
+func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenRequestIsMissingField(t *testing.T) {
+	handler := generateHandler(t)
+
+	primaryUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "hello@example.com",
+		IsActive: true,
+	}
+	guestUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "world@example.com",
+		IsActive: true,
+	}
+	grant := models.AccountAccessGrant{
+		ID:        generateUuid(t),
+		UserId:    primaryUser.ID,
+		IsActive:  true,
+		CreatedAt: time.Now().UTC(),
+		Ttl:       TimeToLiveMinutes,
+	}
+
+	handler.persister.GetUserPersister().Create(primaryUser)
+	handler.persister.GetUserPersister().Create(guestUser)
+	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+
+	// Missing authenticator data
+	body := `{
+"id": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
+"rawId": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
+"type": "public-key",
+"response": {
+"clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZ0tKS21oOTB2T3BZTzU1b0hwcWFIWF9vTUNxNG9UWnQtRDBiNnRlSXpyRSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+"signature": "MEYCIQDi2vYVspG6pf38I4GyQCPOojGbvX4nwSPXCi0hm80twAIhAO3EWjhAnj0UpjU_l0AH5sEh3zq4LDvkvo3AUqaqfGYD",
+"userHandle": "7E7wSVuIQyGhcyGw7_BqBA"
+}
+}`
+
+	e := echo.New()
+	e.Validator = dto.NewCustomValidator()
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/finalize-create-account-with-grant?guestUserId=%s&grantId=%s", guestUser.ID, grant.ID), strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("session", generateJwt(t, primaryUser.ID, primaryUser.ID, 60))
+
+	err := handler.FinishCreateAccountWithGrant(c)
+	assert.Error(t, err)
+	assert.Equal(t, http.StatusBadRequest, dto.ToHttpError(err).Code)
+}
+
+func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenRequestSignatureIsInvalid(t *testing.T) {
+	handler := generateHandler(t)
+
+	primaryUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "hello@example.com",
+		IsActive: true,
+	}
+	guestUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "world@example.com",
+		IsActive: true,
+	}
+	grant := models.AccountAccessGrant{
+		ID:        generateUuid(t),
+		UserId:    primaryUser.ID,
+		IsActive:  true,
+		CreatedAt: time.Now().UTC(),
+		Ttl:       TimeToLiveMinutes,
+	}
+
+	handler.persister.GetUserPersister().Create(primaryUser)
+	handler.persister.GetUserPersister().Create(guestUser)
+	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+
+	// Signature is invalid
+	body := `{
+"id": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
+"rawId": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
+"type": "public-key",
+"response": {
+"authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFYmezOw",
+"clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZ0tKS21oOTB2T3BZTzU1b0hwcWFIWF9vTUNxNG9UWnQtRDBiNnRlSXpyRSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+"signature": "MEYCIQDi2vYVspG6pHHHI4GyQCPOojGbvX4nwSPXCi0hm80twAIhAO3EWjhAnj0UpjU_l0AH5sEh3zq4LDvkvo3AUqaqfGYD",
+"userHandle": "7E7wSVuIQyGhcyGw7_BqBA"
+}
+}`
+
+	e := echo.New()
+	e.Validator = dto.NewCustomValidator()
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/finalize-create-account-with-grant?guestUserId=%s&grantId=%s", guestUser.ID, grant.ID), strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("session", generateJwt(t, primaryUser.ID, primaryUser.ID, 60))
+
+	err := handler.FinishCreateAccountWithGrant(c)
+	assert.Error(t, err)
+	assert.Equal(t, http.StatusUnauthorized, dto.ToHttpError(err).Code)
+}
+
+func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenCalledByAGuestUser(t *testing.T) {
+	handler := generateHandler(t)
+
+	primaryUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "hello@example.com",
+		IsActive: true,
+	}
+	guestUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "world@example.com",
+		IsActive: true,
+	}
+	grant := models.AccountAccessGrant{
+		ID:        generateUuid(t),
+		UserId:    primaryUser.ID,
+		IsActive:  true,
+		CreatedAt: time.Now().UTC(),
+		Ttl:       TimeToLiveMinutes,
+	}
+
+	handler.persister.GetUserPersister().Create(primaryUser)
+	handler.persister.GetUserPersister().Create(guestUser)
+	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+
+	formattedBody := fmt.Sprintf(signedRequestBody, guestUser.ID, grant.ID, "")
+
+	e := echo.New()
+	e.Validator = dto.NewCustomValidator()
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/finalize-create-account-with-grant?guestUserId=%s&grantId=%s", guestUser.ID, grant.ID), strings.NewReader(formattedBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("session", generateJwt(t, primaryUser.ID, generateUuid(t), 60))
+
+	err := handler.FinishCreateAccountWithGrant(c)
+	assert.Error(t, err)
+	assert.Equal(t, http.StatusForbidden, dto.ToHttpError(err).Code)
+}
+
+func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenGuestUserAlreadyHasAnActiveGrant(t *testing.T) {
+	handler := generateHandler(t)
+
+	primaryUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "hello@example.com",
+		IsActive: true,
+	}
+	guestUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "world@example.com",
+		IsActive: true,
+	}
+	grant := models.AccountAccessGrant{
+		ID:        generateUuid(t),
+		UserId:    primaryUser.ID,
+		IsActive:  true,
+		CreatedAt: time.Now().UTC(),
+		Ttl:       TimeToLiveMinutes,
+	}
+
+	handler.persister.GetUserPersister().Create(primaryUser)
+	handler.persister.GetUserPersister().Create(guestUser)
+	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+	handler.persister.GetUserGuestRelationPersister().Create(models.UserGuestRelation{
+		ID:           generateUuid(t),
+		ParentUserID: primaryUser.ID,
+		GuestUserID:  guestUser.ID,
+		IsActive:     true,
+	})
+
+	formattedBody := fmt.Sprintf(signedRequestBody, guestUser.ID, grant.ID, "")
+
+	e := echo.New()
+	e.Validator = dto.NewCustomValidator()
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/finalize-create-account-with-grant?guestUserId=%s&grantId=%s", guestUser.ID, grant.ID), strings.NewReader(formattedBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("session", generateJwt(t, primaryUser.ID, primaryUser.ID, 60))
+
+	err := handler.FinishCreateAccountWithGrant(c)
+	assert.Error(t, err)
+	assert.Equal(t, http.StatusConflict, dto.ToHttpError(err).Code)
+}
+
+func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenGrantDoesNotBelongToUser(t *testing.T) {
+	handler := generateHandler(t)
+
+	primaryUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "hello@example.com",
+		IsActive: true,
+	}
+	guestUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "world@example.com",
+		IsActive: true,
+	}
+	grant := models.AccountAccessGrant{
+		ID:        generateUuid(t),
+		UserId:    generateUuid(t),
+		IsActive:  true,
+		CreatedAt: time.Now().UTC(),
+		Ttl:       TimeToLiveMinutes,
+	}
+
+	handler.persister.GetUserPersister().Create(primaryUser)
+	handler.persister.GetUserPersister().Create(guestUser)
+	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+
+	formattedBody := fmt.Sprintf(signedRequestBody, guestUser.ID, grant.ID, "")
+
+	e := echo.New()
+	e.Validator = dto.NewCustomValidator()
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/finalize-create-account-with-grant?guestUserId=%s&grantId=%s", guestUser.ID, grant.ID), strings.NewReader(formattedBody))
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("session", generateJwt(t, primaryUser.ID, primaryUser.ID, 60))
+
+	err := handler.FinishCreateAccountWithGrant(c)
+	assert.Error(t, err)
+	assert.Equal(t, http.StatusUnauthorized, dto.ToHttpError(err).Code)
+}
+
+func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenGrantIsExpired(t *testing.T) {
+	handler := generateHandler(t)
+
+	primaryUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "hello@example.com",
+		IsActive: true,
+	}
+	guestUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "world@example.com",
+		IsActive: true,
+	}
+	grant := models.AccountAccessGrant{
+		ID:        generateUuid(t),
+		UserId:    primaryUser.ID,
+		IsActive:  true,
+		CreatedAt: time.Now().UTC().Add(time.Duration(-20) * time.Minute),
+		Ttl:       TimeToLiveMinutes,
+	}
+
+	handler.persister.GetUserPersister().Create(primaryUser)
+	handler.persister.GetUserPersister().Create(guestUser)
+	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+
+	formattedBody := fmt.Sprintf(signedRequestBody, guestUser.ID, grant.ID, "")
+
+	e := echo.New()
+	e.Validator = dto.NewCustomValidator()
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/finalize-create-account-with-grant?guestUserId=%s&grantId=%s", guestUser.ID, grant.ID), strings.NewReader(formattedBody))
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("session", generateJwt(t, primaryUser.ID, primaryUser.ID, 60))
+
+	err := handler.FinishCreateAccountWithGrant(c)
+	assert.Error(t, err)
+	assert.Equal(t, http.StatusRequestTimeout, dto.ToHttpError(err).Code)
+}
 
 func generateHandler(t *testing.T) *AccountSharingHandler {
-	handler, err := NewAccountSharingHandler(&defaultConfig, test.NewPersister(nil, nil, nil, nil, nil, nil, nil, nil, nil), sessionManager{}, mailer{})
+	handler, err := NewAccountSharingHandler(&defaultConfig, test.NewPersister(users, nil, nil, credentials, sessionData, nil, nil, nil, nil), sessionManager{}, mailer{})
 	assert.NoError(t, err)
 	assert.NotEmpty(t, handler)
 	return handler
@@ -497,3 +759,18 @@ func generateJwt(t *testing.T, subjectUserId uuid.UUID, surrogateUserId uuid.UUI
 	assert.NoError(t, token.Set(jwt.ExpirationKey, time.Now().UTC().Add(time.Duration(sessionLengthMinutes)*time.Minute)))
 	return token
 }
+
+var signedRequestBody = `{
+"id": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
+"rawId": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
+"type": "public-key",
+"response": {
+"authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFYmezOw",
+"clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZ0tKS21oOTB2T3BZTzU1b0hwcWFIWF9vTUNxNG9UWnQtRDBiNnRlSXpyRSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+"signature": "MEYCIQDi2vYVspG6pf38I4GyQCPOojGbvX4nwSPXCi0hm80twAIhAO3EWjhAnj0UpjU_l0AH5sEh3zq4LDvkvo3AUqaqfGYD",
+"userHandle": "7E7wSVuIQyGhcyGw7_BqBA"
+},
+"guestUserId": "%s",
+"grantId": "%s",
+"grantAttestation": "%s"
+}`

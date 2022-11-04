@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/teamhanko/hanko/backend/dto/intern"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -311,56 +314,105 @@ func (h *AccountSharingHandler) BeginCreateAccountWithGrant(c echo.Context) erro
 	return c.JSON(http.StatusOK, options)
 }
 
+type FinishCreateAccountWithGrantRequest struct {
+	GuestUserId      string `param:"guestUserId" validate:"required,uuid4"`
+	GrantId          string `param:"grantId" validate:"required,uuid4"`
+	GrantAttestation string `param:"grantAttestation" validate:"required"`
+}
+
 func (h *AccountSharingHandler) FinishCreateAccountWithGrant(c echo.Context) error {
-	return nil
-	//var request BeginCreateAccountWithGrantRequest
-	//if err := c.Bind(&request); err != nil {
-	//	return dto.ToHttpError(err)
-	//}
-	//if err := c.Validate(request); err != nil {
-	//	return dto.ToHttpError(err)
-	//}
-	//sessionToken, err := h.validateTokenForPrimaryAccountHolder(c)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//var options *protocol.CredentialAssertion
-	//var sessionData *webauthn.SessionData
-	//
-	//webauthnUser, err := h.getWebauthnUser(h.persister.GetConnection(), uuid.FromStringOrNil(sessionToken.Subject()))
-	//
-	//if webauthnUser == nil {
-	//	return dto.NewHTTPError(http.StatusBadRequest, "user not found")
-	//}
-	//
-	//if len(webauthnUser.WebAuthnCredentials()) > 0 {
-	//	options, sessionData, err = h.webauthn.BeginLogin(webauthnUser, webauthn.WithUserVerification(protocol.VerificationRequired))
-	//	if err != nil {
-	//		return fmt.Errorf("failed to create webauthn assertion options: %w", err)
-	//	}
-	//}
-	//
-	//if options == nil && sessionData == nil {
-	//	var err error
-	//	options, sessionData, err = h.webauthn.BeginDiscoverableLogin(webauthn.WithUserVerification(protocol.VerificationRequired))
-	//	if err != nil {
-	//		return fmt.Errorf("failed to create webauthn assertion options for discoverable login: %w", err)
-	//	}
-	//}
-	//
-	//err = h.persister.GetWebauthnSessionDataPersister().Create(*intern.WebauthnSessionDataToModel(sessionData, models.WebauthnOperationAuthentication))
-	//if err != nil {
-	//	return fmt.Errorf("failed to store webauthn assertion session data: %w", err)
-	//}
-	//
-	//// Remove all transports, because of a bug in android and windows where the internal authenticator gets triggered,
-	//// when the transports array contains the type 'internal' although the credential is not available on the device.
-	//for i := range options.Response.AllowedCredentials {
-	//	options.Response.AllowedCredentials[i].Transport = nil
-	//}
-	//
-	//return c.JSON(http.StatusOK, options)
+	startTime := time.Now().UTC()
+
+	var bodyBytes []byte
+	if c.Request().Body != nil {
+		bodyBytes, _ = io.ReadAll(c.Request().Body)
+	}
+	var body FinishCreateAccountWithGrantRequest
+	err := json.Unmarshal(bodyBytes, &body)
+	if err != nil {
+		return dto.NewHTTPError(http.StatusBadRequest)
+	}
+	c.Validate(body)
+
+	sessionToken, err := h.validateTokenForPrimaryAccountHolder(c)
+	if err != nil {
+		return err
+	}
+
+	// Because request body cannot be read more than once, we have to reset the request back to its original state
+	// https://medium.com/@xoen/golang-read-from-an-io-readwriter-without-loosing-its-content-2c6911805361
+	c.Request().Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	request, err := protocol.ParseCredentialRequestResponse(c.Request())
+	if err != nil {
+		return dto.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	err, _, _ = h.validateWebauthnRequest(request)
+	if err != nil {
+		return err
+	}
+
+	grant, err := h.persister.GetAccountAccessGrantPersister().Get(uuid.FromStringOrNil(body.GrantId))
+	if err != nil {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(fmt.Errorf("unable to find grant id: %s", body.GrantId))
+	}
+
+	if grant.UserId.String() != sessionToken.Subject() {
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("grant id %s does not belong to user ID %s", grant.ID, sessionToken.Subject()))
+	}
+
+	if !grant.IsActive {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(fmt.Errorf("grant id %s is no longer active", grant.ID))
+	}
+
+	if grant.CreatedAt.UTC().Add(time.Duration(grant.Ttl) * time.Second).Before(time.Now().UTC()) {
+		return dto.NewHTTPError(http.StatusRequestTimeout).SetInternal(fmt.Errorf("grant id %s has expired", grant.ID))
+	}
+
+	guestUserId := uuid.FromStringOrNil(body.GuestUserId)
+	primaryUserId := uuid.FromStringOrNil(sessionToken.Subject())
+
+	existingUserGuestRelationships, err := h.persister.GetUserGuestRelationPersister().GetByGuestUserId(&guestUserId)
+	if err != nil {
+		fmt.Println("an error occurred fetching existing user guest relationships: ", err)
+		return err
+	}
+
+	for _, relation := range existingUserGuestRelationships {
+		if relation.ParentUserID == primaryUserId && relation.IsActive {
+			return dto.NewHTTPError(http.StatusConflict).SetInternal(fmt.Errorf("an existing user guest relationship exists for this guest and primary pair: %s", relation.ID))
+		}
+	}
+
+	relationId, err := uuid.NewV4()
+	if err != nil {
+		return fmt.Errorf("unable to generate new UUID: %w", err)
+	}
+
+	grant.IsActive = false
+	grant.UpdatedAt = startTime
+	grant.ClaimedBy = &guestUserId
+	grant.UserGuestRelationId = &relationId
+
+	h.persister.GetAccountAccessGrantPersister().Update(*grant)
+
+	userGuestRelation := models.UserGuestRelation{
+		ID:                      relationId,
+		ParentUserID:            primaryUserId,
+		GuestUserID:             guestUserId,
+		ExpireByLogins:          grant.ExpireByLogins,
+		LoginsAllowed:           grant.LoginsAllowed,
+		ExpireByTime:            grant.ExpireByTime,
+		MinutesAllowed:          grant.MinutesAllowed,
+		CreatedAt:               startTime,
+		UpdatedAt:               startTime,
+		AssociatedAccessGrantId: grant.ID,
+		IsActive:                true,
+	}
+
+	h.persister.GetUserGuestRelationPersister().Create(userGuestRelation)
+
+	return c.JSON(http.StatusOK, struct{}{})
 }
 
 func (h *AccountSharingHandler) CreateAccountWithGrant(grantId uuid.UUID, primaryUserId uuid.UUID, guestUserId uuid.UUID) error {
@@ -462,4 +514,69 @@ func (h AccountSharingHandler) getWebauthnUser(connection *pop.Connection, userI
 	}
 
 	return intern.NewWebauthnUser(*user, credentials), nil
+}
+
+func (h AccountSharingHandler) validateWebauthnRequest(request *protocol.ParsedCredentialAssertionData) (error, *webauthn.Credential, *intern.WebauthnUser) {
+	var credential *webauthn.Credential
+	var webauthnUser *intern.WebauthnUser
+	err := h.persister.Transaction(func(tx *pop.Connection) error {
+		sessionDataPersister := h.persister.GetWebauthnSessionDataPersisterWithConnection(tx)
+		sessionData, err := sessionDataPersister.GetByChallenge(request.Response.CollectedClientData.Challenge)
+		if err != nil {
+			return fmt.Errorf("failed to get webauthn assertion session data: %w", err)
+		}
+
+		if sessionData != nil && sessionData.Operation != models.WebauthnOperationAuthentication {
+			sessionData = nil
+		}
+
+		if sessionData == nil {
+			return dto.NewHTTPError(http.StatusUnauthorized, "Stored challenge and received challenge do not match").SetInternal(errors.New("sessionData not found"))
+		}
+
+		model := intern.WebauthnSessionDataFromModel(sessionData)
+
+		if sessionData.UserId.IsNil() {
+			// Discoverable Login
+			userId, err := uuid.FromBytes(request.Response.UserHandle)
+			if err != nil {
+				return dto.NewHTTPError(http.StatusBadRequest, "failed to parse userHandle as uuid").SetInternal(err)
+			}
+			webauthnUser, err = h.getWebauthnUser(tx, userId)
+			if err != nil {
+				return fmt.Errorf("failed to get user: %w", err)
+			}
+
+			if webauthnUser == nil {
+				return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(errors.New("user not found"))
+			}
+
+			credential, err = h.webauthn.ValidateDiscoverableLogin(func(rawID, userHandle []byte) (user webauthn.User, err error) {
+				return webauthnUser, nil
+			}, *model, request)
+			if err != nil {
+				return dto.NewHTTPError(http.StatusUnauthorized, "failed to validate assertion").SetInternal(err)
+			}
+		} else {
+			// non discoverable Login
+			webauthnUser, err = h.getWebauthnUser(tx, sessionData.UserId)
+			if err != nil {
+				return fmt.Errorf("failed to get user: %w", err)
+			}
+			if webauthnUser == nil {
+				return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(errors.New("user not found"))
+			}
+			credential, err = h.webauthn.ValidateLogin(webauthnUser, *model, request)
+			if err != nil {
+				return dto.NewHTTPError(http.StatusUnauthorized, "failed to validate assertion").SetInternal(err)
+			}
+		}
+
+		err = sessionDataPersister.Delete(*sessionData)
+		if err != nil {
+			return fmt.Errorf("failed to delete assertion session data: %w", err)
+		}
+		return nil
+	})
+	return err, credential, webauthnUser
 }

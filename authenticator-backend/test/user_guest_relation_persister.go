@@ -44,7 +44,7 @@ func (p *userGuestRelationPersister) GetByGuestUserId(guestUserId *uuid.UUID) ([
 	var results []models.UserGuestRelation
 	for _, data := range p.relations {
 		if data.GuestUserID == *guestUserId {
-			results = append(p.relations, data)
+			results = append(results, data)
 		}
 	}
 	return results, nil
@@ -54,7 +54,7 @@ func (p *userGuestRelationPersister) GetByParentUserId(parentUserId *uuid.UUID) 
 	var results []models.UserGuestRelation
 	for _, data := range p.relations {
 		if data.ParentUserID == *parentUserId {
-			results = append(p.relations, data)
+			results = append(results, data)
 		}
 	}
 	return results, nil
