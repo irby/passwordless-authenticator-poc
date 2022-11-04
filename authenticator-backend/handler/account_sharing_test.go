@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/go-webauthn/webauthn/protocol"
@@ -446,8 +447,9 @@ func Test_AccountSharingHandler_FinishCreateAccountWithGrant_WhenRequestIsValid_
 	handler.persister.GetUserPersister().Create(primaryUser)
 	handler.persister.GetUserPersister().Create(guestUser)
 	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+	handler.generateCredentialsAndSessionDataForUserId(primaryUser.ID)
 
-	formattedBody := fmt.Sprintf(signedRequestBody, guestUser.ID, grant.ID, "")
+	formattedBody := fmt.Sprintf(signedRequestBody, base64.RawURLEncoding.EncodeToString(primaryUser.ID.Bytes()), guestUser.ID, grant.ID, "")
 
 	e := echo.New()
 	e.Validator = dto.NewCustomValidator()
@@ -466,6 +468,47 @@ func Test_AccountSharingHandler_FinishCreateAccountWithGrant_WhenRequestIsValid_
 		assert.Equal(t, guestUser.ID, relation[0].GuestUserID)
 		// TODO: Test attestation
 	}
+}
+
+func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenWebauthnCredentialsDoNotExistForUser(t *testing.T) {
+	handler := generateHandler(t)
+
+	primaryUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "hello@example.com",
+		IsActive: true,
+	}
+	guestUser := models.User{
+		ID:       generateUuid(t),
+		Email:    "world@example.com",
+		IsActive: true,
+	}
+	grant := models.AccountAccessGrant{
+		ID:        generateUuid(t),
+		UserId:    primaryUser.ID,
+		IsActive:  true,
+		CreatedAt: time.Now().UTC(),
+		Ttl:       TimeToLiveMinutes,
+	}
+
+	handler.persister.GetUserPersister().Create(primaryUser)
+	handler.persister.GetUserPersister().Create(guestUser)
+	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+	handler.generateCredentialsAndSessionDataForUserId(generateUuid(t))
+
+	formattedBody := fmt.Sprintf(signedRequestBody, base64.RawURLEncoding.EncodeToString(primaryUser.ID.Bytes()), guestUser.ID, grant.ID, "")
+
+	e := echo.New()
+	e.Validator = dto.NewCustomValidator()
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/finalize-create-account-with-grant?guestUserId=%s&grantId=%s", guestUser.ID, grant.ID), strings.NewReader(formattedBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("session", generateJwt(t, primaryUser.ID, primaryUser.ID, 60))
+
+	err := handler.FinishCreateAccountWithGrant(c)
+	assert.Error(t, err)
+	assert.Equal(t, http.StatusUnauthorized, dto.ToHttpError(err).Code)
 }
 
 func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenRequestIsMissingField(t *testing.T) {
@@ -492,18 +535,19 @@ func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenRequestI
 	handler.persister.GetUserPersister().Create(primaryUser)
 	handler.persister.GetUserPersister().Create(guestUser)
 	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+	handler.generateCredentialsAndSessionDataForUserId(primaryUser.ID)
 
 	// Missing authenticator data
-	body := `{
+	body := fmt.Sprintf(`{
 "id": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
 "rawId": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
 "type": "public-key",
 "response": {
 "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZ0tKS21oOTB2T3BZTzU1b0hwcWFIWF9vTUNxNG9UWnQtRDBiNnRlSXpyRSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
 "signature": "MEYCIQDi2vYVspG6pf38I4GyQCPOojGbvX4nwSPXCi0hm80twAIhAO3EWjhAnj0UpjU_l0AH5sEh3zq4LDvkvo3AUqaqfGYD",
-"userHandle": "7E7wSVuIQyGhcyGw7_BqBA"
+"userHandle": "%s"
 }
-}`
+}`, base64.RawURLEncoding.EncodeToString(primaryUser.ID.Bytes()))
 
 	e := echo.New()
 	e.Validator = dto.NewCustomValidator()
@@ -542,9 +586,10 @@ func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenRequestS
 	handler.persister.GetUserPersister().Create(primaryUser)
 	handler.persister.GetUserPersister().Create(guestUser)
 	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+	handler.generateCredentialsAndSessionDataForUserId(primaryUser.ID)
 
 	// Signature is invalid
-	body := `{
+	body := fmt.Sprintf(`{
 "id": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
 "rawId": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
 "type": "public-key",
@@ -552,9 +597,9 @@ func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenRequestS
 "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFYmezOw",
 "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZ0tKS21oOTB2T3BZTzU1b0hwcWFIWF9vTUNxNG9UWnQtRDBiNnRlSXpyRSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
 "signature": "MEYCIQDi2vYVspG6pHHHI4GyQCPOojGbvX4nwSPXCi0hm80twAIhAO3EWjhAnj0UpjU_l0AH5sEh3zq4LDvkvo3AUqaqfGYD",
-"userHandle": "7E7wSVuIQyGhcyGw7_BqBA"
+"userHandle": "%s"
 }
-}`
+}`, base64.RawURLEncoding.EncodeToString(primaryUser.ID.Bytes()))
 
 	e := echo.New()
 	e.Validator = dto.NewCustomValidator()
@@ -593,8 +638,9 @@ func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenCalledBy
 	handler.persister.GetUserPersister().Create(primaryUser)
 	handler.persister.GetUserPersister().Create(guestUser)
 	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+	handler.generateCredentialsAndSessionDataForUserId(primaryUser.ID)
 
-	formattedBody := fmt.Sprintf(signedRequestBody, guestUser.ID, grant.ID, "")
+	formattedBody := fmt.Sprintf(signedRequestBody, base64.RawURLEncoding.EncodeToString(primaryUser.ID.Bytes()), guestUser.ID, grant.ID, "")
 
 	e := echo.New()
 	e.Validator = dto.NewCustomValidator()
@@ -639,8 +685,9 @@ func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenGuestUse
 		GuestUserID:  guestUser.ID,
 		IsActive:     true,
 	})
+	handler.generateCredentialsAndSessionDataForUserId(primaryUser.ID)
 
-	formattedBody := fmt.Sprintf(signedRequestBody, guestUser.ID, grant.ID, "")
+	formattedBody := fmt.Sprintf(signedRequestBody, base64.RawURLEncoding.EncodeToString(primaryUser.ID.Bytes()), guestUser.ID, grant.ID, "")
 
 	e := echo.New()
 	e.Validator = dto.NewCustomValidator()
@@ -679,8 +726,9 @@ func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenGrantDoe
 	handler.persister.GetUserPersister().Create(primaryUser)
 	handler.persister.GetUserPersister().Create(guestUser)
 	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+	handler.generateCredentialsAndSessionDataForUserId(primaryUser.ID)
 
-	formattedBody := fmt.Sprintf(signedRequestBody, guestUser.ID, grant.ID, "")
+	formattedBody := fmt.Sprintf(signedRequestBody, base64.RawURLEncoding.EncodeToString(primaryUser.ID.Bytes()), guestUser.ID, grant.ID, "")
 
 	e := echo.New()
 	e.Validator = dto.NewCustomValidator()
@@ -718,8 +766,9 @@ func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenGrantIsE
 	handler.persister.GetUserPersister().Create(primaryUser)
 	handler.persister.GetUserPersister().Create(guestUser)
 	handler.persister.GetAccountAccessGrantPersister().Create(grant)
+	handler.generateCredentialsAndSessionDataForUserId(primaryUser.ID)
 
-	formattedBody := fmt.Sprintf(signedRequestBody, guestUser.ID, grant.ID, "")
+	formattedBody := fmt.Sprintf(signedRequestBody, base64.RawURLEncoding.EncodeToString(primaryUser.ID.Bytes()), guestUser.ID, grant.ID, "")
 
 	e := echo.New()
 	e.Validator = dto.NewCustomValidator()
@@ -734,7 +783,7 @@ func Test_AccountSharingHandler_FinishCreateAccountWithGrant_Errors_WhenGrantIsE
 }
 
 func generateHandler(t *testing.T) *AccountSharingHandler {
-	handler, err := NewAccountSharingHandler(&defaultConfig, test.NewPersister(users, nil, nil, credentials, sessionData, nil, nil, nil, nil), sessionManager{}, mailer{})
+	handler, err := NewAccountSharingHandler(&defaultConfig, test.NewPersister(users, nil, nil, nil, nil, nil, nil, nil, nil), sessionManager{}, mailer{})
 	assert.NoError(t, err)
 	assert.NotEmpty(t, handler)
 	return handler
@@ -760,6 +809,73 @@ func generateJwt(t *testing.T, subjectUserId uuid.UUID, surrogateUserId uuid.UUI
 	return token
 }
 
+func (h *AccountSharingHandler) generateCredentialsAndSessionDataForUserId(userId uuid.UUID) {
+	credentials := []models.WebauthnCredential{
+		func() models.WebauthnCredential {
+			aaguid, _ := uuid.FromString("adce0002-35bc-c60a-648b-0b25f1f05503")
+			return models.WebauthnCredential{
+				ID:              "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
+				UserId:          userId,
+				PublicKey:       "pQECAyYgASFYIPG9WtGAri-mevonFPH4p-lI3JBS29zjuvKvJmaP4_mRIlggOjHw31sdAGvE35vmRep-aPcbAAlbuc0KHxQ9u6zcHog",
+				AttestationType: "none",
+				AAGUID:          aaguid,
+				SignCount:       1650958750,
+				CreatedAt:       time.Time{},
+				UpdatedAt:       time.Time{},
+			}
+		}(),
+		func() models.WebauthnCredential {
+			aaguid, _ := uuid.FromString("adce0002-35bc-c60a-648b-0b25f1f05503")
+			return models.WebauthnCredential{
+				ID:              "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjK",
+				UserId:          userId,
+				PublicKey:       "pQECAyYgASFYIPG9WtGAri-mevonFPH4p-lI3JBS29zjuvKvJmaP4_mRIlggOjHw31sdAGvE35vmRep-aPcbAAlbuc0KHxQ9u6zcHoj",
+				AttestationType: "none",
+				AAGUID:          aaguid,
+				SignCount:       1650958750,
+				CreatedAt:       time.Time{},
+				UpdatedAt:       time.Time{},
+			}
+		}(),
+	}
+
+	sessionData := []models.WebauthnSessionData{
+		func() models.WebauthnSessionData {
+			id, _ := uuid.NewV4()
+			return models.WebauthnSessionData{
+				ID:                 id,
+				Challenge:          "tOrNDCD2xQf4zFjEjwxaP8fOErP3zz08rMoTlJGtnKU",
+				UserId:             userId,
+				UserVerification:   string(protocol.VerificationRequired),
+				CreatedAt:          time.Time{},
+				UpdatedAt:          time.Time{},
+				Operation:          models.WebauthnOperationRegistration,
+				AllowedCredentials: nil,
+			}
+		}(),
+		func() models.WebauthnSessionData {
+			id, _ := uuid.NewV4()
+			return models.WebauthnSessionData{
+				ID:                 id,
+				Challenge:          "gKJKmh90vOpYO55oHpqaHX_oMCq4oTZt-D0b6teIzrE",
+				UserId:             uuid.UUID{},
+				UserVerification:   string(protocol.VerificationRequired),
+				CreatedAt:          time.Time{},
+				UpdatedAt:          time.Time{},
+				Operation:          models.WebauthnOperationAuthentication,
+				AllowedCredentials: nil,
+			}
+		}(),
+	}
+
+	for _, credential := range credentials {
+		h.persister.GetWebauthnCredentialPersister().Create(credential)
+	}
+	for _, session := range sessionData {
+		h.persister.GetWebauthnSessionDataPersister().Create(session)
+	}
+}
+
 var signedRequestBody = `{
 "id": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
 "rawId": "AaFdkcD4SuPjF-jwUoRwH8-ZHuY5RW46fsZmEvBX6RNKHaGtVzpATs06KQVheIOjYz-YneG4cmQOedzl0e0jF951ukx17Hl9jeGgWz5_DKZCO12p2-2LlzjH",
@@ -768,7 +884,7 @@ var signedRequestBody = `{
 "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFYmezOw",
 "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZ0tKS21oOTB2T3BZTzU1b0hwcWFIWF9vTUNxNG9UWnQtRDBiNnRlSXpyRSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
 "signature": "MEYCIQDi2vYVspG6pf38I4GyQCPOojGbvX4nwSPXCi0hm80twAIhAO3EWjhAnj0UpjU_l0AH5sEh3zq4LDvkvo3AUqaqfGYD",
-"userHandle": "7E7wSVuIQyGhcyGw7_BqBA"
+"userHandle": "%s"
 },
 "guestUserId": "%s",
 "grantId": "%s",

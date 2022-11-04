@@ -347,7 +347,7 @@ func (h *AccountSharingHandler) FinishCreateAccountWithGrant(c echo.Context) err
 	if err != nil {
 		return dto.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	err, _, _ = h.validateWebauthnRequest(request)
+	err, _, webauthnuser := h.validateWebauthnRequest(request)
 	if err != nil {
 		return err
 	}
@@ -355,6 +355,10 @@ func (h *AccountSharingHandler) FinishCreateAccountWithGrant(c echo.Context) err
 	grant, err := h.persister.GetAccountAccessGrantPersister().Get(uuid.FromStringOrNil(body.GrantId))
 	if err != nil {
 		return dto.NewHTTPError(http.StatusNotFound).SetInternal(fmt.Errorf("unable to find grant id: %s", body.GrantId))
+	}
+
+	if webauthnuser.UserId.String() != sessionToken.Subject() {
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("webauthn user ID %s does not match session token user ID %s", webauthnuser.UserId, sessionToken.Subject()))
 	}
 
 	if grant.UserId.String() != sessionToken.Subject() {
