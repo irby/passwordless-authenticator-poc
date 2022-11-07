@@ -3,6 +3,10 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/gobuffalo/pop/v6"
@@ -16,9 +20,6 @@ import (
 	"github.com/teamhanko/hanko/backend/persistence"
 	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/session"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type UserHandler struct {
@@ -329,7 +330,7 @@ func (h *UserHandler) BeginLoginAsGuest(c echo.Context) error {
 	return c.JSON(http.StatusOK, options)
 }
 
-func (h *UserHandler) FinishLoginAsGuest(c echo.Context) error {
+func (*UserHandler) FinishLoginAsGuest(_ echo.Context) error {
 	return nil
 }
 
@@ -554,7 +555,7 @@ func (h *UserHandler) Logout(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{})
 }
 
-func (h *UserHandler) parseAndValidateToken(c echo.Context, shouldBeAccountHolder bool) (jwt.Token, error) {
+func (*UserHandler) parseAndValidateToken(c echo.Context, shouldBeAccountHolder bool) (jwt.Token, error) {
 	sessionToken, ok := c.Get("session").(jwt.Token)
 	if !ok || sessionToken == nil {
 		return nil, dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("invalid or missing session token"))
