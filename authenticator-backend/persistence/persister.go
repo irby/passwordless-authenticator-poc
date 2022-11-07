@@ -33,6 +33,7 @@ type Persister interface {
 	GetAccountAccessGrantPersister() AccountAccessGrantPersister
 	GetUserGuestRelationPersister() UserGuestRelationPersister
 	GetLoginAuditLogPersister() LoginAuditLogPersister
+	GetPostPersister() PostPersister
 }
 
 type Migrator interface {
@@ -167,4 +168,8 @@ func (p *persister) GetUserGuestRelationPersister() UserGuestRelationPersister {
 
 func (p *persister) GetLoginAuditLogPersister() LoginAuditLogPersister {
 	return NewLoginAuditLogPersister(p.DB)
+}
+
+func (p *persister) GetPostPersister() PostPersister {
+	return NewPostPersister(p.DB)
 }

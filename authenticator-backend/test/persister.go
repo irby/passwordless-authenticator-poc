@@ -18,6 +18,7 @@ func NewPersister(user []models.User, passcodes []models.Passcode, jwks []models
 		userGuestRelationPersister:             NewUserGuestRelationPersister(userGuestRelations),
 		loginAuditLogPersister:                 NewLoginAuditLogPersister(loginAudits),
 		webauthnCredentialsPrivateKeyPersister: NewWebauthnCredentialsPrivateKeyPersister([]models.WebauthnCredentialsPrivateKey{}),
+		postPersister:                          NewPostPersister(nil),
 	}
 }
 
@@ -32,6 +33,7 @@ type persister struct {
 	accountAccessGrantPersister            persistence.AccountAccessGrantPersister
 	userGuestRelationPersister             persistence.UserGuestRelationPersister
 	loginAuditLogPersister                 persistence.LoginAuditLogPersister
+	postPersister                          persistence.PostPersister
 }
 
 func (p *persister) GetPasswordCredentialPersister() persistence.PasswordCredentialPersister {
@@ -104,4 +106,8 @@ func (p *persister) GetUserGuestRelationPersister() persistence.UserGuestRelatio
 
 func (p *persister) GetLoginAuditLogPersister() persistence.LoginAuditLogPersister {
 	return p.loginAuditLogPersister
+}
+
+func (p *persister) GetPostPersister() persistence.PostPersister {
+	return p.postPersister
 }

@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { GetUserNameFromId } from '../../constants/user-constants';
 import { ServiceResponse } from '../../models/service-response.interface';
 import { GenerateWebAuthnLoginFinalizeRequest, WebAuthnLoginFinalizeRequest } from '../../models/webauthn/webauthn-login-finalize-request.interface';
-import { WebauthnLoginInitializeResponse } from '../../models/webauthn/webauthn-login-initialize-response.interface';
+import { CreateAccountWithGrantResponse, GrantAttestationObject, WebauthnLoginInitializeResponse } from '../../models/webauthn/webauthn-login-initialize-response.interface';
 import { AuthenticationService } from '../../services/authentication.service';
 import { ChallengeService, SignChallengeAsUserResponse } from '../../services/challenge.service';
 import { BeginCreateAccountWithGrantRequest, FinishCreateAccountWithGrantRequest, GrantService } from '../../services/grant.service';
@@ -40,20 +40,13 @@ export class ConfirmBiometricModalComponent implements OnInit {
 
   public async submitBiometric(isGood: boolean) {
     this.isLoading = true;
-    const challengeResp = await this.initializeRequest(this.data);
-    
-    if (challengeResp.type !== 'data') {
-      this.notificationService.error('An error occurred fetching challenge', 'Error');
-      this.isLoading = false;
+    const challengeResp = await this.initializeRequest(this.data, isGood);
+
+    if (!challengeResp) {
       return;
     }
 
-    const finalizeRequest = await this.signChallenge(this.data.userId, challengeResp.data.publicKey.challenge, isGood);
-
-    if (!finalizeRequest)
-      return;
-
-    if (await this.submitSignature(finalizeRequest)) {
+    if (await this.submitSignature(challengeResp)) {
       await this.handlePostConfirm();
       this.dialogRef.close({ data: {isSuccess: true} as ConfirmBiometricModalData });
     }
@@ -103,7 +96,7 @@ export class ConfirmBiometricModalComponent implements OnInit {
     this.router.navigate([this.route.snapshot.queryParams[`redirect`] || '/'], { replaceUrl: true });
   }
 
-  private async submitSignature(finalizeRequest: WebAuthnLoginFinalizeRequest): Promise<boolean> {
+  private async submitSignature(finalizeRequest: InitializeChallengeResponse): Promise<boolean> {
     // Simulate the "waiting"
     await new Promise(f => setTimeout(f, 300));
 
@@ -116,12 +109,33 @@ export class ConfirmBiometricModalComponent implements OnInit {
     return true;
   }
 
-  private async initializeRequest(data: ConfirmBiometricData): Promise<ServiceResponse<WebauthnLoginInitializeResponse>> {
+  private async initializeRequest(data: ConfirmBiometricData, isGood: boolean): Promise<InitializeChallengeResponse | null> {
     switch (data.context) {
       case ConfirmBiometricContext.Login:
-        return await this.initializeWebauthnLogin(data.userId);
+        const loginResp = await this.initializeWebauthnLogin(data.userId);
+
+        if (loginResp.type !== 'data') {
+          this.notificationService.error('An error occurred fetching challenge', 'Error');
+          this.isLoading = false;
+          return null;
+        }
+
+        const signedChallenge = await this.signChallenge(this.data.userId, loginResp.data.publicKey.challenge, isGood);
+
+        return {signature: signedChallenge}
       case ConfirmBiometricContext.UserConfirmGrant:
-        return await this.initializeCreateAccountWithGrant(data.guestUserId ?? "", data.grantId ?? "");
+        const grantResp = await this.initializeCreateAccountWithGrant(data.guestUserId ?? "", data.grantId ?? "");
+
+        if (grantResp.type !== 'data') {
+          this.notificationService.error('An error occurred fetching challenge', 'Error');
+          this.isLoading = false;
+          return null;
+        }
+
+        const signature = await this.signChallenge(this.data.userId, grantResp.data.options.publicKey.challenge, isGood);
+        const attestation = await this.signChallenge(this.data.userId, this.createAttestationObject(grantResp.data.grant), isGood);
+
+        return {signature: signature, attestation: attestation?.response.signature}
       default:
         throw new Error(`unknown context ${data.context}`);
     }
@@ -131,7 +145,7 @@ export class ConfirmBiometricModalComponent implements OnInit {
     return await this.authenticationService.beginWebauthnLogin(userId);
   }
 
-  private async initializeCreateAccountWithGrant(guestUserId: string, grantId: string): Promise<ServiceResponse<WebauthnLoginInitializeResponse>> {
+  private async initializeCreateAccountWithGrant(guestUserId: string, grantId: string): Promise<ServiceResponse<CreateAccountWithGrantResponse>> {
     const request: BeginCreateAccountWithGrantRequest = {
       guestUserId: guestUserId,
       grantId: grantId
@@ -142,12 +156,19 @@ export class ConfirmBiometricModalComponent implements OnInit {
 
 
 
-  private async finalizeRequest(data: ConfirmBiometricData, finalizeRequest: WebAuthnLoginFinalizeRequest): Promise<ServiceResponse<any>> {
+  private async finalizeRequest(data: ConfirmBiometricData, finalizeRequest: InitializeChallengeResponse): Promise<ServiceResponse<any>> {
+    if (!finalizeRequest.signature) {
+      throw new Error();
+    }
+
     switch (data.context) {
       case ConfirmBiometricContext.Login:
-        return await this.finalizeWebauthnLogin(finalizeRequest);
+        return await this.finalizeWebauthnLogin(finalizeRequest.signature);
       case ConfirmBiometricContext.UserConfirmGrant:
-        return await this.finalizeCreateAccountWithGrant(data.guestUserId ?? "", data.grantId ?? "", finalizeRequest);
+        if (!finalizeRequest.attestation) {
+          throw new Error("Attestation is missing");
+        }
+        return await this.finalizeCreateAccountWithGrant(data.guestUserId ?? "", data.grantId ?? "", finalizeRequest.attestation, finalizeRequest.signature);
       default:
         throw new Error(`unknown context ${data.context}`);
     }
@@ -157,11 +178,11 @@ export class ConfirmBiometricModalComponent implements OnInit {
     return await this.authenticationService.finalizeWebauthnLogin(finalizeRequest);
   }
 
-  private async finalizeCreateAccountWithGrant(guestUserId: string, grantId: string, finalizeRequest: WebAuthnLoginFinalizeRequest): Promise<ServiceResponse<WebauthnLoginInitializeResponse>> {
+  private async finalizeCreateAccountWithGrant(guestUserId: string, grantId: string, grantAttestation: string, finalizeRequest: WebAuthnLoginFinalizeRequest): Promise<ServiceResponse<WebauthnLoginInitializeResponse>> {
     const request: FinishCreateAccountWithGrantRequest = {
       guestUserId: guestUserId,
       grantId: grantId,
-      grantAttestation: "",
+      grantAttestation: grantAttestation,
       id: finalizeRequest.id,
       clientExtensionResults: finalizeRequest.clientExtensionResults,
       response: finalizeRequest.response,
@@ -170,6 +191,10 @@ export class ConfirmBiometricModalComponent implements OnInit {
       type: finalizeRequest.type
     }
     return await this.grantService.finishCreateAccountWithGrant(request);
+  }
+
+  private createAttestationObject(grantAttestationObject: GrantAttestationObject) {
+    return btoa(JSON.stringify(grantAttestationObject));
   }
 }
 
@@ -191,4 +216,9 @@ export interface ConfirmBiometricData {
 
 export interface ConfirmBiometricModalData {
   isSuccess: boolean;
+}
+
+export interface InitializeChallengeResponse {
+  signature: WebAuthnLoginFinalizeRequest | null;
+  attestation?: string | null;
 }

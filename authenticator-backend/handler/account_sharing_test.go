@@ -152,8 +152,10 @@ func Test_AccountSharingHandler_BeginCreateAccountWithGrant_WhenRequestIsValid_C
 
 	if assert.NoError(t, handler.BeginCreateAccountWithGrant(c)) {
 		assert.Equal(t, http.StatusOK, rec.Result().StatusCode)
+		response := BeginCreateAccountWithGrantResponse{}
 		assertionOptions := protocol.CredentialAssertion{}
-		err := json.Unmarshal(rec.Body.Bytes(), &assertionOptions)
+		err := json.Unmarshal(rec.Body.Bytes(), &response)
+		assertionOptions = *response.Options
 		assert.NoError(t, err)
 		assert.NotEmpty(t, assertionOptions.Response.Challenge)
 		assert.Equal(t, assertionOptions.Response.UserVerification, protocol.VerificationRequired)

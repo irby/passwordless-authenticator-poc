@@ -89,14 +89,6 @@ func Test_GetAuthenticatorData(t *testing.T) {
 	}
 }
 
-func Test_SignChallengeForUser_WhenUserExists_SignsChallenge(t *testing.T) {
-	privateKey := Mirby7PrivateKey
-	challenge := "abcdefghijklmnop"
-	signature, err := SignChallengeForUser(privateKey, challenge)
-	assert.NoError(t, err)
-	assert.True(t, len(signature) > 0)
-}
-
 func Test_SignChallengeForUser_Verification(t *testing.T) {
 	key, err := GeneratePrivateKey()
 	assert.NoError(t, err)

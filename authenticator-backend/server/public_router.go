@@ -139,5 +139,10 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	admin.PUT("/users/active/:id", adminHandler.ToggleIsActiveForUser, hankoMiddleware.Session(sessionManager))
 	admin.DELETE("/grants/:id", adminHandler.DeactivateGrantsForUser, hankoMiddleware.Session(sessionManager))
 
+	postHandler := handler.NewPostHandler(persister)
+	posts := e.Group("/posts")
+	posts.GET("", postHandler.GetPosts, hankoMiddleware.Session(sessionManager))
+	posts.POST("", postHandler.CreatePost, hankoMiddleware.Session(sessionManager))
+
 	return e
 }

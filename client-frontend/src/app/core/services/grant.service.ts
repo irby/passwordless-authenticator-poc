@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { ServiceResponse } from "../models/service-response.interface";
 import { WebAuthnLoginFinalizeRequest } from "../models/webauthn/webauthn-login-finalize-request.interface";
-import { WebauthnLoginInitializeResponse } from "../models/webauthn/webauthn-login-initialize-response.interface";
+import { CreateAccountWithGrantResponse, WebauthnLoginInitializeResponse } from "../models/webauthn/webauthn-login-initialize-response.interface";
 import { BaseService } from "./service.base";
 
 @Injectable()
@@ -10,7 +10,7 @@ export class GrantService extends BaseService {
         return await this.postAsync(`access/share/initialize`, dto);
     }
 
-    public async initializeCreateAccountWithGrant(request: BeginCreateAccountWithGrantRequest): Promise<ServiceResponse<WebauthnLoginInitializeResponse>> {
+    public async initializeCreateAccountWithGrant(request: BeginCreateAccountWithGrantRequest): Promise<ServiceResponse<CreateAccountWithGrantResponse>> {
         return await this.postAsync(`access/share/begin-create-account-with-grant`, request);
     }
 

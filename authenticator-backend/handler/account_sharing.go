@@ -253,6 +253,21 @@ type BeginCreateAccountWithGrantRequest struct {
 	GrantId     string `param:"grantId" validate:"required,uuid4"`
 }
 
+type BeginCreateAccountWithGrantResponse struct {
+	Options *protocol.CredentialAssertion `json:"options"`
+	Grant   GrantAttestationObject        `json:"grantAttestation"`
+}
+
+type GrantAttestationObject struct {
+	AccountAccessGrantId uuid.UUID `json:"accountAccessGrantId"`
+	GuestUserId          uuid.UUID `json:"guestUserId"`
+	CreatedAt            time.Time `json:"createdAt"`
+	ExpireByTime         bool      `json:"expireByTime"`
+	ExpireByLogins       bool      `json:"expireByLogins"`
+	MinutesAllowed       int       `json:"minutesAllowed"`
+	LoginsAllowed        int       `json:"loginsAllowed"`
+}
+
 func (h *AccountSharingHandler) BeginCreateAccountWithGrant(c echo.Context) error {
 	var request BeginCreateAccountWithGrantRequest
 	if err := c.Bind(&request); err != nil {
@@ -311,7 +326,21 @@ func (h *AccountSharingHandler) BeginCreateAccountWithGrant(c echo.Context) erro
 		options.Response.AllowedCredentials[i].Transport = nil
 	}
 
-	return c.JSON(http.StatusOK, options)
+	grantAttestationObject := GrantAttestationObject{
+		AccountAccessGrantId: grant.ID,
+		GuestUserId:          guestUser.ID,
+		CreatedAt:            grant.CreatedAt,
+		ExpireByLogins:       grant.ExpireByLogins,
+		ExpireByTime:         grant.ExpireByTime,
+	}
+	if grant.ExpireByTime {
+		grantAttestationObject.MinutesAllowed = int(grant.MinutesAllowed.Int32)
+	}
+	if grant.ExpireByLogins {
+		grantAttestationObject.LoginsAllowed = int(grant.LoginsAllowed.Int32)
+	}
+
+	return c.JSON(http.StatusOK, BeginCreateAccountWithGrantResponse{Options: options, Grant: grantAttestationObject})
 }
 
 type FinishCreateAccountWithGrantRequest struct {
@@ -400,6 +429,8 @@ func (h *AccountSharingHandler) FinishCreateAccountWithGrant(c echo.Context) err
 
 	h.persister.GetAccountAccessGrantPersister().Update(*grant)
 
+	hash := []byte(body.GrantAttestation)
+
 	userGuestRelation := models.UserGuestRelation{
 		ID:                      relationId,
 		ParentUserID:            primaryUserId,
@@ -408,10 +439,11 @@ func (h *AccountSharingHandler) FinishCreateAccountWithGrant(c echo.Context) err
 		LoginsAllowed:           grant.LoginsAllowed,
 		ExpireByTime:            grant.ExpireByTime,
 		MinutesAllowed:          grant.MinutesAllowed,
-		CreatedAt:               startTime,
+		CreatedAt:               grant.CreatedAt,
 		UpdatedAt:               startTime,
 		AssociatedAccessGrantId: grant.ID,
 		IsActive:                true,
+		GrantHash:               &hash,
 	}
 
 	h.persister.GetUserGuestRelationPersister().Create(userGuestRelation)
