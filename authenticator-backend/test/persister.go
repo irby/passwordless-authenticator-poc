@@ -44,11 +44,11 @@ func (p *persister) GetPasswordCredentialPersisterWithConnection(tx *pop.Connect
 	return p.passwordCredentialPersister
 }
 
-func (p *persister) GetConnection() *pop.Connection {
+func (*persister) GetConnection() *pop.Connection {
 	return nil
 }
 
-func (p *persister) Transaction(fn func(tx *pop.Connection) error) error {
+func (*persister) Transaction(fn func(tx *pop.Connection) error) error {
 	return fn(nil)
 }
 

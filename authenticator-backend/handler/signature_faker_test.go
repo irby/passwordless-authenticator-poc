@@ -6,17 +6,18 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/teamhanko/hanko/backend/dto"
 	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/test"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestSignatureFakerHandler_WhenSigningGrantAttestation_WhenExpireByTimeIsTrue_ReturnsSignature(t *testing.T) {
@@ -63,11 +64,11 @@ func TestSignatureFakerHandler_WhenSigningGrantAttestation_WhenExpireByTimeIsTru
 
 	conv := convertToBase64(grant, t)
 
-	request := fmt.Sprintf(`{"userId":"%s", "challenge": "%s"}`, relation.ParentUserID, conv)
+	request := fmt.Sprintf(`{"userId":%q, "challenge": %q}`, relation.ParentUserID, conv)
 
 	e := echo.New()
 	e.Validator = dto.NewCustomValidator()
-	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/initialize-login-as-guest"), strings.NewReader(request))
+	req := httptest.NewRequest(http.MethodPost, "/initialize-login-as-guest", strings.NewReader(request))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)

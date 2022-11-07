@@ -4,6 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
@@ -13,11 +19,6 @@ import (
 	"github.com/teamhanko/hanko/backend/dto"
 	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/test"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestUserHandler_Create(t *testing.T) {
@@ -494,11 +495,11 @@ func TestUserHandler_BeginLoginAsGuest_WhenRequestIsValid_GeneratesChallengeToSi
 	h.persister.GetUserPersister().Create(user2)
 	h.persister.GetUserGuestRelationPersister().Create(grant1)
 
-	body := fmt.Sprintf(`{"relationId": "%s"}`, grant1.ID)
+	body := fmt.Sprintf(`{"relationId": %q}`, grant1.ID)
 
 	e := echo.New()
 	e.Validator = dto.NewCustomValidator()
-	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/initialize-login-as-guest"), strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/initialize-login-as-guest", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.Set("session", generateJwt(t, user1.ID, user1.ID, 60))
@@ -529,11 +530,11 @@ func TestUserHandler_BeginLoginAsGuest_Errors_WhenGuestIsCurrentSession(t *testi
 	h.persister.GetUserPersister().Create(user2)
 	h.persister.GetUserGuestRelationPersister().Create(grant1)
 
-	body := fmt.Sprintf(`{"relationId": "%s"}`, grant1.ID)
+	body := fmt.Sprintf(`{"relationId": %q}`, grant1.ID)
 
 	e := echo.New()
 	e.Validator = dto.NewCustomValidator()
-	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/initialize-login-as-guest"), strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/initialize-login-as-guest", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.Set("session", generateJwt(t, user1.ID, user2.ID, 60))
