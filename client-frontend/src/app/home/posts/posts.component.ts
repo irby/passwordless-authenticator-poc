@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { NotificationService } from 'src/app/core/services/notification.service';
-import { CreatePostDto, PostDto, PostService } from 'src/app/core/services/post.service';
+import { NotificationService } from '../../../app/core/services/notification.service';
+import { CreatePostDto, PostDto, PostService } from '../../../app/core/services/post.service';
 
 @Component({
   selector: 'app-posts',
