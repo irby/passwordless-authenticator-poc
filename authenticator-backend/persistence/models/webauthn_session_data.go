@@ -1,11 +1,12 @@
 package models
 
 import (
+	"time"
+
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
 	"github.com/gofrs/uuid"
-	"time"
 )
 
 type Operation string
@@ -28,7 +29,7 @@ type WebauthnSessionData struct {
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
-func (sd *WebauthnSessionData) Validate(tx *pop.Connection) (*validate.Errors, error) {
+func (sd *WebauthnSessionData) Validate(_ *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		&validators.UUIDIsPresent{Name: "ID", Field: sd.ID},
 		&validators.StringIsPresent{Name: "Challenge", Field: sd.Challenge},

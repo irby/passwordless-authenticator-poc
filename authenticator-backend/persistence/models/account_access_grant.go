@@ -2,14 +2,12 @@ package models
 
 import (
 	"database/sql"
-	"github.com/gobuffalo/pop/v6"
-	_ "github.com/gobuffalo/pop/v6"
-	"github.com/gobuffalo/validate/v3"
-	_ "github.com/gobuffalo/validate/v3"
-	"github.com/gobuffalo/validate/v3/validators"
-	_ "github.com/gobuffalo/validate/v3/validators"
-	"github.com/gofrs/uuid"
 	"time"
+
+	"github.com/gobuffalo/pop/v6"
+	"github.com/gobuffalo/validate/v3"
+	"github.com/gobuffalo/validate/v3/validators"
+	"github.com/gofrs/uuid"
 )
 
 type AccountAccessGrant struct {
@@ -29,7 +27,7 @@ type AccountAccessGrant struct {
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
-func (grant *AccountAccessGrant) Validate(tx *pop.Connection) (*validate.Errors, error) {
+func (grant *AccountAccessGrant) Validate(_ *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		&validators.UUIDIsPresent{Name: "ID", Field: grant.ID},
 		&validators.UUIDIsPresent{Name: "UserID", Field: grant.UserId},

@@ -1,11 +1,12 @@
 package models
 
 import (
+	"time"
+
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
 	"github.com/gofrs/uuid"
-	"time"
 )
 
 // WebauthnCredential is used by pop to map your webauthn_credentials database table to your go code.
@@ -22,7 +23,7 @@ type WebauthnCredential struct {
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
-func (credential *WebauthnCredential) Validate(tx *pop.Connection) (*validate.Errors, error) {
+func (credential *WebauthnCredential) Validate(_ *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		&validators.StringIsPresent{Name: "ID", Field: credential.ID},
 		&validators.UUIDIsPresent{Name: "UserId", Field: credential.UserId},
