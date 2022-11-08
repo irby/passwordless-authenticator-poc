@@ -1,13 +1,27 @@
-
-  <form class="example-form w-100" >
-    <mat-form-field class="example-full-width" appearance="fill">
-      <input matInput placeholder="Enter post here" [(ngModel)]="postBody" name="postBody">
-    </mat-form-field>
-    <button mat-raised-button (click)="createPost()">Post</button>
-    <button mat-raised-button (click)="getPosts()" style="margin-left: 1em">Refresh</button>
-  </form>
-  <div class="w-100" style="margin-top: 2em">
-    <div *ngFor="let post of posts">
-      <div><strong>{{post.created_by}}<span *ngIf="shouldShowSurrogate(post)" style="color: red"> ({{post.created_by_surrogate}})</span> - {{post.created_at| date:'MM/dd/yy HH:mm'}}</strong>: {{post.data}}</div>
+<form class="example-form w-100">
+  <mat-form-field class="example-full-width" appearance="fill">
+    <input
+      matInput
+      placeholder="Enter post here"
+      [(ngModel)]="postBody"
+      name="postBody"
+    />
+  </mat-form-field>
+  <button mat-raised-button (click)="createPost()">Post</button>
+  <button mat-raised-button (click)="getPosts()" style="margin-left: 1em">
+    Refresh
+  </button>
+</form>
+<div class="w-100" style="margin-top: 2em">
+  <div *ngFor="let post of posts">
+    <div>
+      <strong
+        >{{ post.created_by
+        }}<span *ngIf="shouldShowSurrogate(post)" style="color: red">
+          ({{ post.created_by_surrogate }})</span
+        >
+        - {{ post.created_at | date: "MM/dd/yy HH:mm" }}</strong
+      >: {{ post.data }}
     </div>
   </div>
+</div>

@@ -131,15 +131,16 @@ serve private
 
 Use this command to start the public and private API together:
 
-````shell
+```shell
 serve all
-````
+```
 
 > **Warning** The private API must be protected by an access management system.
 
 ### Supported Databases
 
 Hanko backend supports the following databases:
+
 - CockroachDB
 - MariaDB
 - MySQL
@@ -159,4 +160,5 @@ All available configuration parameters can be found [here](./docs/Config.md).
 The API specification can be found [here](https://teamhanko.github.io/hanko/).
 
 ## License
+
 The hanko backend ist licensed under the [AGPL-3.0](LICENSE).

@@ -3,40 +3,36 @@ import axios from "axios";
 
 @Injectable()
 export class SocketService {
+  private socket!: WebSocket;
+  private listener: EventEmitter<any> = new EventEmitter();
 
-    private socket!: WebSocket;
-    private listener: EventEmitter<any> = new EventEmitter();
+  public constructor() {}
 
-    public constructor() {
-        
-    }
+  public createAndAssignSocket(id: string, token: string) {
+    this.socket = new WebSocket(`ws://localhost:8000/ws/${id}?token=${token}`);
+    this.socket.onopen = (event) => {
+      console.log("onopen", event);
+      this.listener.emit({ type: "open", data: event });
+    };
+    this.socket.onclose = (event) => {
+      console.log("onclose", event);
+      this.listener.emit({ type: "close", data: event });
+    };
+    this.socket.onmessage = (event) => {
+      console.log("onmessage", event);
+      this.listener.emit({ type: "message", data: event.data });
+    };
+  }
 
-    public createAndAssignSocket(id: string, token: string) {
-        this.socket = new WebSocket(`ws://localhost:8000/ws/${id}?token=${token}`);
-        this.socket.onopen = event => {
-            console.log('onopen', event);
-            this.listener.emit({"type": "open", "data": event});
-        }
-        this.socket.onclose = event => {
-            console.log('onclose', event);
-            this.listener.emit({"type": "close", "data": event});
-        }
-        this.socket.onmessage = event => {
-            console.log('onmessage', event);
-            this.listener.emit({"type": "message", "data": event.data});
-        }
-    }
+  public send(data: string) {
+    this.socket?.send(data);
+  }
 
-    public send(data: string) {
-        this.socket?.send(data);
-    }
+  public close() {
+    this.socket?.close();
+  }
 
-    public close() {
-        this.socket?.close();
-    }
-
-    public getEventListener() {
-        return this.listener;
-    }
-
+  public getEventListener() {
+    return this.listener;
+  }
 }

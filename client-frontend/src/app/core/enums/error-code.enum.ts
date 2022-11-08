@@ -1,3 +1,1 @@
-export enum ErrorCode {
-    
-}
+export enum ErrorCode {}

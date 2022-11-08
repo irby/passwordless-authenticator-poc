@@ -1,11 +1,9 @@
 <a href="http://localhost:4200/#/home">Back to Home</a>
-<div style="margin-top: 1em;"></div>
-<div *ngIf="isLoading">
-  Loading...
-</div>
+<div style="margin-top: 1em"></div>
+<div *ngIf="isLoading">Loading...</div>
 <div *ngIf="!isLoading">
   <div *ngIf="errorText">
-    {{errorText}}
+    {{ errorText }}
   </div>
   <div *ngIf="!errorText">
     <div *ngIf="isConnected">
@@ -16,26 +14,49 @@
         </div>
         <div *ngIf="isPrimaryAccountHolder">
           <div *ngIf="!!clientInformation">
-            Please confirm you wish to share your account with the following party:
+            Please confirm you wish to share your account with the following
+            party:
 
             <table>
               <td>
-                <tr>Client IP Address: </tr>
-                <tr>Client Browser: </tr>
-                <tr>Email: </tr>
+                <tr>
+                  Client IP Address:
+                </tr>
+                <tr>
+                  Client Browser:
+                </tr>
+                <tr>
+                  Email:
+                </tr>
               </td>
               <td>
-                <tr>{{clientInformation.ipAddress}}</tr>
-                <tr>{{clientInformation.userAgent}}</tr>
-                <tr>{{clientInformation.email}}</tr>
+                <tr>
+                  {{
+                    clientInformation.ipAddress
+                  }}
+                </tr>
+                <tr>
+                  {{
+                    clientInformation.userAgent
+                  }}
+                </tr>
+                <tr>
+                  {{
+                    clientInformation.email
+                  }}
+                </tr>
               </td>
             </table>
 
-            <div style="margin-top: 1.5em; margin-bottom: 1.5em;"></div>
+            <div style="margin-top: 1.5em; margin-bottom: 1.5em"></div>
 
-            <button mat-raised-button color="primary" (click)="confirmGrant()">Confirm</button>
-            <span style="margin-left: 1em; margin-right: 1em;"></span>
-            <button mat-raised-button color="warn" (click)="denyGrant()">Deny</button>
+            <button mat-raised-button color="primary" (click)="confirmGrant()">
+              Confirm
+            </button>
+            <span style="margin-left: 1em; margin-right: 1em"></span>
+            <button mat-raised-button color="warn" (click)="denyGrant()">
+              Deny
+            </button>
           </div>
         </div>
       </div>
@@ -58,9 +79,7 @@
         </div>
       </div>
     </div>
-    <div *ngIf="!isConnected">
-      Waiting for participant...
-    </div>
+    <div *ngIf="!isConnected">Waiting for participant...</div>
   </div>
 </div>
 <!-- <ul id="messages">

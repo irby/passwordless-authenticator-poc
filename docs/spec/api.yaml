@@ -1,8 +1,7 @@
-
 openapi: 3.0.0
 info:
-  version: '0.1.1'
-  title: 'Hanko API'
+  version: "0.1.1"
+  title: "Hanko API"
   description: |
     ## Introduction
 
@@ -53,11 +52,11 @@ externalDocs:
   description: More about Hanko
   url: https://github.com/teamhanko/hanko
 servers:
-  - url: 'localhost:3000'
+  - url: "localhost:3000"
 paths:
   /passcode/login/initialize:
     post:
-      summary: 'Initialize passcode login'
+      summary: "Initialize passcode login"
       description: |
         Initialize a passcode login for the user identified by `user_id`. Sends an email
         containing the actual passcode to the user. Returns a representation of the passcode.
@@ -73,21 +72,21 @@ paths:
                 user_id:
                   description: The ID of the user
                   allOf:
-                    - $ref: '#/components/schemas/UUID4'
+                    - $ref: "#/components/schemas/UUID4"
       responses:
-        '200':
-          description: 'Successful passcode login initialization'
+        "200":
+          description: "Successful passcode login initialization"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Passcode'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/Passcode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /passcode/login/finalize:
     post:
-      summary: 'Finalize passcode login'
+      summary: "Finalize passcode login"
       description: |
         Finalize a passcode login given the `id` of the passcode and the actual `code` provided in the the email sent
         to the user during initialization.
@@ -105,7 +104,7 @@ paths:
                 id:
                   description: The ID of the passcode
                   allOf:
-                    - $ref: '#/components/schemas/UUID4'
+                    - $ref: "#/components/schemas/UUID4"
                 code:
                   type: string
                   minLength: 6
@@ -115,36 +114,36 @@ paths:
                     a string of 6 decimal digits
                   example: "897481"
       responses:
-        '200':
-          description: 'Successful passcode login finalization'
+        "200":
+          description: "Successful passcode login finalization"
           headers:
             X-Auth-Token:
               description: |
                 Present only when enabled via [configuration](https://github.com/teamhanko/hanko/blob/main/backend/docs/Config.md#hanko-backend-config) option `session.enable_auth_token_header`
                 for purposes of cross-domain communication between client and Hanko API.
               schema:
-                $ref: '#/components/schemas/X-Auth-Token'
+                $ref: "#/components/schemas/X-Auth-Token"
             Set-Cookie:
               description: |
                 Contains the JSON Web Token (JWT) that must be provided to protected endpoints.
                 Cookie attributes (e.g. domain) can be set via [configuration](https://github.com/teamhanko/hanko/blob/main/backend/docs/Config.md#hanko-backend-config) option `session.cookie`.
               schema:
-                $ref: '#/components/schemas/CookieSession'
+                $ref: "#/components/schemas/CookieSession"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Passcode'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '410':
-          $ref: '#/components/responses/Gone'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/Passcode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "410":
+          $ref: "#/components/responses/Gone"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /password/login:
     post:
-      summary: 'Do password login'
+      summary: "Do password login"
       description: |
         Perform a password login for the user identified by `user_id` and a given `password`.
 
@@ -161,43 +160,43 @@ paths:
                 user_id:
                   description: The ID of the user to perform a password login for
                   allOf:
-                    - $ref: '#/components/schemas/UUID4'
+                    - $ref: "#/components/schemas/UUID4"
                 password:
-                  $ref: '#/components/schemas/Password'
+                  $ref: "#/components/schemas/Password"
               required:
                 - user_id
                 - password
       responses:
-        '200':
-          description: 'Successful password login'
+        "200":
+          description: "Successful password login"
           headers:
             X-Auth-Token:
               description: |
                 Present only when enabled via [configuration](https://github.com/teamhanko/hanko/blob/main/backend/docs/Config.md#hanko-backend-config) option `session.enable_auth_token_header`
                 for purposes of cross-domain communication between client and Hanko API.
               schema:
-                $ref: '#/components/schemas/X-Auth-Token'
+                $ref: "#/components/schemas/X-Auth-Token"
             Set-Cookie:
               description: |
                 Contains the JSON Web Token (JWT) that must be provided to protected endpoints.
                 Cookie attributes (e.g. domain) can be set via [configuration](https://github.com/teamhanko/hanko/blob/main/backend/docs/Config.md#hanko-backend-config) option `session.cookie`.
               schema:
-                $ref: '#/components/schemas/CookieSession'
+                $ref: "#/components/schemas/CookieSession"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Passcode'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/Passcode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /password:
     put:
-      summary: 'Create/Set a password'
+      summary: "Create/Set a password"
       description: |
         Create a or update an existing `password` for the user identified by `user_id`.
 
@@ -206,8 +205,8 @@ paths:
       tags:
         - Password
       security:
-        - CookieAuth: [ ]
-        - BearerTokenAuth: [ ]
+        - CookieAuth: []
+        - BearerTokenAuth: []
       requestBody:
         content:
           application/json:
@@ -217,28 +216,28 @@ paths:
                 user_id:
                   description: The ID of the user to create/set a password for
                   allOf:
-                    - $ref: '#/components/schemas/UUID4'
+                    - $ref: "#/components/schemas/UUID4"
                 password:
-                  $ref: '#/components/schemas/Password'
+                  $ref: "#/components/schemas/Password"
               required:
                 - user_id
                 - password
       responses:
-        '200':
-          description: 'Successful password update'
-        '201':
-          description: 'Successful password creation'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "200":
+          description: "Successful password update"
+        "201":
+          description: "Successful password creation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /webauthn/login/initialize:
     post:
-      summary: 'Initialize WebAuthn login'
+      summary: "Initialize WebAuthn login"
       description: |
         Initialize a login with Webauthn. Returns a JSON representation of CredentialRequestOptions for use
         with the Webauthn API's `navigator.credentials.get()`.
@@ -251,21 +250,21 @@ paths:
       tags:
         - WebAuthn
       responses:
-        '200':
-          description: 'Successful initialization'
+        "200":
+          description: "Successful initialization"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CredentialRequestOptions'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/CredentialRequestOptions"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /webauthn/login/finalize:
     post:
-      summary: 'Finalize WebAuthn login'
+      summary: "Finalize WebAuthn login"
       description: |
         Finalize a login with Webauthn using the WebAuthn API response to a `navigator.credentials.get()` call.
 
@@ -280,34 +279,34 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PublicKeyCredentialAssertionResponse'
+              $ref: "#/components/schemas/PublicKeyCredentialAssertionResponse"
       responses:
-        '204':
-          description: 'Successful login'
+        "204":
+          description: "Successful login"
           headers:
             X-Auth-Token:
               description: |
                 Present only when enabled via [configuration](https://github.com/teamhanko/hanko/blob/main/backend/docs/Config.md#hanko-backend-config) option `session.enable_auth_token_header`
                 for purposes of cross-domain communication between client and Hanko API.
               schema:
-                $ref: '#/components/schemas/X-Auth-Token'
+                $ref: "#/components/schemas/X-Auth-Token"
             Set-Cookie:
               description: |
                 Contains the JSON Web Token (JWT) that must be provided to protected endpoints.
                 Cookie attributes (e.g. domain) can be set via [configuration](https://github.com/teamhanko/hanko/blob/main/backend/docs/Config.md#hanko-backend-config) option `session.cookie`.
               schema:
-                $ref: '#/components/schemas/CookieSession'
+                $ref: "#/components/schemas/CookieSession"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WebauthnLoginResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/WebauthnLoginResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /webauthn/registration/initialize:
     post:
-      summary: 'Initialize WebAuthn registration'
+      summary: "Initialize WebAuthn registration"
       description: |
         Initialize a registration with Webauthn. Returns a JSON representation of CredentialCreationOptions for use
         with the Webauthn API's `navigator.credentials.create()`.
@@ -320,24 +319,24 @@ paths:
       tags:
         - WebAuthn
       security:
-        - CookieAuth: [ ]
-        - BearerTokenAuth: [ ]
+        - CookieAuth: []
+        - BearerTokenAuth: []
       responses:
-        '200':
-          description: 'Challenge'
+        "200":
+          description: "Challenge"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CredentialCreationOptions'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/CredentialCreationOptions"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /webauthn/registration/finalize:
     post:
-      summary: 'Finalize WebAuthn registration'
+      summary: "Finalize WebAuthn registration"
       description: |
         Finalize a registration with Webauthn using the WebAuthn API response to a `navigator.credentials.create()` call.
 
@@ -349,17 +348,17 @@ paths:
       tags:
         - WebAuthn
       security:
-        - CookieAuth: [ ]
-        - BearerTokenAuth: [ ]
+        - CookieAuth: []
+        - BearerTokenAuth: []
       requestBody:
         description: "Challenge response"
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PublicKeyCredentialAttestationResponse'
+              $ref: "#/components/schemas/PublicKeyCredentialAttestationResponse"
       responses:
-        '200':
-          description: 'Successful registration'
+        "200":
+          description: "Successful registration"
           content:
             application/json:
               schema:
@@ -372,16 +371,16 @@ paths:
                   user_id:
                     description: The ID of the user on whose behalf a credential was created
                     allOf:
-                      - $ref: '#/components/schemas/UUID4'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                      - $ref: "#/components/schemas/UUID4"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /.well-known/jwks.json:
     get:
-      summary: 'Get JSON Web Key Set'
+      summary: "Get JSON Web Key Set"
       description: |
         Retrieve a [JSON Web Key Set](https://www.rfc-editor.org/rfc/rfc7517#section-5) (JWKS) object containing the public `keys` used to verify
         JSON Web Tokens (JWT) issued by the Hanko API and signed using the RS256 signing algorithm.
@@ -389,17 +388,17 @@ paths:
       tags:
         - .well-known
       responses:
-        '200':
-          description: 'JSON Web Key Set'
+        "200":
+          description: "JSON Web Key Set"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JSONWebKeySet'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/JSONWebKeySet"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /.well-known/config:
     get:
-      summary: 'Get public Hanko configuration'
+      summary: "Get public Hanko configuration"
       description: |
         Retrieve public backend configuration options.
 
@@ -409,15 +408,15 @@ paths:
       tags:
         - .well-known
       responses:
-        '200':
-          description: 'Hanko configuration'
+        "200":
+          description: "Hanko configuration"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HankoConfiguration'
+                $ref: "#/components/schemas/HankoConfiguration"
   /user:
     post:
-      summary: 'Get user details by email'
+      summary: "Get user details by email"
       description: Retrieve details for user corresponding to the given `email`.
       operationId: getUserId
       tags:
@@ -432,38 +431,38 @@ paths:
                   type: string
                   format: email
       responses:
-        '200':
-          description: 'User'
+        "200":
+          description: "User"
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   id:
-                    $ref:  '#/components/schemas/UUID4'
+                    $ref: "#/components/schemas/UUID4"
                   verified:
                     type: boolean
                   has_webauthn_credential:
                     type: boolean
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /me:
     get:
-      summary: 'Get the current user ID'
+      summary: "Get the current user ID"
       description: Retrieve the user ID for the current user (i.e. the subject of the JWT).
       operationId: IsUserAuthorized
       tags:
         - User Management
       security:
-        - CookieAuth: [ ]
-        - BearerTokenAuth: [ ]
+        - CookieAuth: []
+        - BearerTokenAuth: []
       responses:
-        '200':
-          description: 'User'
+        "200":
+          description: "User"
           content:
             application/json:
               schema:
@@ -472,14 +471,14 @@ paths:
                   id:
                     description: The id of the current user
                     allOf:
-                      - $ref: '#/components/schemas/UUID4'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                      - $ref: "#/components/schemas/UUID4"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /users:
     post:
-      summary: 'Create a user'
+      summary: "Create a user"
       operationId: createUser
       tags:
         - User Management
@@ -495,35 +494,35 @@ paths:
               required:
                 - email
       responses:
-        '200':
-          description: 'Details about the created user'
+        "200":
+          description: "Details about the created user"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
     get:
-      summary: 'Get a list of users'
+      summary: "Get a list of users"
       operationId: listUsers
       tags:
         - User Management
       responses:
-        '200':
-          description: 'Details about users'
+        "200":
+          description: "Details about users"
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/User'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                  $ref: "#/components/schemas/User"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /users/{id}:
     get:
-      summary: 'Get a user by ID'
+      summary: "Get a user by ID"
       operationId: listUser
       tags:
         - User Management
@@ -533,22 +532,22 @@ paths:
           description: ID of the user
           required: true
           schema:
-            $ref: '#/components/schemas/UUID4'
+            $ref: "#/components/schemas/UUID4"
       responses:
-        '200':
-          description: 'Details about the user'
+        "200":
+          description: "Details about the user"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
     patch:
-      summary: 'Update a user by ID'
+      summary: "Update a user by ID"
       operationId: updateUser
       tags:
         - User Management
@@ -558,7 +557,7 @@ paths:
           description: ID of the user
           required: true
           schema:
-            $ref: '#/components/schemas/UUID4'
+            $ref: "#/components/schemas/UUID4"
       requestBody:
         content:
           application/json:
@@ -572,20 +571,20 @@ paths:
                   type: string
                   enum: [active, inactive]
       responses:
-        '200':
-          description: 'Updated user details'
+        "200":
+          description: "Updated user details"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
     delete:
-      summary: 'Delete a user by ID'
+      summary: "Delete a user by ID"
       operationId: deleteUser
       tags:
         - User Management
@@ -595,14 +594,14 @@ paths:
           description: ID of the user
           required: true
           schema:
-            $ref: '#/components/schemas/UUID4'
+            $ref: "#/components/schemas/UUID4"
       responses:
-        '204':
-          description: 'Deleted'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "204":
+          description: "Deleted"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 components:
   responses:
     BadRequest:
@@ -610,7 +609,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
           example:
             code: 400
             message: Bad Request
@@ -619,7 +618,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
           example:
             code: 409
             message: Conflict
@@ -628,7 +627,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
           example:
             code: 403
             message: Forbidden
@@ -637,7 +636,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
           example:
             code: 410
             message: Gone
@@ -646,7 +645,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
           example:
             code: 500
             message: Internal Server Error
@@ -655,7 +654,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
           example:
             code: 404
             message: Not found
@@ -664,7 +663,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
           example:
             code: 401
             message: Not found
@@ -860,7 +859,7 @@ components:
           externalDocs:
             description: RFC7517 - JSON Web Key (JWK) - Section 4.1
             url: https://www.rfc-editor.org/rfc/rfc7517#section-4.1
-        'n':
+        "n":
           type: string
           format: base64url
           example: vPFRUCRoxN3RygdJHR3S5BV-DDLw6n-7oUXtX0nr7Twl...
@@ -879,7 +878,7 @@ components:
         keys:
           type: array
           items:
-            $ref: '#/components/schemas/JSONWebKey'
+            $ref: "#/components/schemas/JSONWebKey"
           externalDocs:
             description: RFC7517 - JSON Web Key (JWK) - Section 5.1
             url: https://www.rfc-editor.org/rfc/rfc7517#section-5.1
@@ -893,7 +892,7 @@ components:
         id:
           description: The ID of the passcode
           allOf:
-            - $ref: '#/components/schemas/UUID4'
+            - $ref: "#/components/schemas/UUID4"
         ttl:
           type: integer
           description: Lifespan of a passcode in seconds
@@ -910,7 +909,7 @@ components:
       maxLength: 72
       example: 9UnCBEx924a45P7p
     PublicKeyCredentialAssertionResponse:
-      description: 'WebAuthn API response to a navigator.credentials.get() call'
+      description: "WebAuthn API response to a navigator.credentials.get() call"
       type: object
       properties:
         id:
@@ -944,7 +943,7 @@ components:
               format: base64url
               example: rpe_EkgaSEeZG0TwzZyZJw
     PublicKeyCredentialAttestationResponse:
-      description: 'WebAuthn API response to a navigator.credentials.create() call'
+      description: "WebAuthn API response to a navigator.credentials.create() call"
       type: object
       properties:
         id:
@@ -983,7 +982,7 @@ components:
         id:
           description: The ID of the user
           allOf:
-            - $ref: '#/components/schemas/UUID4'
+            - $ref: "#/components/schemas/UUID4"
         email:
           description: The email address of the user
           type: string
@@ -1011,7 +1010,7 @@ components:
                 format: base64url
                 example: Meprtysj5ZZrTlg0qiLbsZ168OtQMeGVAikVy2n1hvvG...
     WebauthnLoginResponse:
-      description: 'Response after a successful login with webauthn'
+      description: "Response after a successful login with webauthn"
       type: object
       properties:
         credential_id:

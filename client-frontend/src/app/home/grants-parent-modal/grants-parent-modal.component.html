@@ -5,9 +5,19 @@
     <th class="col-2">Date Created</th>
     <th class="col-2">Actions</th>
     <tr *ngFor="let item of data">
-      <td class="align-center">{{item.guestUserEmail}}</td>
-      <td class="align-center">{{item.createdAt | date: 'MM/dd/yy HH:mm'}}</td>
-      <td class="align-center"><button mat-raised-button color="warn" (click)="revokeAccessOnRelation(item.relationId)">Remove Access</button></td>
+      <td class="align-center">{{ item.guestUserEmail }}</td>
+      <td class="align-center">
+        {{ item.createdAt | date: "MM/dd/yy HH:mm" }}
+      </td>
+      <td class="align-center">
+        <button
+          mat-raised-button
+          color="warn"
+          (click)="revokeAccessOnRelation(item.relationId)"
+        >
+          Remove Access
+        </button>
+      </td>
     </tr>
   </table>
 </mat-dialog-content>

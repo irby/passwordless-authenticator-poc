@@ -5,9 +5,19 @@
     <th class="col-2">Date Created</th>
     <th class="col-2">Actions</th>
     <tr *ngFor="let item of data">
-      <td class="align-center">{{item.parentUserEmail}}</td>
-      <td class="align-center">{{item.createdAt | date: 'MM/dd/yy HH:mm'}}</td>
-      <td class="align-center"><button mat-raised-button color="primary" (click)="initiateLogin(item.relationId)">Login</button></td>
+      <td class="align-center">{{ item.parentUserEmail }}</td>
+      <td class="align-center">
+        {{ item.createdAt | date: "MM/dd/yy HH:mm" }}
+      </td>
+      <td class="align-center">
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="initiateLogin(item.relationId)"
+        >
+          Login
+        </button>
+      </td>
     </tr>
   </table>
 </mat-dialog-content>
@@ -15,6 +25,6 @@
   <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 </mat-dialog-content>
 
-<mat-dialog-actions >
+<mat-dialog-actions>
   <button mat-raised-button mat-dialog-close color="warn">Close</button>
 </mat-dialog-actions>

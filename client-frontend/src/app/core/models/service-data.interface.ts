@@ -1,4 +1,4 @@
 export interface ServiceData<T> {
-  type: 'data';
+  type: "data";
   data: T;
 }

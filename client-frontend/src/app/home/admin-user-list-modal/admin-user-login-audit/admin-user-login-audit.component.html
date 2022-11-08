@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>User Logins - {{userEmail}}</h2>
+<h2 mat-dialog-title>User Logins - {{ userEmail }}</h2>
 <mat-dialog-content *ngIf="!isLoading">
   <div *ngIf="loginAuditRecords?.LoginsToAccount?.length">
     <h3>Logins Made to Account</h3>
@@ -9,14 +9,19 @@
       <th class="col-2">IP Address</th>
       <th class="col-2">Browser</th>
       <tr *ngFor="let item of loginAuditRecords?.LoginsToAccount">
-        <td class="align-center">{{item.created_at | date: 'MM/dd/yy HH:mm'}}</td>
-        <td class="align-center"><mat-icon *ngIf="!item.surrogate_user_id">check</mat-icon></td>
-        <td class="align-center">{{item.surrogate_user_email}}</td>
-        <td class="align-center">{{cleanIpAddress(item.client_ip_address)}}</td>
-        <td class="align-center">{{cleanBrowser(item.client_user_agent)}}</td>
+        <td class="align-center">
+          {{ item.created_at | date: "MM/dd/yy HH:mm" }}
+        </td>
+        <td class="align-center">
+          <mat-icon *ngIf="!item.surrogate_user_id">check</mat-icon>
+        </td>
+        <td class="align-center">{{ item.surrogate_user_email }}</td>
+        <td class="align-center">
+          {{ cleanIpAddress(item.client_ip_address) }}
+        </td>
+        <td class="align-center">{{ cleanBrowser(item.client_user_agent) }}</td>
       </tr>
     </table>
-
   </div>
   <div *ngIf="loginAuditRecords?.LoginsAsGuest?.length">
     <h3>Logins Made as Guest</h3>
@@ -26,15 +31,18 @@
       <th class="col-2">IP Address</th>
       <th class="col-2">Browser</th>
       <tr *ngFor="let item of loginAuditRecords?.LoginsAsGuest">
-        <td class="align-center">{{item.created_at | date: 'MM/dd/yy HH:mm'}}</td>
-        <td class="align-center">{{item.userEmail}}</td>
-        <td class="align-center">{{cleanIpAddress(item.client_ip_address)}}</td>
-        <td class="align-center">{{cleanBrowser(item.client_user_agent)}}</td>
+        <td class="align-center">
+          {{ item.created_at | date: "MM/dd/yy HH:mm" }}
+        </td>
+        <td class="align-center">{{ item.userEmail }}</td>
+        <td class="align-center">
+          {{ cleanIpAddress(item.client_ip_address) }}
+        </td>
+        <td class="align-center">{{ cleanBrowser(item.client_user_agent) }}</td>
       </tr>
     </table>
   </div>
-  
 </mat-dialog-content>
-<mat-dialog-actions >
+<mat-dialog-actions>
   <button mat-raised-button mat-dialog-close color="warn">Close</button>
 </mat-dialog-actions>

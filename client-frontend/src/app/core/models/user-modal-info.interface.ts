@@ -1,4 +1,4 @@
 export interface UserModalInfo {
-    userId: string;
-    userEmail: string;
+  userId: string;
+  userEmail: string;
 }

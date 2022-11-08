@@ -6,10 +6,10 @@ that provides the underlying functionalities.
 
 ## Features
 
-* Registration and login flows with and without passwords
-* Passkey authentication
-* Passcodes, a convenient way to recover passwords and verify email addresses
-* Customizable UI
+- Registration and login flows with and without passwords
+- Passkey authentication
+- Passcodes, a convenient way to recover passwords and verify email addresses
+- Customizable UI
 
 ## Installation
 
@@ -31,7 +31,7 @@ pnpm install @teamhanko/hanko-elements
 Import as a module:
 
 ```typescript
-import "@teamhanko/hanko-elements/hanko-auth"
+import "@teamhanko/hanko-elements/hanko-auth";
 ```
 
 With a script tag via CDN:
@@ -43,7 +43,7 @@ With a script tag via CDN:
 ### Markup
 
 ```html
-<hanko-auth api="https://hanko.yourdomain.com" lang="en"/>
+<hanko-auth api="https://hanko.yourdomain.com" lang="en" />
 ```
 
 Please take a look at the [Hanko API](https://github.com/teamhanko/hanko/blob/main/backend/README.md) to see how to spin up the backend.
@@ -64,11 +64,11 @@ Events are dispatched on the `<hanko-auth>` element. These events do not bubble.
   redirect the user to protected pages.
 
 ```js
-const hanko = document.querySelector('hanko-auth')
+const hanko = document.querySelector("hanko-auth");
 
-hanko.addEventListener('success', () => {
-    hanko.parentElement.innerHTML = 'secured content...'
-})
+hanko.addEventListener("success", () => {
+  hanko.parentElement.innerHTML = "secured content...";
+});
 ```
 
 ## Demo
@@ -226,13 +226,12 @@ Result:
 ## Bugs
 
 - Customizable UI: In Chrome the `::part` selector is not working in combination with some pseudo classes.
-E.g. `:disabled` is currently broken. See:
-[chromium-issue-#1131396](https://bugs.chromium.org/p/chromium/issues/detail?id=1131396),
-[chromium-issue-#953648](https://bugs.chromium.org/p/chromium/issues/detail?id=953648)
+  E.g. `:disabled` is currently broken. See:
+  [chromium-issue-#1131396](https://bugs.chromium.org/p/chromium/issues/detail?id=1131396),
+  [chromium-issue-#953648](https://bugs.chromium.org/p/chromium/issues/detail?id=953648)
 
 Found a bug? Please report on our [GitHub](https://github.com/teamhanko/hanko/issues) page.
 
 ## License
 
 The `elements` project is licensed under the [MIT License](LICENSE).
-

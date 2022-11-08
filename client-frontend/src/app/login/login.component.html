@@ -1,15 +1,52 @@
-<div >
-  <hanko-auth *ngIf="isHankoElementsLoaded" (success)="redirectToIndex($event)" [api]="hankoApiUrl" lang="en"></hanko-auth>
+<div>
+  <hanko-auth
+    *ngIf="isHankoElementsLoaded"
+    (success)="redirectToIndex($event)"
+    [api]="hankoApiUrl"
+    lang="en"
+  ></hanko-auth>
 </div>
 <div>
-  <button mat-raised-button *ngIf="isHankoElementsLoaded" class="fake-login-button" style="background-color: #1cd6e6" (click)="openConfirmBiometricDialog(UserId.mirby7Id)">Login as mirby7@gatech.edu</button>
+  <button
+    mat-raised-button
+    *ngIf="isHankoElementsLoaded"
+    class="fake-login-button"
+    style="background-color: #1cd6e6"
+    (click)="openConfirmBiometricDialog(UserId.mirby7Id)"
+  >
+    Login as mirby7@gatech.edu
+  </button>
 </div>
 <div>
-  <button mat-raised-button *ngIf="isHankoElementsLoaded" class="fake-login-button" style="background-color: #3feabb" (click)="openConfirmBiometricDialog(UserId.gburdell27Id)">Login as gburdell27@gatech.edu</button>
+  <button
+    mat-raised-button
+    *ngIf="isHankoElementsLoaded"
+    class="fake-login-button"
+    style="background-color: #3feabb"
+    (click)="openConfirmBiometricDialog(UserId.gburdell27Id)"
+  >
+    Login as gburdell27@gatech.edu
+  </button>
 </div>
 <div>
-  <button mat-raised-button *ngIf="isHankoElementsLoaded" class="fake-login-button" style="background-color: #ffa926" (click)="openConfirmBiometricDialog(UserId.buzzId)">Login as buzz@gatech.edu</button>
+  <button
+    mat-raised-button
+    *ngIf="isHankoElementsLoaded"
+    class="fake-login-button"
+    style="background-color: #ffa926"
+    (click)="openConfirmBiometricDialog(UserId.buzzId)"
+  >
+    Login as buzz@gatech.edu
+  </button>
 </div>
 <div>
-  <button mat-raised-button *ngIf="isHankoElementsLoaded" class="fake-login-button" style="background-color: #ff454c" (click)="openConfirmBiometricDialog(UserId.adminId)">Login as admin@gatech.edu</button>
+  <button
+    mat-raised-button
+    *ngIf="isHankoElementsLoaded"
+    class="fake-login-button"
+    style="background-color: #ff454c"
+    (click)="openConfirmBiometricDialog(UserId.adminId)"
+  >
+    Login as admin@gatech.edu
+  </button>
 </div>

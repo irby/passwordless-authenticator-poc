@@ -18,8 +18,8 @@ services:
         condition: service_completed_successfully
     build: ../../authenticator-backend
     ports:
-      - '8000:8000' # public
-      - '8001:8001' # private
+      - "8000:8000" # public
+      - "8001:8001" # private
     restart: unless-stopped
     command: serve --config /etc/config/config.yaml all
     volumes:
@@ -79,11 +79,10 @@ services:
   mailslurper:
     image: marcopas/docker-mailslurper:latest
     ports:
-      - '8080:8080' # web UI
-      - '8085:8085'
-      - '2500:2500' # expose SMTP
+      - "8080:8080" # web UI
+      - "8085:8085"
+      - "2500:2500" # expose SMTP
     networks:
       - intranet
 networks:
   intranet:
-    

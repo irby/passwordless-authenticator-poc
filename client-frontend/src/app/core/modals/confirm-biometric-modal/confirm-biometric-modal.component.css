@@ -1,12 +1,12 @@
 .fingerprint-icon {
-    transform: scale(4);
-    color: red;
-    margin-top: 2em;
+  transform: scale(4);
+  color: red;
+  margin-top: 2em;
 }
 
 mat-dialog-content {
-    height: 10em;
-    justify-content: center;
-    display: flex;
-    text-align: center;
+  height: 10em;
+  justify-content: center;
+  display: flex;
+  text-align: center;
 }
