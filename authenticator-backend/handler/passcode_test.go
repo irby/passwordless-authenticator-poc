@@ -3,6 +3,11 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -12,10 +17,6 @@ import (
 	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/test"
 	"gopkg.in/gomail.v2"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 func TestNewPasscodeHandler(t *testing.T) {
@@ -193,6 +194,6 @@ func passcodes() []models.Passcode {
 type mailer struct {
 }
 
-func (m mailer) Send(message *gomail.Message) error {
+func (m mailer) Send(_ *gomail.Message) error {
 	return nil
 }

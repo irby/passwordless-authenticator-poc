@@ -40,7 +40,7 @@ func (p *persister) GetPasswordCredentialPersister() persistence.PasswordCredent
 	return p.passwordCredentialPersister
 }
 
-func (p *persister) GetPasswordCredentialPersisterWithConnection(tx *pop.Connection) persistence.PasswordCredentialPersister {
+func (p *persister) GetPasswordCredentialPersisterWithConnection(_ *pop.Connection) persistence.PasswordCredentialPersister {
 	return p.passwordCredentialPersister
 }
 
@@ -56,7 +56,7 @@ func (p *persister) GetUserPersister() persistence.UserPersister {
 	return p.userPersister
 }
 
-func (p *persister) GetUserPersisterWithConnection(tx *pop.Connection) persistence.UserPersister {
+func (p *persister) GetUserPersisterWithConnection(_ *pop.Connection) persistence.UserPersister {
 	return p.userPersister
 }
 
@@ -64,7 +64,7 @@ func (p *persister) GetPasscodePersister() persistence.PasscodePersister {
 	return p.passcodePersister
 }
 
-func (p *persister) GetPasscodePersisterWithConnection(tx *pop.Connection) persistence.PasscodePersister {
+func (p *persister) GetPasscodePersisterWithConnection(_ *pop.Connection) persistence.PasscodePersister {
 	return p.passcodePersister
 }
 
@@ -76,7 +76,7 @@ func (p *persister) GetWebauthnCredentialsPrivateKeyPersister() persistence.Weba
 	return p.webauthnCredentialsPrivateKeyPersister
 }
 
-func (p *persister) GetWebauthnCredentialPersisterWithConnection(tx *pop.Connection) persistence.WebauthnCredentialPersister {
+func (p *persister) GetWebauthnCredentialPersisterWithConnection(_ *pop.Connection) persistence.WebauthnCredentialPersister {
 	return p.webauthnCredentialPersister
 }
 
@@ -84,7 +84,7 @@ func (p *persister) GetWebauthnSessionDataPersister() persistence.WebauthnSessio
 	return p.webauthnSessionDataPersister
 }
 
-func (p *persister) GetWebauthnSessionDataPersisterWithConnection(tx *pop.Connection) persistence.WebauthnSessionDataPersister {
+func (p *persister) GetWebauthnSessionDataPersisterWithConnection(_ *pop.Connection) persistence.WebauthnSessionDataPersister {
 	return p.webauthnSessionDataPersister
 }
 
@@ -96,7 +96,7 @@ func (p *persister) GetJwkPersister() persistence.JwkPersister {
 	return p.jwkPersister
 }
 
-func (p *persister) GetJwkPersisterWithConnection(tx *pop.Connection) persistence.JwkPersister {
+func (p *persister) GetJwkPersisterWithConnection(_ *pop.Connection) persistence.JwkPersister {
 	return p.jwkPersister
 }
 
