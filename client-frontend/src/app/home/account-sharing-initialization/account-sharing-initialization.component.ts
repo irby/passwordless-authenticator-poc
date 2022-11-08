@@ -54,8 +54,6 @@ export class AccountSharingInitializationDialog implements OnInit {
     if (!this.emailFormControl.valid) {
       return; // TODO: Add errors
     }
-
-    console.log(this.loginCountFormControl, this.loginCountFormControl.valid, this.timeMinutesCountFormControl, this.timeMinutesCountFormControl.valid, !!this.loginCountFormControl.errors, !!this.timeMinutesCountFormControl.errors);
     
     if (!!this.loginCountFormControl.errors) {
       return; // TODO: Add errors
