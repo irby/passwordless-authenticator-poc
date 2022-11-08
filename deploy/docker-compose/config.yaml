@@ -21,7 +21,7 @@ server:
       enabled: true
       allow_credentials: true
       allow_origins:
-        - "*"
+        - "http://localhost:4200"
 webauthn:
   relying_party:
     origin: "http://localhost:4200"
