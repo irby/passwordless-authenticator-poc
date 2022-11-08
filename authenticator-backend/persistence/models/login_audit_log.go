@@ -1,11 +1,12 @@
 package models
 
 import (
+	"time"
+
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
 	"github.com/gofrs/uuid"
-	"time"
 )
 
 type LoginAuditLog struct {
@@ -20,7 +21,7 @@ type LoginAuditLog struct {
 	LoginMethod         int        `db:"login_method"`
 }
 
-func (log *LoginAuditLog) Validate(txt *pop.Connection) (*validate.Errors, error) {
+func (log *LoginAuditLog) Validate(_ *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		&validators.UUIDIsPresent{Name: "ID", Field: log.ID},
 		&validators.UUIDIsPresent{Name: "UserId", Field: log.UserId},

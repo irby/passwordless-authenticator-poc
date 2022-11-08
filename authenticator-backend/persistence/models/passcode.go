@@ -1,11 +1,12 @@
 package models
 
 import (
+	"time"
+
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
 	"github.com/gofrs/uuid"
-	"time"
 )
 
 // Passcode is used by pop to map your passcodes database table to your go code.
@@ -20,7 +21,7 @@ type Passcode struct {
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
-func (passcode *Passcode) Validate(tx *pop.Connection) (*validate.Errors, error) {
+func (passcode *Passcode) Validate(_ *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		&validators.UUIDIsPresent{Name: "ID", Field: passcode.ID},
 		&validators.UUIDIsPresent{Name: "UserID", Field: passcode.UserId},

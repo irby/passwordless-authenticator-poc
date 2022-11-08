@@ -1,10 +1,11 @@
 package models
 
 import (
+	"time"
+
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
-	"time"
 )
 
 type WebauthnCredentialsPrivateKey struct {
@@ -15,7 +16,7 @@ type WebauthnCredentialsPrivateKey struct {
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
-func (key *WebauthnCredentialsPrivateKey) Validate(tx *pop.Connection) (*validate.Errors, error) {
+func (key *WebauthnCredentialsPrivateKey) Validate(_ *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		&validators.StringIsPresent{Name: "ID", Field: key.ID},
 		&validators.StringIsPresent{Name: "ID", Field: key.PrivateKey},

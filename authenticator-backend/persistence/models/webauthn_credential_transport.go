@@ -16,7 +16,7 @@ type WebauthnCredentialTransport struct {
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
-func (transport *WebauthnCredentialTransport) Validate(tx *pop.Connection) (*validate.Errors, error) {
+func (transport *WebauthnCredentialTransport) Validate(_ *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		&validators.UUIDIsPresent{Name: "ID", Field: transport.ID},
 		&validators.StringIsPresent{Name: "WebauthnCredentialID", Field: transport.WebauthnCredentialID},

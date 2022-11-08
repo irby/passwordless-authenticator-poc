@@ -26,7 +26,7 @@ type UserGuestRelation struct {
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
-func (relation *UserGuestRelation) Validate(tx *pop.Connection) (*validate.Errors, error) {
+func (relation *UserGuestRelation) Validate(_ *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		&validators.UUIDIsPresent{Name: "ID", Field: relation.ID},
 		&validators.UUIDIsPresent{Name: "GuestUserID", Field: relation.GuestUserID},

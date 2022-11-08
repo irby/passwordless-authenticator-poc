@@ -2,6 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
@@ -12,11 +18,6 @@ import (
 	"github.com/teamhanko/hanko/backend/dto"
 	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/test"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-	"time"
 )
 
 var userId = "ec4ef049-5b88-4321-a173-21b0eff06a04"
@@ -181,11 +182,11 @@ var defaultConfig = config.Config{
 type sessionManager struct {
 }
 
-func (s sessionManager) GenerateJWT(uuid uuid.UUID, surrogateUid uuid.UUID, relationId uuid.UUID) (string, error) {
+func (sessionManager) GenerateJWT(_ uuid.UUID, _ uuid.UUID, _ uuid.UUID) (string, error) {
 	return userId, nil
 }
 
-func (s sessionManager) GenerateCookie(token string) (*http.Cookie, error) {
+func (sessionManager) GenerateCookie(token string) (*http.Cookie, error) {
 	return &http.Cookie{
 		Name:     "hanko",
 		Value:    token,
@@ -195,11 +196,11 @@ func (s sessionManager) GenerateCookie(token string) (*http.Cookie, error) {
 	}, nil
 }
 
-func (s sessionManager) Verify(token string) (jwt.Token, error) {
+func (sessionManager) Verify(_ string) (jwt.Token, error) {
 	return nil, nil
 }
 
-func (s sessionManager) DeleteCookie() (*http.Cookie, error) {
+func (sessionManager) DeleteCookie() (*http.Cookie, error) {
 	return &http.Cookie{
 		Name:     "hanko",
 		Value:    "",
