@@ -77,8 +77,7 @@ export class ShareComponent implements OnInit, OnDestroy {
 
     this.socket?.getEventListener().subscribe(event => {
       if (event.type === 'message') {
-        let message: Message;
-        message = JSON.parse(event.data);
+        const message: Message = JSON.parse(event.data);
         message.parsedContent = JSON.parse(message.content);
 
         switch (message.parsedContent.code) {
@@ -182,8 +181,7 @@ export class ShareComponent implements OnInit, OnDestroy {
   }
 
   private handleClientInformation(data: string): void {
-    let clientInformation: ClientInformation;
-    clientInformation = JSON.parse(data);
+    const clientInformation: ClientInformation = JSON.parse(data);
     this.clientInformation = clientInformation;
   }
 

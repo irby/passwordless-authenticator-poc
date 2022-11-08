@@ -14,7 +14,7 @@ export class RouteSanitizationUtil {
         result.grantId = temp[0];
 
         if (temp.length > 1) {
-            let temp2 = temp[1].split('&');
+            const temp2 = temp[1].split('&');
             temp2.forEach(val => {
                 if (!val.includes('token')) {
                     return;
