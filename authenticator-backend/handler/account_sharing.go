@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-webauthn/webauthn/protocol"
-	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/teamhanko/hanko/backend/dto/intern"
 	"io"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/teamhanko/hanko/backend/dto/intern"
 
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
@@ -227,7 +228,7 @@ func (h *AccountSharingHandler) GetAccountShareGrantWithToken(grantId string, to
 
 		expirationTime := grant.CreatedAt.Add(time.Duration(grant.Ttl) * time.Second)
 		if expirationTime.Before(startTime) {
-			businessError = dto.NewHTTPError(http.StatusRequestTimeout, "grant request timed out").SetInternal(errors.New(fmt.Sprintf("createdAt: %s -> lastVerificationTime: %s", grant.CreatedAt, expirationTime)))
+			businessError = dto.NewHTTPError(http.StatusRequestTimeout, "grant request timed out").SetInternal(fmt.Errorf("createdAt: %s -> lastVerificationTime: %s", grant.CreatedAt, expirationTime))
 			return nil
 		}
 
