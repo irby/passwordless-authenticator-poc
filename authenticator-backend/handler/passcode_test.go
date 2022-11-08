@@ -194,6 +194,6 @@ func passcodes() []models.Passcode {
 type mailer struct {
 }
 
-func (m mailer) Send(_ *gomail.Message) error {
+func (mailer) Send(_ *gomail.Message) error {
 	return nil
 }

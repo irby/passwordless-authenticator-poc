@@ -182,11 +182,11 @@ var defaultConfig = config.Config{
 type sessionManager struct {
 }
 
-func (s sessionManager) GenerateJWT(_ uuid.UUID, _ uuid.UUID, _ uuid.UUID) (string, error) {
+func (sessionManager) GenerateJWT(_ uuid.UUID, _ uuid.UUID, _ uuid.UUID) (string, error) {
 	return userId, nil
 }
 
-func (s sessionManager) GenerateCookie(token string) (*http.Cookie, error) {
+func (sessionManager) GenerateCookie(token string) (*http.Cookie, error) {
 	return &http.Cookie{
 		Name:     "hanko",
 		Value:    token,
@@ -196,11 +196,11 @@ func (s sessionManager) GenerateCookie(token string) (*http.Cookie, error) {
 	}, nil
 }
 
-func (s sessionManager) Verify(_ string) (jwt.Token, error) {
+func (sessionManager) Verify(_ string) (jwt.Token, error) {
 	return nil, nil
 }
 
-func (s sessionManager) DeleteCookie() (*http.Cookie, error) {
+func (sessionManager) DeleteCookie() (*http.Cookie, error) {
 	return &http.Cookie{
 		Name:     "hanko",
 		Value:    "",
