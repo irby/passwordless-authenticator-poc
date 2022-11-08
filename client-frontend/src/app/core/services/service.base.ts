@@ -34,7 +34,7 @@ export abstract class BaseService {
 
         const errorResponse = error?.response?.data as ErrorResponse;
 
-        if (!!errorResponse.errorCode) {
+        if (!!errorResponse?.errorCode) {
             retError.response = errorResponse;
         } else {
             retError.response = {} as ErrorResponse;

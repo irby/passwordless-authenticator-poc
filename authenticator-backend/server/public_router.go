@@ -58,7 +58,7 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 		password.POST("/login", passwordHandler.Login)
 	}
 
-	userHandler := handler.NewUserHandler(persister, sessionManager)
+	userHandler := handler.NewUserHandler(cfg, persister, sessionManager)
 
 	e.GET("/me", userHandler.Me, hankoMiddleware.Session(sessionManager))
 	e.POST("/login/guest", userHandler.InitiateLoginAsGuest, hankoMiddleware.Session(sessionManager))
@@ -117,6 +117,8 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	access := e.Group("/access")
 	share := access.Group("/share", hankoMiddleware.Session(sessionManager))
 	share.POST("/initialize", accountSharingHandler.BeginShare)
+	share.POST("/begin-create-account-with-grant", accountSharingHandler.BeginCreateAccountWithGrant)
+	share.POST("/finish-create-account-with-grant", accountSharingHandler.FinishCreateAccountWithGrant)
 
 	passcode := e.Group("/passcode")
 	passcodeLogin := passcode.Group("/login")
@@ -136,6 +138,11 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 	admin.POST("/login-audit", adminHandler.GetLoginAuditRecordsForUser, hankoMiddleware.Session(sessionManager))
 	admin.PUT("/users/active/:id", adminHandler.ToggleIsActiveForUser, hankoMiddleware.Session(sessionManager))
 	admin.DELETE("/grants/:id", adminHandler.DeactivateGrantsForUser, hankoMiddleware.Session(sessionManager))
+
+	postHandler := handler.NewPostHandler(persister)
+	posts := e.Group("/posts")
+	posts.GET("", postHandler.GetPosts, hankoMiddleware.Session(sessionManager))
+	posts.POST("", postHandler.CreatePost, hankoMiddleware.Session(sessionManager))
 
 	return e
 }

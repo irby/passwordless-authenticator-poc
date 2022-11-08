@@ -40,7 +40,7 @@ type ClientSessionData struct {
 	isAccountHolder  bool
 	client           *Client
 	grantIdReference uuid.UUID
-	userId           uuid.UUID
+	UserId           uuid.UUID `json:"userId,omitempty"`
 }
 
 type MessageCode int64
@@ -285,8 +285,6 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 	}
 	userEmail := user.Email
 
-	fmt.Println(ipAddr, userAgent, userEmail)
-
 	conn, error := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(c.Response(), c.Request(), nil)
 	if error != nil {
 		//http.NotFound(res, req)
@@ -337,19 +335,19 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 			if clientSessionDataManager.clients[clientSessionKey].isAccountHolder {
 				continue
 			}
-			if user.ID != grant.UserId {
-				fmt.Println("Invalid session: Need to satisfy a primary account holder and a guest")
-				conn.Close()
-				conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return fmt.Errorf("")
-			}
+			//if user.ID != grant.UserId {
+			//	fmt.Println("Invalid session: Need to satisfy a primary account holder and a guest")
+			//	conn.Close()
+			//	conn.WriteMessage(websocket.CloseMessage, []byte{})
+			//	return fmt.Errorf("")
+			//}
 		}
 	}
 
 	client := &Client{id: clientKey, socket: conn, send: make(chan []byte)}
 
 	clientSessionDataManager.clients[clientKey] = ClientSessionData{IpAddress: ipAddr, UserAgent: userAgent, Email: userEmail,
-		isAccountHolder: user.ID == grant.UserId, client: client, grantIdReference: grant.ID, userId: user.ID}
+		isAccountHolder: user.ID == grant.UserId, client: client, grantIdReference: grant.ID, UserId: user.ID}
 	manager.register <- client
 
 	if manager.websocketHandler == nil {
@@ -422,12 +420,6 @@ func handleFinalizeGrantConfirm(grant *models.AccountAccessGrant) error {
 
 	if primaryAccountHolderSession == nil || guestSession == nil {
 		return errors.New("both primary account holder and guest sessions are required")
-	}
-
-	err := manager.websocketHandler.accountSharingHandler.CreateAccountWithGrant(grant.ID, primaryAccountHolderSession.userId, guestSession.userId)
-
-	if err != nil {
-		return fmt.Errorf("an error occurred when creating account with grant: %w", err)
 	}
 
 	jsonMessage, _ := json.Marshal(&SocketMessage{Code: AccessGrantSuccess})

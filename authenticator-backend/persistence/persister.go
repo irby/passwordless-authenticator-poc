@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"embed"
+
 	"github.com/gobuffalo/pop/v6"
 	"github.com/teamhanko/hanko/backend/config"
 )
@@ -33,6 +34,7 @@ type Persister interface {
 	GetAccountAccessGrantPersister() AccountAccessGrantPersister
 	GetUserGuestRelationPersister() UserGuestRelationPersister
 	GetLoginAuditLogPersister() LoginAuditLogPersister
+	GetPostPersister() PostPersister
 }
 
 type Migrator interface {
@@ -105,7 +107,7 @@ func (p *persister) GetUserPersister() UserPersister {
 	return NewUserPersister(p.DB)
 }
 
-func (p *persister) GetUserPersisterWithConnection(tx *pop.Connection) UserPersister {
+func (*persister) GetUserPersisterWithConnection(tx *pop.Connection) UserPersister {
 	return NewUserPersister(tx)
 }
 
@@ -113,7 +115,7 @@ func (p *persister) GetPasscodePersister() PasscodePersister {
 	return NewPasscodePersister(p.DB)
 }
 
-func (p *persister) GetPasscodePersisterWithConnection(tx *pop.Connection) PasscodePersister {
+func (*persister) GetPasscodePersisterWithConnection(tx *pop.Connection) PasscodePersister {
 	return NewPasscodePersister(tx)
 }
 
@@ -121,7 +123,7 @@ func (p *persister) GetPasswordCredentialPersister() PasswordCredentialPersister
 	return NewPasswordCredentialPersister(p.DB)
 }
 
-func (p *persister) GetPasswordCredentialPersisterWithConnection(tx *pop.Connection) PasswordCredentialPersister {
+func (*persister) GetPasswordCredentialPersisterWithConnection(tx *pop.Connection) PasswordCredentialPersister {
 	return NewPasswordCredentialPersister(tx)
 }
 
@@ -133,7 +135,7 @@ func (p *persister) GetWebauthnCredentialsPrivateKeyPersister() WebauthnCredenti
 	return NewWebauthnCredentialsPrivateKeyPersister(p.DB)
 }
 
-func (p *persister) GetWebauthnCredentialPersisterWithConnection(tx *pop.Connection) WebauthnCredentialPersister {
+func (*persister) GetWebauthnCredentialPersisterWithConnection(tx *pop.Connection) WebauthnCredentialPersister {
 	return NewWebauthnCredentialPersister(tx)
 }
 
@@ -141,7 +143,7 @@ func (p *persister) GetWebauthnSessionDataPersister() WebauthnSessionDataPersist
 	return NewWebauthnSessionDataPersister(p.DB)
 }
 
-func (p *persister) GetWebauthnSessionDataPersisterWithConnection(tx *pop.Connection) WebauthnSessionDataPersister {
+func (*persister) GetWebauthnSessionDataPersisterWithConnection(tx *pop.Connection) WebauthnSessionDataPersister {
 	return NewWebauthnSessionDataPersister(tx)
 }
 
@@ -153,7 +155,7 @@ func (p *persister) GetJwkPersister() JwkPersister {
 	return NewJwkPersister(p.DB)
 }
 
-func (p *persister) GetJwkPersisterWithConnection(tx *pop.Connection) JwkPersister {
+func (*persister) GetJwkPersisterWithConnection(tx *pop.Connection) JwkPersister {
 	return NewJwkPersister(tx)
 }
 
@@ -167,4 +169,8 @@ func (p *persister) GetUserGuestRelationPersister() UserGuestRelationPersister {
 
 func (p *persister) GetLoginAuditLogPersister() LoginAuditLogPersister {
 	return NewLoginAuditLogPersister(p.DB)
+}
+
+func (p *persister) GetPostPersister() PostPersister {
+	return NewPostPersister(p.DB)
 }

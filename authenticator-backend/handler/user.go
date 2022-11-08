@@ -3,27 +3,47 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/teamhanko/hanko/backend/config"
 	jwt2 "github.com/teamhanko/hanko/backend/crypto/jwt"
 	"github.com/teamhanko/hanko/backend/dto"
+	"github.com/teamhanko/hanko/backend/dto/intern"
 	"github.com/teamhanko/hanko/backend/persistence"
 	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/session"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type UserHandler struct {
 	persister      persistence.Persister
 	sessionManager session.Manager
+	webauthn       *webauthn.WebAuthn
 }
 
-func NewUserHandler(persister persistence.Persister, sessionManager session.Manager) *UserHandler {
-	return &UserHandler{persister: persister, sessionManager: sessionManager}
+func NewUserHandler(cfg *config.Config, persister persistence.Persister, sessionManager session.Manager) *UserHandler {
+	f := false
+	wa, _ := webauthn.New(&webauthn.Config{
+		RPDisplayName:         cfg.Webauthn.RelyingParty.DisplayName,
+		RPID:                  cfg.Webauthn.RelyingParty.Id,
+		RPOrigin:              cfg.Webauthn.RelyingParty.Origin,
+		AttestationPreference: protocol.PreferNoAttestation,
+		AuthenticatorSelection: protocol.AuthenticatorSelection{
+			RequireResidentKey: &f,
+			ResidentKey:        protocol.ResidentKeyRequirementDiscouraged,
+			UserVerification:   protocol.VerificationRequired,
+		},
+		Timeout: cfg.Webauthn.Timeout,
+		Debug:   false,
+	})
+	return &UserHandler{persister: persister, sessionManager: sessionManager, webauthn: wa}
 }
 
 type UserCreateBody struct {
@@ -267,6 +287,56 @@ type UserGuestRelationRequest struct {
 	RelationId string `json:"relationId" validate:"required"`
 }
 
+func (h *UserHandler) BeginLoginAsGuest(c echo.Context) error {
+	sessionToken, err := h.parseAndValidateToken(c, true)
+	if err != nil {
+		return err
+	}
+	var options *protocol.CredentialAssertion
+	var sessionData *webauthn.SessionData
+
+	webauthnUser, err := h.getWebauthnUser(h.persister.GetConnection(), uuid.FromStringOrNil(sessionToken.Subject()))
+	if err != nil {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(fmt.Errorf("unable to get webauthn user for user ID %s: %w", sessionToken.Subject(), err))
+	}
+
+	if webauthnUser == nil {
+		return dto.NewHTTPError(http.StatusBadRequest, "user not found")
+	}
+
+	if len(webauthnUser.WebAuthnCredentials()) > 0 {
+		options, sessionData, err = h.webauthn.BeginLogin(webauthnUser, webauthn.WithUserVerification(protocol.VerificationRequired))
+		if err != nil {
+			return fmt.Errorf("failed to create webauthn assertion options: %w", err)
+		}
+	}
+
+	if options == nil && sessionData == nil {
+		var err error
+		options, sessionData, err = h.webauthn.BeginDiscoverableLogin(webauthn.WithUserVerification(protocol.VerificationRequired))
+		if err != nil {
+			return fmt.Errorf("failed to create webauthn assertion options for discoverable login: %w", err)
+		}
+	}
+
+	err = h.persister.GetWebauthnSessionDataPersister().Create(*intern.WebauthnSessionDataToModel(sessionData, models.WebauthnOperationAuthentication))
+	if err != nil {
+		return fmt.Errorf("failed to store webauthn assertion session data: %w", err)
+	}
+
+	// Remove all transports, because of a bug in android and windows where the internal authenticator gets triggered,
+	// when the transports array contains the type 'internal' although the credential is not available on the device.
+	for i := range options.Response.AllowedCredentials {
+		options.Response.AllowedCredentials[i].Transport = nil
+	}
+
+	return c.JSON(http.StatusOK, options)
+}
+
+func (*UserHandler) FinishLoginAsGuest(_ echo.Context) error {
+	return nil
+}
+
 func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 	sessionToken, ok := c.Get("session").(jwt.Token)
 	if !ok {
@@ -486,4 +556,37 @@ func (h *UserHandler) Logout(c echo.Context) error {
 	c.SetCookie(cookie)
 
 	return c.JSON(http.StatusOK, map[string]string{})
+}
+
+func (*UserHandler) parseAndValidateToken(c echo.Context, shouldBeAccountHolder bool) (jwt.Token, error) {
+	sessionToken, ok := c.Get("session").(jwt.Token)
+	if !ok || sessionToken == nil {
+		return nil, dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("invalid or missing session token"))
+	}
+	surrogateId, err := jwt2.GetSurrogateKeyFromToken(sessionToken)
+	if err != nil || surrogateId == "" {
+		return nil, dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("invalid or missing surrogate id"))
+	}
+	if shouldBeAccountHolder && sessionToken.Subject() != surrogateId {
+		return nil, dto.NewHTTPError(http.StatusForbidden).SetInternal(fmt.Errorf("should be called by primary account holder"))
+	}
+	return sessionToken, nil
+}
+
+func (h *UserHandler) getWebauthnUser(connection *pop.Connection, userId uuid.UUID) (*intern.WebauthnUser, error) {
+	user, err := h.persister.GetUserPersisterWithConnection(connection).Get(userId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	if user == nil {
+		return nil, nil
+	}
+
+	credentials, err := h.persister.GetWebauthnCredentialPersisterWithConnection(connection).GetFromUser(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get webauthn credentials: %w", err)
+	}
+
+	return intern.NewWebauthnUser(*user, credentials), nil
 }

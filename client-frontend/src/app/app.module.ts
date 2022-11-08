@@ -33,6 +33,9 @@ import { AdminUserListModalComponent } from './home/admin-user-list-modal/admin-
 import { AdminUserLoginAuditComponent } from './home/admin-user-list-modal/admin-user-login-audit/admin-user-login-audit.component';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import { AdminUserGrantsComponent } from './home/admin-user-list-modal/admin-user-grants/admin-user-grants.component';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { PostsComponent } from './home/posts/posts.component';
+import { PostService } from './core/services/post.service';
 
 @NgModule({
   declarations: [				
@@ -47,7 +50,8 @@ import { AdminUserGrantsComponent } from './home/admin-user-list-modal/admin-use
       ConfirmBiometricModalComponent,
       AdminUserListModalComponent,
       AdminUserLoginAuditComponent,
-      AdminUserGrantsComponent
+      AdminUserGrantsComponent,
+      PostsComponent
    ],
   imports: [
     BrowserModule,
@@ -57,6 +61,7 @@ import { AdminUserGrantsComponent } from './home/admin-user-list-modal/admin-use
     BrowserAnimationsModule,
     MatButtonModule,
     MatInputModule,
+    MatFormFieldModule,
     MatSlideToggleModule,
     FormsModule,
     MatIconModule,
@@ -68,7 +73,7 @@ import { AdminUserGrantsComponent } from './home/admin-user-list-modal/admin-use
     MatTooltipModule,
     ToastrModule.forRoot(),
   ],
-  providers: [SocketService, AuthenticationService, UserService, GrantService, ChallengeService, AdminService],
+  providers: [SocketService, AuthenticationService, UserService, GrantService, ChallengeService, AdminService, PostService],
   bootstrap: [AppComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })

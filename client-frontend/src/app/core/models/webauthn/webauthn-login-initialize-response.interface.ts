@@ -14,3 +14,18 @@ export interface AllowedCredentials {
     type: string;
     id: string;
 }
+
+export interface CreateAccountWithGrantResponse {
+    options: WebauthnLoginInitializeResponse;
+    grant: GrantAttestationObject;
+}
+
+export interface GrantAttestationObject {
+    accountAccessGrantId: string;
+    guestUserId: string;
+    createdAt: Date;
+    expireByTime: boolean;
+    expireByLogins: boolean;
+    minutesAllowed: number;
+    loginsAllowed: number;
+}

@@ -1,8 +1,10 @@
 import { HttpStatusCode } from '@angular/common/http';
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { GrantService } from '../core/services/grant.service';
+import { ConfirmBiometricContext, ConfirmBiometricData, ConfirmBiometricModalComponent } from '../core/modals/confirm-biometric-modal/confirm-biometric-modal.component';
+import { AuthenticationService } from '../core/services/authentication.service';
 import { NotificationService } from '../core/services/notification.service';
 import { SocketService } from '../core/services/socket.service';
 import { RouteSanitizationUtil } from '../core/utils/route-sanitization-util';
@@ -33,12 +35,14 @@ export class ShareComponent implements OnInit, OnDestroy {
   public clientInformation!: ClientInformation;
 
   public accessGrantSuccessful: boolean | null = null;
+  public currentUserId!: string;
 
   constructor(
-    private readonly socket: SocketService, 
-    private readonly grantService: GrantService, 
+    private readonly socket: SocketService,
     private readonly activatedRoute: ActivatedRoute,
     private readonly notificationService: NotificationService,
+    private readonly authenticationService: AuthenticationService,
+    private readonly matDialog: MatDialog,
     private readonly router: Router) { 
     this.messages = [];
     this.chatBox = "";
@@ -50,8 +54,11 @@ export class ShareComponent implements OnInit, OnDestroy {
     this.querySub.unsubscribe();
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     this.isLoading = true;
+    this.authenticationService.getUserAsObservable().subscribe(user => this.currentUserId = user.id);
+    await this.authenticationService.setLogin();
+    
 
     this.routeSub = this.activatedRoute.params.subscribe(params => { 
       if (!params)
@@ -122,7 +129,22 @@ export class ShareComponent implements OnInit, OnDestroy {
   }
 
   public async confirmGrant() {
-    this.socket?.send(`${MessageCode.ConfirmGrant}`);
+    const data: ConfirmBiometricData = {
+      userId: this.currentUserId,
+      context: ConfirmBiometricContext.UserConfirmGrant,
+      guestUserId: this.clientInformation.userId,
+      grantId: this.id ?? "",
+    }
+    const config: MatDialogConfig = {
+      width: '45em',
+      height: '20em',
+      data: data
+    }
+    this.matDialog.open(ConfirmBiometricModalComponent, config).afterClosed().subscribe(result => {
+      if (result.data?.isSuccess) {
+        this.socket?.send(`${MessageCode.FinalizeGrantConfirm}`);
+      }
+    });
   }
 
   public async denyGrant() {
@@ -211,6 +233,7 @@ export interface ClientInformation {
   ipAddress: string;
   userAgent: string;
   email: string;
+  userId: string;
 }
 export enum MessageCode {
   ConnectedSession = 101,
