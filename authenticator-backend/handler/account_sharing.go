@@ -50,7 +50,7 @@ func NewAccountSharingHandler(cfg *config.Config, persister persistence.Persiste
 		return nil, fmt.Errorf("failed to create new renderer: %w", err)
 	}
 	f := false
-	wa, err := webauthn.New(&webauthn.Config{
+	wa, _ := webauthn.New(&webauthn.Config{
 		RPDisplayName:         cfg.Webauthn.RelyingParty.DisplayName,
 		RPID:                  cfg.Webauthn.RelyingParty.Id,
 		RPOrigin:              cfg.Webauthn.RelyingParty.Origin,
@@ -295,6 +295,9 @@ func (h *AccountSharingHandler) BeginCreateAccountWithGrant(c echo.Context) erro
 	var sessionData *webauthn.SessionData
 
 	webauthnUser, err := h.getWebauthnUser(h.persister.GetConnection(), uuid.FromStringOrNil(sessionToken.Subject()))
+	if err != nil || webauthnUser == nil {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(fmt.Errorf("an error occurred fetching webauthn user for user id %s: %w", sessionToken.Subject(), err))
+	}
 
 	if webauthnUser == nil {
 		return dto.NewHTTPError(http.StatusBadRequest, "user not found")

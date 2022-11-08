@@ -20,8 +20,6 @@ import (
 	"github.com/teamhanko/hanko/backend/session"
 )
 
-const className = "webauthn.go"
-
 type WebauthnHandler struct {
 	persister      persistence.Persister
 	webauthn       *webauthn.WebAuthn

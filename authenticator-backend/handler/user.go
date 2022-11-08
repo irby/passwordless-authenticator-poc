@@ -296,6 +296,9 @@ func (h *UserHandler) BeginLoginAsGuest(c echo.Context) error {
 	var sessionData *webauthn.SessionData
 
 	webauthnUser, err := h.getWebauthnUser(h.persister.GetConnection(), uuid.FromStringOrNil(sessionToken.Subject()))
+	if err != nil {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(fmt.Errorf("unable to get webauthn user for user ID %s: %w", sessionToken.Subject(), err))
+	}
 
 	if webauthnUser == nil {
 		return dto.NewHTTPError(http.StatusBadRequest, "user not found")

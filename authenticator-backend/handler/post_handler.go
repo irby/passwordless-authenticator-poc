@@ -50,6 +50,9 @@ func (h *PostHandler) GetPosts(c echo.Context) error {
 		return dto.NewHTTPError(http.StatusUnauthorized)
 	}
 	user, err := h.persister.GetUserPersister().Get(uuid.FromStringOrNil(sessionToken.Subject()))
+	if err != nil || user == nil {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(fmt.Errorf("an error occurred fetchng user id %s: %w", sessionToken.Subject(), err))
+	}
 	emailMaps := map[uuid.UUID]string{}
 	result := GetPostsDto{}
 

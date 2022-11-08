@@ -13,10 +13,6 @@ import (
 	"math/big"
 )
 
-type GeneratePrivateAndPublicKeyResponse struct {
-	privateKey ecdsa.PrivateKey
-}
-
 func GeneratePrivateKey() (*ecdsa.PrivateKey, error) {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
