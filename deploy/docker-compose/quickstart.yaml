@@ -64,6 +64,18 @@ services:
       - HANKO_ELEMENT_URL=http://localhost:9500
     networks:
       - intranet
+  frontend-2:
+    build: ../../client-frontend
+    depends_on:
+      hanko-migrate:
+        condition: service_completed_successfully
+    ports:
+      - "4201:80"
+    environment:
+      - HANKO_API_URL=http://hanko:8000
+      - HANKO_ELEMENT_URL=http://localhost:9500
+    networks:
+      - intranet
   mailslurper:
     image: marcopas/docker-mailslurper:latest
     ports:
