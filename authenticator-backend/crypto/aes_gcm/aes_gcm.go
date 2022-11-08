@@ -73,7 +73,7 @@ func (a *AESGCM) Decrypt(ciphertext string) (plaintext []byte, err error) {
 	return nil, err
 }
 
-func (a *AESGCM) decrypt(ciphertext string, key [32]byte) ([]byte, error) {
+func (*AESGCM) decrypt(ciphertext string, key [32]byte) ([]byte, error) {
 	raw, err := base64.URLEncoding.DecodeString(ciphertext)
 	if err != nil {
 		return nil, err
