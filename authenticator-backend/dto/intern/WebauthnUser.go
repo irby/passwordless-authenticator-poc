@@ -32,7 +32,7 @@ func (u *WebauthnUser) WebAuthnDisplayName() string {
 	return u.Email
 }
 
-func (u *WebauthnUser) WebAuthnIcon() string {
+func (*WebauthnUser) WebAuthnIcon() string {
 	return ""
 }
 

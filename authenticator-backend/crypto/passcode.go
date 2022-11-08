@@ -17,7 +17,7 @@ func NewPasscodeGenerator() PasscodeGenerator {
 	return &passcodeGenerator{}
 }
 
-func (g *passcodeGenerator) Generate() (string, error) {
+func (*passcodeGenerator) Generate() (string, error) {
 	max := big.NewInt(999999)
 	n, err := rand.Int(rand.Reader, max)
 	if err != nil {
