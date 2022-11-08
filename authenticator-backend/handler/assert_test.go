@@ -1,9 +1,7 @@
 package handler
 
 import (
-	"crypto/rand"
 	"encoding/base64"
-	"fmt"
 	"testing"
 
 	"github.com/go-webauthn/webauthn/protocol/webauthncbor"
@@ -60,6 +58,7 @@ func Test_BreakdownOfEccKey_Mirby7(t *testing.T) {
 	result, err := webauthncbor.Marshal(e)
 	assert.NoError(t, err)
 	key, err := webauthncose.ParsePublicKey(result)
+	assert.NoError(t, err)
 
 	// fmt.Printf("%s\n", base64.RawURLEncoding.EncodeToString(result))
 
@@ -83,22 +82,4 @@ func Test_BreakdownOfSavedEccKey_Mirby7(t *testing.T) {
 	assert.Equal(t, int64(2), data.KeyType)
 	assert.Equal(t, 32, len(data.XCoord))
 	assert.Equal(t, 32, len(data.YCoord))
-}
-
-func shortID(length int) string {
-	var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-_"
-	ll := len(chars)
-	b := make([]byte, length)
-	rand.Read(b) // generates len(b) random bytes
-	for i := 0; i < length; i++ {
-		b[i] = chars[int(b[i])%ll]
-	}
-	return string(b)
-}
-
-func stringToBin(s string) (binString string) {
-	for _, c := range s {
-		binString = fmt.Sprintf("%s%b", binString, c)
-	}
-	return
 }

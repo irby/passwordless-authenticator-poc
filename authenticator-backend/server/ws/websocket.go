@@ -285,8 +285,8 @@ func (p *WebsocketHandler) WsPage(c echo.Context) error {
 	}
 	userEmail := user.Email
 
-	conn, error := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(c.Response(), c.Request(), nil)
-	if error != nil {
+	conn, err := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
 		//http.NotFound(res, req)
 		return fmt.Errorf("")
 	}

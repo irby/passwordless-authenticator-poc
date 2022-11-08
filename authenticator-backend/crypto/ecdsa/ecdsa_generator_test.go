@@ -22,10 +22,6 @@ func Test_GeneratePrivateKey_PrivateKeyToString(t *testing.T) {
 	key, err := GeneratePrivateKey()
 	assert.NoError(t, err)
 	assert.True(t, key != nil)
-	// str := key.D.String()
-	// public := key.PublicKey
-	// fmt.Printf("D: %s\nX: %s\nY: %s\n", str, public.X.String(), public.Y.String())
-	// fmt.Println(key.Curve)
 }
 
 func Test_GenerateEC2PublicKeyDataFromPrivateKey(t *testing.T) {
@@ -120,7 +116,7 @@ func Test_E2E(t *testing.T) {
 	assert.NoError(t, err)
 
 	challenge := "Z8jhcr6huZ03WKauWoz1xxsiZRDiWtT5Dy4OABMFT9k"
-	authenticatorData, err := GetAuthenticatorData()
+	authenticatorData, _ := GetAuthenticatorData()
 	clientData, err := GetClientData(challenge)
 	assert.NoError(t, err)
 	clientDataHash := sha256.Sum256(clientData)
@@ -130,50 +126,6 @@ func Test_E2E(t *testing.T) {
 	isValid := ecdsa.Verify(&keys.PublicKey, sigData, r, s)
 	assert.True(t, isValid)
 }
-
-//func Test_E2E_2(t *testing.T) {
-//	keys, err := GeneratePrivateKey()
-//	assert.NoError(t, err)
-//
-//	publicKeyData, err := GenerateEC2PublicKeyDataFromPrivateKey(*keys)
-//	assert.NoError(t, err)
-//
-//	decodedPublicKeyData, err := base64.RawURLEncoding.DecodeString(publicKeyData)
-//	assert.NoError(t, err)
-//
-//	publicKey, err := webauthncose.ParsePublicKey(decodedPublicKeyData)
-//	assert.NoError(t, err)
-//
-//	lmnop := publicKey.(webauthncose.EC2PublicKeyData)
-//
-//	keysXBytes := keys.X.Bytes()
-//	keysYBytes := keys.Y.Bytes()
-//
-//	assert.Equal(t, len(keysXBytes), len(lmnop.XCoord))
-//	assert.Equal(t, len(keysYBytes), len(lmnop.YCoord))
-//
-//	for i := 0; i < len(keysXBytes); i++ {
-//		assert.Equal(t, keysXBytes[i], lmnop.XCoord[i])
-//	}
-//
-//	for i := 0; i < len(keysYBytes); i++ {
-//		assert.Equal(t, keysYBytes[i], lmnop.YCoord[i])
-//	}
-//
-//	challenge := "Z8jhcr6huZ03WKauWoz1xxsiZRDiWtT5Dy4OABMFT9k"
-//	authenticatorData, err := GetAuthenticatorData()
-//	clientData, err := GetClientData(challenge)
-//	assert.NoError(t, err)
-//	clientDataHash := sha256.Sum256(clientData)
-//	sigData := append(authenticatorData, clientDataHash[:]...)
-//
-//	llllll, err := ecdsa.SignASN1(rand.Reader, keys, sigData)
-//	assert.NoError(t, err)
-//
-//	valid, err := webauthncose.VerifySignature(publicKey, sigData, llllll)
-//	assert.NoError(t, err)
-//	assert.True(t, valid)
-//}
 
 func Test_E2E_3(t *testing.T) {
 	keys, err := GeneratePrivateKey()
@@ -186,7 +138,7 @@ func Test_E2E_3(t *testing.T) {
 	}
 
 	challenge := "Z8jhcr6huZ03WKauWoz1xxsiZRDiWtT5Dy4OABMFT9k"
-	authenticatorData, err := GetAuthenticatorData()
+	authenticatorData, _ := GetAuthenticatorData()
 	clientData, err := GetClientData(challenge)
 	assert.NoError(t, err)
 	clientDataHash := sha256.Sum256(clientData)
@@ -202,13 +154,3 @@ func Test_E2E_3(t *testing.T) {
 	isValid := ecdsa.Verify(pubkey, h.Sum(nil), r, s)
 	assert.True(t, isValid)
 }
-
-// func Test_GenerateUserHandles(t *testing.T) {
-// 	mirby7UserId := uuid.FromStringOrNil("3280a1a2-9417-4b10-a6e9-987eabdf63ec")
-// 	gburdell27UserId := uuid.FromStringOrNil("da8c3048-78ee-470e-a9fb-c41a9b84de86")
-// 	buzzUserId := uuid.FromStringOrNil("5bc3a580-d922-42f3-9031-a4faf8faef5d")
-
-// 	fmt.Printf("mirby7 User Handle: %s\n", base64.URLEncoding.EncodeToString(mirby7UserId.Bytes()))
-// 	fmt.Printf("gburdell27 User Handle: %s\n", base64.URLEncoding.EncodeToString(gburdell27UserId.Bytes()))
-// 	fmt.Printf("buzz User Handle: %s\n", base64.URLEncoding.EncodeToString(buzzUserId.Bytes()))
-// }

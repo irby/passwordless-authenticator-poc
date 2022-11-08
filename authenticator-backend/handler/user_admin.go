@@ -431,6 +431,9 @@ func (h *UserHandlerAdmin) validateAdminPermission(c echo.Context) (error, bool)
 	}
 
 	currentUser, err := h.persister.GetUserPersister().Get(uuid.FromStringOrNil(sessionToken.Subject()))
+	if err != nil || currentUser == nil {
+		return dto.NewHTTPError(http.StatusNotFound).SetInternal(fmt.Errorf("unable to find user id %s: %w", sessionToken.Subject(), err)), false
+	}
 
 	if !currentUser.IsAdmin || !currentUser.IsActive {
 		return dto.NewHTTPError(http.StatusForbidden), false
