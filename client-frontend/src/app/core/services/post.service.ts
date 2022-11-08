@@ -1,6 +1,8 @@
+import { Injectable } from "@angular/core";
 import { ServiceResponse } from "../models/service-response.interface";
 import { BaseService } from "./service.base";
 
+@Injectable()
 export class PostService extends BaseService {
     public async getPosts(): Promise<ServiceResponse<GetPostsDto>> {
         return this.getAsync(`posts`);

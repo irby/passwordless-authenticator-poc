@@ -6,10 +6,14 @@ import { CommonTestingModule } from '../../../testing/utils/CommonTestingModule'
 import { PostDto, PostService } from '../../../app/core/services/post.service';
 import { MockNotificationService } from '../../../testing/mocks/mock.notification-service';
 import { NotificationService } from '../../../app/core/services/notification.service';
+import axios from 'axios';
 
 describe('PostsComponent', () => {
   let component: PostsComponent;
   let fixture: ComponentFixture<PostsComponent>;
+
+  jest.mock("axios");
+  axios.get = jest.fn().mockImplementation(() => {});
 
   CommonTestingModule.setUpTestBed(PostsComponent, {});
 

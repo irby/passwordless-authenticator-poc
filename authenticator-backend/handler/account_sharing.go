@@ -439,7 +439,7 @@ func (h *AccountSharingHandler) FinishCreateAccountWithGrant(c echo.Context) err
 		LoginsAllowed:           grant.LoginsAllowed,
 		ExpireByTime:            grant.ExpireByTime,
 		MinutesAllowed:          grant.MinutesAllowed,
-		CreatedAt:               grant.CreatedAt,
+		CreatedAt:               startTime,
 		UpdatedAt:               startTime,
 		AssociatedAccessGrantId: grant.ID,
 		IsActive:                true,

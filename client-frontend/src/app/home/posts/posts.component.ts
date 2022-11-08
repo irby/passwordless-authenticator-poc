@@ -19,7 +19,6 @@ export class PostsComponent implements OnInit {
   }
 
   async createPost() {
-    console.log(this.postBody);
     if (!this.postBody || this.postBody.trim().length === 0 || this.postBody.trim().length > 150) {
       this.notificationService.error('post must be between 1 and 150 characters');
       return;
