@@ -3,6 +3,9 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
@@ -15,8 +18,6 @@ import (
 	"github.com/teamhanko/hanko/backend/session"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/gomail.v2"
-	"net/http"
-	"time"
 )
 
 type PasscodeHandler struct {
@@ -167,7 +168,7 @@ func (h *PasscodeHandler) Finish(c echo.Context) error {
 
 		lastVerificationTime := passcode.CreatedAt.Add(time.Duration(passcode.Ttl) * time.Second)
 		if lastVerificationTime.Before(startTime) {
-			businessError = dto.NewHTTPError(http.StatusRequestTimeout, "passcode request timed out").SetInternal(errors.New(fmt.Sprintf("createdAt: %s -> lastVerificationTime: %s", passcode.CreatedAt, lastVerificationTime))) // TODO: maybe we should use BadRequest, because RequestTimeout might be to technical and can refer to different error
+			businessError = dto.NewHTTPError(http.StatusRequestTimeout, "passcode request timed out").SetInternal(fmt.Errorf("createdAt: %s -> lastVerificationTime: %s", passcode.CreatedAt, lastVerificationTime)) // TODO: maybe we should use BadRequest, because RequestTimeout might be to technical and can refer to different error
 			return nil
 		}
 

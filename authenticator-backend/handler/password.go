@@ -3,6 +3,9 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"unicode/utf8"
+
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/echo/v4"
@@ -13,8 +16,6 @@ import (
 	"github.com/teamhanko/hanko/backend/persistence/models"
 	"github.com/teamhanko/hanko/backend/session"
 	"golang.org/x/crypto/bcrypt"
-	"net/http"
-	"unicode/utf8"
 )
 
 type PasswordHandler struct {
@@ -71,11 +72,11 @@ func (h *PasswordHandler) Set(c echo.Context) error {
 		}
 
 		if user == nil {
-			return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(errors.New(fmt.Sprintf("user %s not found ", sessionUserId)))
+			return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("user %s not found ", sessionUserId))
 		}
 
 		if sessionUserId != user.ID {
-			return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("session.userId %s tried to set password credentials for body.userId %s", sessionUserId, user.ID)))
+			return dto.NewHTTPError(http.StatusForbidden).SetInternal(fmt.Errorf("session.userId %s tried to set password credentials for body.userId %s", sessionUserId, user.ID))
 		}
 
 		pwPersister := h.persister.GetPasswordCredentialPersisterWithConnection(tx)
@@ -135,7 +136,7 @@ func (h *PasswordHandler) Login(c echo.Context) error {
 
 	pw, err := h.persister.GetPasswordCredentialPersister().GetByUserID(uuid.FromStringOrNil(body.UserId))
 	if pw == nil {
-		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(errors.New(fmt.Sprintf("no password credential found for: %s", body.UserId)))
+		return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(fmt.Errorf("no password credential found for: %s", body.UserId))
 	}
 
 	if err != nil {
