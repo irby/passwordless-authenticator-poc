@@ -69,7 +69,7 @@ func (h *UserHandler) Create(c echo.Context) error {
 		}
 
 		if user != nil {
-			return dto.NewHTTPError(http.StatusConflict).SetInternal(errors.New(fmt.Sprintf("user with email %s already exists", user.Email)))
+			return dto.NewHTTPError(http.StatusConflict).SetInternal(fmt.Errorf("user with email %s already exists", user.Email))
 		}
 
 		newUser := models.NewUser(body.Email)
@@ -91,7 +91,7 @@ func (h *UserHandler) Get(c echo.Context) error {
 	}
 
 	if sessionToken.Subject() != userId {
-		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("user %s tried to get user %s", sessionToken.Subject(), userId)))
+		return dto.NewHTTPError(http.StatusForbidden).SetInternal(fmt.Errorf("user %s tried to get user %s", sessionToken.Subject(), userId))
 	}
 
 	user, err := h.persister.GetUserPersister().Get(uuid.FromStringOrNil(userId))
@@ -368,7 +368,7 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 
 	// Check to verify guest user ID matches the ID coming over on request
 	if relation.GuestUserID.String() != surrogateId {
-		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", surrogateId, relation.ID)))
+		return dto.NewHTTPError(http.StatusForbidden).SetInternal(fmt.Errorf("User ID %s does not have access to assume guest relation ID %s", surrogateId, relation.ID))
 	}
 
 	if relation.ExpireByTime && time.Now().UTC().After(relation.CreatedAt.UTC().Add(time.Duration(relation.MinutesAllowed.Int32)*time.Minute)) {
@@ -377,7 +377,7 @@ func (h *UserHandler) InitiateLoginAsGuest(c echo.Context) error {
 
 		_ = h.persister.GetUserGuestRelationPersister().Update(*relation)
 
-		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("Access on relation ID %s has expired", relation.ID)))
+		return dto.NewHTTPError(http.StatusForbidden).SetInternal(fmt.Errorf("Access on relation ID %s has expired", relation.ID))
 	}
 
 	if relation.ExpireByLogins {
@@ -492,7 +492,7 @@ func (h *UserHandler) RemoveAccessToRelation(c echo.Context) error {
 
 	// Check to verify parent user ID matches the ID coming over on request
 	if relation.ParentUserID.String() != surrogateId {
-		return dto.NewHTTPError(http.StatusForbidden).SetInternal(errors.New(fmt.Sprintf("User ID %s does not have access to assume guest relation ID %s", surrogateId, relation.ID)))
+		return dto.NewHTTPError(http.StatusForbidden).SetInternal(fmt.Errorf("User ID %s does not have access to assume guest relation ID %s", surrogateId, relation.ID))
 	}
 
 	relation.IsActive = false
@@ -500,7 +500,7 @@ func (h *UserHandler) RemoveAccessToRelation(c echo.Context) error {
 
 	err = h.persister.GetUserGuestRelationPersister().Update(*relation)
 	if err != nil {
-		return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(errors.New(fmt.Sprintf("An error occurred while updating the relation ID %s", relation.ID)))
+		return dto.NewHTTPError(http.StatusInternalServerError).SetInternal(fmt.Errorf("An error occurred while updating the relation ID %s", relation.ID))
 	}
 
 	return c.JSON(http.StatusOK, struct{}{})
