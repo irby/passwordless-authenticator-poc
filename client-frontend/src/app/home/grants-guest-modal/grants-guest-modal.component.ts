@@ -37,7 +37,7 @@ export class GrantsGuestModalComponent implements OnInit {
     }
 
     this.isLoading = true;
-    var resp = await this.userService.initiateLoginAsGuest(request);
+    const resp = await this.userService.initiateLoginAsGuest(request);
     this.isLoading = false;
 
     if (resp.type === 'data') {

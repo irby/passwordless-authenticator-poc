@@ -77,7 +77,7 @@ export class ConfirmBiometricModalComponent implements OnInit {
     // If user elected to send a bad biometric, scrabble it up!
     if (!isGood) {
       let newSig = "";
-      for (var i = 0; i < finalizeRequest.response.signature.length; i++) {
+      for (let i = 0; i < finalizeRequest.response.signature.length; i++) {
         const newVal = finalizeRequest.response.signature.charCodeAt(i) + 1;
         newSig += String.fromCharCode(newVal)
       }
