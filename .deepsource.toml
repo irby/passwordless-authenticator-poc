@@ -1,8 +1,19 @@
 version = 1
 
 [[analyzers]]
+name = "javascript"
+enabled = true
+
+  [analyzers.meta]
+  plugins = ["angular"]
+
+[[analyzers]]
 name = "go"
 enabled = true
 
   [analyzers.meta]
   import_root = "github.com/irby/passwordless-authenticator-poc"
+
+[[transformers]]
+name = "prettier"
+enabled = true
