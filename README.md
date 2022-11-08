@@ -2,6 +2,7 @@
 
 ![Go Status](https://github.com/irby/passwordless-authenticator-poc/actions/workflows/go.yml/badge.svg)
 ![Angular Status](https://github.com/irby/passwordless-authenticator-poc/actions/workflows/angular.yml/badge.svg)
+[![DeepSource](https://deepsource.io/gh/irby/passwordless-authenticator-poc.svg/?label=active+issues&show_trend=true&token=18F2Tg-z_fmRT7644g5aQoft)](https://deepsource.io/gh/irby/passwordless-authenticator-poc/?ref=repository-badge)
 
 ## Allow users to securely share their accounts in a passwordless environment
 
