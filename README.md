@@ -37,10 +37,10 @@ The project contains the following structure:
 - ### Authenticator Backend
   - This contains the code to run the authenticator API. The authenticator API will be consume by the authenticator front end, client front-end and client back-end.
 
-- ### Authenticator Frontend
+- ### ~~Authenticator Frontend~~ (not used)
   - The contains the code for the authenticator front-end that will be run by two different users on differing sessions: the primary account holder and another user the account holder will share the account with.
 
-- ### Client API
+- ### ~~Client API~~ (not used)
   - This contains the code to run the client app's backend. The client API will send the authentication token to the authenticator API to validate session tokens and send refresh tokens. The API will also handle logic of its own, such as serving its content to the client front-end.
 
 - ### Client Frontend
@@ -65,6 +65,7 @@ The project contains the following structure:
     - Authenticator Backend - http://localhost:8000
     - Mailslurper - http://localhost:8080
     - Client Frontend - http://localhost:4200
+    - Copy of Frontend running on different port (to test CORS) - http://localhost:4201
 
 
 # Accounts
