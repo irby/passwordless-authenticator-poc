@@ -82,9 +82,9 @@ func (h *SignatureFakerHandler) getWebauthnCredentialForUser(userId string) (*mo
 
 	var credential *models.WebauthnCredential
 
-	for _, cred := range credentials {
-		if cred.AAGUID != uuid.Nil {
-			credential = &cred
+	for i := range credentials {
+		if credentials[i].AAGUID != uuid.Nil {
+			credential = &credentials[i]
 		}
 	}
 

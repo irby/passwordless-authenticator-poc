@@ -40,7 +40,6 @@ describe('PostsComponent', () => {
       id: "myid",
       created_at: new Date(),
       created_by: "hello@example.com",
-      created_by_surrogate: undefined,
       data: "eeeee"
     }
     const result = component.shouldShowSurrogate(post);
