@@ -1,24 +1,24 @@
 import { Injectable } from "@angular/core";
-import { NullInt, NullInt32 } from "../models/null-int";
+import { NullInt32 } from "../models/null-int";
 import { ServiceResponse } from "../models/service-response.interface";
 import { BaseService } from "./service.base";
 
 @Injectable()
 export class AdminService extends BaseService {
     public async getUsers(): Promise<ServiceResponse<UserDto[]>> {
-        return this.getAsync(`admin/users`);
+        return await this.getAsync(`admin/users`);
     }
     public async getLoginAuditLogForUser(userId: string): Promise<ServiceResponse<LoginAuditLogResponseDto>> {
-        return this.postAsync(`admin/login-audit`, {userId: userId});
+        return await this.postAsync(`admin/login-audit`, {userId: userId});
     }
     public async getGrantsForUser(userId: string): Promise<ServiceResponse<GetGrantsForUserResponse>> {
-        return this.getAsync(`admin/grants/${userId}`);
+        return await this.getAsync(`admin/grants/${userId}`);
     }
     public async toggleUserIsActive(userId: string): Promise<ServiceResponse<void>> {
-        return this.putAsync(`admin/users/active/${userId}`);
+        return await this.putAsync(`admin/users/active/${userId}`);
     }
     public async deactivateGrantsForUser(userId: string): Promise<ServiceResponse<void>> {
-        return this.deleteAsync(`admin/grants/${userId}`);
+        return await this.deleteAsync(`admin/grants/${userId}`);
     }
 }
 

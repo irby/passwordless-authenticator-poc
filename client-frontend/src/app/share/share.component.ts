@@ -133,7 +133,7 @@ export class ShareComponent implements OnInit, OnDestroy {
     });
   }
 
-  public async confirmGrant() {
+  public confirmGrant() {
     const data: ConfirmBiometricData = {
       userId: this.currentUserId,
       context: ConfirmBiometricContext.UserConfirmGrant,
@@ -155,7 +155,7 @@ export class ShareComponent implements OnInit, OnDestroy {
       });
   }
 
-  public async denyGrant() {
+  public denyGrant() {
     this.socket?.send(`${MessageCode.DenyGrant}`);
     this.isConnected = false;
   }
