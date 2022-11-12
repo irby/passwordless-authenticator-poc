@@ -30,6 +30,21 @@ After many years of design and gradual adoption, passwordless authentication is 
 
 As it is currently designed, passwordless authentication does not allow users to be able to share their accounts with others. I would like to introduce a novel concept of allowing users to securely share their accounts without risk of account takeover, and also allow IT auditing to identify which individual is accessing an account.
 
+# Dependencies
+
+## Running from Docker
+In order to run the project locally using Docker, the following must be installed:
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+## Running Locally
+
+- Go
+- Node (>=16.16.0) / NVM
+- PostgreSQL (optionally, can run from Docker)
+
+
 # Project Structure
 
 The project contains the following structure:
@@ -66,6 +81,7 @@ The project contains the following structure:
     - Mailslurper - http://localhost:8080
     - Client Frontend - http://localhost:4200
     - Copy of Frontend running on different port (to test CORS) - http://localhost:4201
+      - Any call made to the backend should fail due to CORS
 
 
 # Accounts
