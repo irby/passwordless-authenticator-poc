@@ -1,5 +1,6 @@
 import { Component, OnInit } from "@angular/core";
 import { MatDialogRef } from "@angular/material/dialog";
+import { NotificationService } from "src/app/core/services/notification.service";
 import {
   GetAccountSharesResponseDto,
   UserGuestRelationRequest,
@@ -17,7 +18,8 @@ export class GrantsGuestModalComponent implements OnInit {
 
   constructor(
     private readonly dialogRef: MatDialogRef<GrantsGuestModalComponent>,
-    private readonly userService: UserService
+    private readonly userService: UserService,
+    private readonly notificationService: NotificationService
   ) {}
 
   async ngOnInit() {
@@ -47,5 +49,7 @@ export class GrantsGuestModalComponent implements OnInit {
       localStorage.removeItem("user");
       window.location.reload();
     }
+
+    this.notificationService.dismissibleError("Login failed. Is the grant still active?", "Login failed");
   }
 }
