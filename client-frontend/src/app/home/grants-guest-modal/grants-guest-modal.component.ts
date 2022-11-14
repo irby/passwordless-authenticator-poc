@@ -50,6 +50,9 @@ export class GrantsGuestModalComponent implements OnInit {
       window.location.reload();
     }
 
-    this.notificationService.dismissibleError("Login failed. Is the grant still active?", "Login failed");
+    this.notificationService.dismissibleError(
+      "Login failed. Is the grant still active?",
+      "Login failed"
+    );
   }
 }
